@@ -3,6 +3,7 @@
 import React from 'react';
 import { DCLogic } from './dc/DCLogic';
 import { I18N } from './i18n';
+import { catStampFromLetter } from './solana/catStamp';
 
 export default class CatPalLogic extends DCLogic {
   state: Record<string, any> = {
@@ -230,9 +231,14 @@ export default class CatPalLogic extends DCLogic {
 
     const countries = new Set(known.map((k) => PALS[k].country[0])).size;
     const totalKm = st.sent.reduce((a, s) => a + PALS[s.pal].km, 0);
+    // The Cat Stamp behind a pal's Passport stamp: their first letter the user has opened (collected).
+    const collectedStamp = (id) => {
+      const opened = st.inbox.filter((m) => m.pal === id && !m.unread).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+      return opened.length ? catStampFromLetter(opened[0], PALS[id].country[0]) : null;
+    };
     const stampBook = [
       { img: "./assets/pm/seoul.png", label: myName, sub: "Seoul 🇰🇷", owned: true, open: openProfile("me") },
-      ...Object.keys(PALS).map((id) => ({ img: pmOf(PALS[id]), label: known.includes(id) ? PALS[id].name : "???", sub: known.includes(id) ? PALS[id].city + " " + PALS[id].flag : tx("yetToMeet"), owned: known.includes(id), open: known.includes(id) ? openProfile(id) : () => this.setState({ sheet: "to", lockHint: false }) })),
+      ...Object.keys(PALS).map((id) => ({ catStamp: known.includes(id) ? collectedStamp(id) : null, img: pmOf(PALS[id]), label: known.includes(id) ? PALS[id].name : "???", sub: known.includes(id) ? PALS[id].city + " " + PALS[id].flag : tx("yetToMeet"), owned: known.includes(id), open: known.includes(id) ? openProfile(id) : () => this.setState({ sheet: "to", lockHint: false }) })),
           ].map((s, i) => ({ ...s, locked: !s.owned, opacity: s.owned ? .9 : .13, filter: s.owned ? "none" : "grayscale(1)", rot: [-9, 6, -4, 11, -7, 3, -12, 8, -5, 10, -2, 7][i % 12], dy: [0, 8, -4, 6, -6, 4, 2, -8, 6, -2, 8, -4][i % 12] }));
 
     const calCells = [];

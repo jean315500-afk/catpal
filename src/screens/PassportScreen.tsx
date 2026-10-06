@@ -2,6 +2,7 @@
 import { css, each, I, R } from '../dc/runtime';
 import type { Vals } from '../dc/runtime';
 import WalletSection from '../solana/WalletSection';
+import CatStampSave from '../solana/CatStampSave';
 
 export default function PassportScreen({ v }: { v: Vals }) {
   return (
@@ -80,6 +81,8 @@ export default function PassportScreen({ v }: { v: Vals }) {
                         <span style={{ marginTop: "-6px", fontWeight: "500", fontSize: "10px", lineHeight: "14px", color: "#a89f8d", textAlign: "center" }}>
                           {I(s?.sub)}
                         </span>
+                        {/* Cat Stamp from the first opened letter of this pal: "Save on Solana" (Devnet) */}
+                        {s?.catStamp ? <CatStampSave stamp={s.catStamp} /> : null}
                       </div>
                     </>
                   ))}

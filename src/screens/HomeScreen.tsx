@@ -93,11 +93,9 @@ export default function HomeScreen({ v }: { v: Vals }) {
             <div>
               {v.noNewMail ? (
                 <>
-                  {/* empty envelope: nothing has arrived yet */}
-                  <div style={{ marginTop: "-12px", position: "relative", height: "124px", borderRadius: "5px", background: "#FBF8F2", boxShadow: "0 2px 8px rgba(0,0,0,.05)", overflow: "hidden" }}>
-                    <div style={{ position: "absolute", left: "0", right: "0", top: "0", height: "50px", background: "#F3ECDD", opacity: ".7", clipPath: "polygon(0 0,100% 0,50% 100%)" }} />
-                    <div style={{ position: "absolute", right: "12px", top: "12px", width: "32px", height: "43px", border: "1.5px dashed #D9D1C1", borderRadius: "2px", boxSizing: "border-box" }} />
-                    <span style={{ position: "absolute", left: "14px", right: "14px", bottom: "12px", fontWeight: "500", fontSize: "12px", lineHeight: "17px", color: "#a89f8d" }}>
+                  {/* empty state: dashed box, same height as a mail card */}
+                  <div style={{ marginTop: "-12px", height: "124px", border: "2px dashed #E7E2D8", borderRadius: "14px", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 20px" }}>
+                    <span style={{ fontWeight: "500", fontSize: "12px", lineHeight: "17px", color: "#a89f8d", textAlign: "center" }}>
                       {I(v.t?.noMail)}
                     </span>
                   </div>
