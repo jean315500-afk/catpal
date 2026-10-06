@@ -1,6 +1,7 @@
 // PASSPORT — converted from the Claude Design prototype (Cat Pal v6.dc.html).
 import { css, each, I, R } from '../dc/runtime';
 import type { Vals } from '../dc/runtime';
+import WalletSection from '../solana/WalletSection';
 
 export default function PassportScreen({ v }: { v: Vals }) {
   return (
@@ -43,6 +44,7 @@ export default function PassportScreen({ v }: { v: Vals }) {
                 ))}
               </div>
             </div>
+            <WalletSection />
             <div style={{ marginTop: "18px", display: "flex", gap: "6px", padding: "4px", borderRadius: "22px", background: "#F6F6F6" }}>
               {each(v.ppTabs, (b) => (
                 <>

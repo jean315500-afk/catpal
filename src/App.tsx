@@ -1,4 +1,5 @@
 import { DCHost } from './dc/DCHost';
+import { WalletProvider } from './solana/WalletProvider';
 import CatPalLogic from './CatPalLogic';
 import IntroScreen from './screens/IntroScreen';
 import HomeScreen from './screens/HomeScreen';
@@ -33,6 +34,7 @@ const PROTOTYPE_PROPS = {
 
 export default function App() {
   return (
+    <WalletProvider>
     <div className="sc-host">
       <DCHost
         logic={CatPalLogic}
@@ -68,5 +70,6 @@ export default function App() {
         )}
       />
     </div>
+    </WalletProvider>
   );
 }
