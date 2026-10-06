@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&amp;display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+body{margin:0;background:#EDEAE3;font-family:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+a{color:#010002}a:hover{color:#FF4800}
+input,textarea{font-family:Pretendard,sans-serif}
+@keyframes cp-fadeup{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes cp-fade{from{opacity:0}to{opacity:1}}
+@keyframes cp-drift{from{transform:translateX(0)}to{transform:translateX(-520px)}}
+@keyframes cp-fly{0%{transform:translate(-180px,80px) rotate(-16deg) scale(.55);opacity:0}12%{opacity:1}55%{transform:translate(-10px,-155px) rotate(5deg) scale(1.05)}92%{opacity:1}100%{transform:translate(96px,-58px) rotate(16deg) scale(.45);opacity:0}}
+@keyframes cp-pin{0%{transform:translateY(-30px) scale(.2);opacity:0}55%{transform:translateY(0) scale(1.18);opacity:1}78%{transform:scale(.94)}100%{transform:scale(1)}}
+@keyframes cp-pulse{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes cp-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes cp-pop{0%{transform:scale(0);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+@keyframes cp-postmark{0%{opacity:0;transform:scale(1.7) rotate(-16deg)}55%{opacity:1;transform:scale(.92) rotate(-6deg)}100%{opacity:.92;transform:scale(1) rotate(-8deg)}}
+@keyframes cp-float{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-5px) rotate(2deg)}}
+@keyframes cp-progress{from{width:0}to{width:100%}}
+@keyframes cp-run{from{transform:translateX(0)}to{transform:translateX(296px)}}
+@keyframes cp-rpopa{0%{transform:scale(1)}40%{transform:scale(1.6) rotate(-10deg)}70%{transform:scale(.9)}100%{transform:scale(1)}}
+@keyframes cp-wiga{0%,100%{transform:none}20%{transform:translateY(-6px) rotate(-3deg)}40%{transform:rotate(3deg)}60%{transform:rotate(-2deg)}80%{transform:rotate(1deg)}}
+@keyframes cp-b0a{0%{transform:translate(0,0) scale(.4);opacity:0}15%{transform:translate(-12px,-44px) scale(1);opacity:1}100%{transform:translate(-70px,-260px) rotate(-25deg) scale(1.3);opacity:0}}
+@keyframes cp-b1a{0%{transform:translate(0,0) scale(.4);opacity:0}15%{transform:translate(-6px,-54px) scale(1);opacity:1}100%{transform:translate(-35px,-320px) rotate(15deg) scale(1.1);opacity:0}}
+@keyframes cp-b2a{0%{transform:translate(0,0) scale(.4);opacity:0}15%{transform:translate(0px,-60px) scale(1);opacity:1}100%{transform:translate(0px,-360px) rotate(-10deg) scale(1.5);opacity:0}}
+@keyframes cp-b3a{0%{transform:translate(0,0) scale(.4);opacity:0}15%{transform:translate(5px,-50px) scale(1);opacity:1}100%{transform:translate(35px,-300px) rotate(20deg) scale(1.2);opacity:0}}
+@keyframes cp-b4a{0%{transform:translate(0,0) scale(.4);opacity:0}15%{transform:translate(11px,-42px) scale(1);opacity:1}100%{transform:translate(70px,-250px) rotate(-15deg) scale(1.0);opacity:0}}
+@keyframes cp-b5a{0%{transform:translate(0,0) scale(.4);opacity:0}15%{transform:translate(-3px,-35px) scale(1);opacity:1}100%{transform:translate(-15px,-210px) rotate(30deg) scale(0.9);opacity:0}}
+@keyframes cp-b6a{0%{transform:translate(0,0) scale(.4);opacity:0}15%{transform:translate(3px,-39px) scale(1);opacity:1}100%{transform:translate(20px,-230px) rotate(-30deg) scale(1.1);opacity:0}}
+@keyframes cp-rpopb{0%{transform:scale(1)}40%{transform:scale(1.6) rotate(-10deg)}70%{transform:scale(.9)}100%{transform:scale(1)}}
+@keyframes cp-wigb{0%,100%{transform:none}20%{transform:translateY(-6px) rotate(-3deg)}40%{transform:rotate(3deg)}60%{transform:rotate(-2deg)}80%{transform:rotate(1deg)}}
+@keyframes cp-b0b{0%{transform:translate(0,0) scale(.4);opacity:0}15%{transform:translate(-12px,-44px) scale(1);opacity:1}100%{transform:translate(-70px,-260px) rotate(-25deg) scale(1.3);opacity:0}}
+@keyframes cp-b1b{0%{transform:translate(0,0) scale(.4);opacity:0}15%{transform:translate(-6px,-54px) scale(1);opacity:1}100%{transform:translate(-35px,-320px) rotate(15deg) scale(1.1);opacity:0}}
+@keyframes cp-b2b{0%{transform:translate(0,0) scale(.4);opacity:0}15%{transform:translate(0px,-60px) scale(1);opacity:1}100%{transform:translate(0px,-360px) rotate(-10deg) scale(1.5);opacity:0}}
+@keyframes cp-b3b{0%{transform:translate(0,0) scale(.4);opacity:0}15%{transform:translate(5px,-50px) scale(1);opacity:1}100%{transform:translate(35px,-300px) rotate(20deg) scale(1.2);opacity:0}}
+@keyframes cp-b4b{0%{transform:translate(0,0) scale(.4);opacity:0}15%{transform:translate(11px,-42px) scale(1);opacity:1}100%{transform:translate(70px,-250px) rotate(-15deg) scale(1.0);opacity:0}}
+@keyframes cp-b5b{0%{transform:translate(0,0) scale(.4);opacity:0}15%{transform:translate(-3px,-35px) scale(1);opacity:1}100%{transform:translate(-15px,-210px) rotate(30deg) scale(0.9);opacity:0}}
+@keyframes cp-b6b{0%{transform:translate(0,0) scale(.4);opacity:0}15%{transform:translate(3px,-39px) scale(1);opacity:1}100%{transform:translate(20px,-230px) rotate(-30deg) scale(1.1);opacity:0}}
+@keyframes cp-tuck{0%{transform:translateY(-260px) rotate(-8deg);opacity:0}15%{opacity:1}62%{transform:translateY(22px) rotate(1.5deg)}80%{transform:translateY(-6px) rotate(-.5deg)}100%{transform:none}}
+@keyframes cp-gulp{0%,100%{transform:none}50%{transform:scale(1.015,.99)}}
+@keyframes cp-sheet{from{transform:translateY(100%)}to{transform:none}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 12px;box-sizing:border-box">
+<div style="position:relative;width:402px;height:874px;background:#fff;border-radius:22px;box-shadow:0 24px 60px rgba(30,26,18,.18),0 0 0 1px rgba(0,0,0,.06);overflow:hidden;flex:none;font-family:Pretendard,-apple-system,sans-serif;color:#010002">
+
+<!-- ===== 01 INTRO ===== -->
+<sc-if value="{{ sIntro }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="01 Intro" style="position:absolute;inset:0;background:#fff;animation:cp-fadeup .3s ease">
+  <div style="position:absolute;left:46px;top:210px;width:310px;height:190px;border-radius:14px;background:#F9F4EB;box-shadow:0 2px 10px rgba(0,0,0,.05)">
+    <span style="position:absolute;left:22px;top:22px;font-family:Inter,sans-serif;font-size:12px;white-space:nowrap">To. Momo</span>
+    <img src="./assets/stamp-1.png" alt="stamp" style="position:absolute;left:218px;top:14px;width:62px;height:84px;object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18))">
+    <div style="position:absolute;left:100px;top:14px;width:118px;height:86px;background:url(./assets/pm/seoul.png) center / contain no-repeat;mix-blend-mode:multiply;opacity:.92;transform:rotate(-8deg)"></div>
+  </div>
+  <div style="position:absolute;left:0;right:0;top:540px;display:flex;flex-direction:column;gap:12px;align-items:center;padding:0 40px">
+    <span style="font-weight:700;font-size:20px;line-height:30px;text-align:center">{{ t.introTitle }}</span>
+    <span style="font-weight:500;font-size:14px;line-height:23px;text-align:center;white-space:pre-line">{{ t.introSub }}</span>
+  </div>
+  <div onClick="{{ goHome }}" style-hover="transform:scale(1.02)" style="position:absolute;left:78px;top:700px;width:245px;height:61px;border-radius:15px;background:#010002;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s ease">
+    <span style="font-family:Inter,sans-serif;font-weight:700;font-size:15px;color:#fff">{{ t.start }}</span>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== HOME ===== -->
+<sc-if value="{{ sHome }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Home" style="position:absolute;inset:0;background:#fff;animation:cp-fade .25s ease;overflow-y:auto;overflow-x:hidden;scrollbar-width:none">
+  <div style="padding:58px 25px 120px;display:flex;flex-direction:column">
+    <!-- SEND -->
+    <span style="font-weight:700;font-size:21px;line-height:29px;text-wrap:pretty">{{ t.homeQ }}</span>
+
+    <div style="position:relative;margin-top:16px;height:232px;border-radius:6px;background:#F9F4EB;box-shadow:0 3px 12px rgba(0,0,0,.08);overflow:hidden">
+      <!-- envelope flap -->
+      <div style="position:absolute;left:0;right:0;top:0;height:92px;background:#F3ECDD;clip-path:polygon(0 0,100% 0,50% 100%)"></div>
+      <div style="position:absolute;right:22px;top:20px;width:60px;height:80px;background:url({{ heroStamp }}) center / contain no-repeat;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18))"></div>
+      <div style="position:absolute;right:62px;top:18px;width:108px;height:80px;background:url(./assets/pm/seoul.png) center / contain no-repeat;mix-blend-mode:multiply;opacity:.92;transform:rotate(-8deg)"></div>
+      <div onClick="{{ openMe }}" style-hover="transform:rotate(0deg) scale(1.04)" style="position:absolute;left:24px;top:62px;width:116px;height:92px;box-shadow:0 0 0 4px #FEFEFE,0 2px 4px #cecece;transform:rotate(-4deg);overflow:hidden;cursor:pointer;transition:transform .15s ease">
+        <sc-if value="{{ hasPhoto }}" hint-placeholder-val="{{ false }}"><div style="width:100%;height:100%;background:url({{ myPhoto }}) center / cover no-repeat"></div></sc-if>
+        <sc-if value="{{ noPhoto }}" hint-placeholder-val="{{ true }}"><image-slot id="my-cat" shape="rect" placeholder="cat pic"></image-slot></sc-if>
+      </div>
+      <div style="position:absolute;left:24px;right:20px;bottom:20px;display:flex;align-items:flex-end;justify-content:space-between;gap:10px">
+        <span style="font-family:Inter,sans-serif;font-weight:700;font-size:15px;line-height:21px;white-space:nowrap">{{ t.heroTo }}</span>
+        <span style="text-align:right;font-weight:500;font-size:12px;line-height:18px;color:{{ heroStatusColor }}">{{ t.heroStatus }}</span>
+      </div>
+    </div>
+
+    <div onClick="{{ openSendSheet }}" style-hover="transform:scale(1.02)" style="margin-top:12px;height:56px;border-radius:15px;background:#010002;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s ease">
+      <span style="font-family:Inter,sans-serif;font-weight:700;font-size:15px;color:#fff">{{ t.sendCatMail }}</span>
+    </div>
+
+    <!-- RECEIVE -->
+    <div style="margin-top:28px;display:flex;align-items:center;gap:8px">
+      <span style="font-weight:700;font-size:16px;line-height:24px">{{ t.newMail }}</span>
+      <sc-if value="{{ hasNewMail }}" hint-placeholder-val="{{ false }}">
+        <div style="min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;background:#FF4800;display:flex;align-items:center;justify-content:center"><span style="font-weight:700;font-size:11px;color:#fff">{{ newMailCount }}</span></div>
+      </sc-if>
+    </div>
+    <div style="margin:10px -25px 0;padding:4px 25px 10px;display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding:0 25px;scrollbar-width:none">
+      <sc-for list="{{ newMailCards }}" as="m" hint-placeholder-count="2">
+        <div onClick="{{ m.open }}" style-hover="transform:translateY(-2px)" style="flex:none;position:relative;width:148px;height:124px;border-radius:5px;background:#F9F4EB;box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer;transition:transform .15s ease;overflow:hidden;scroll-snap-align:start">
+          <div style="position:absolute;left:0;right:0;top:0;height:46px;background:#F3ECDD;clip-path:polygon(0 0,100% 0,50% 100%)"></div>
+          <div style="position:absolute;right:10px;top:10px;width:32px;height:43px;background:url({{ m.stamp }}) center / contain no-repeat;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18))"></div>
+          <div style="position:absolute;right:30px;top:8px;width:56px;height:41px;background:url({{ m.pm }}) center / contain no-repeat;mix-blend-mode:multiply;opacity:.92;transform:rotate(-8deg)"></div>
+          <div style="position:absolute;left:10px;top:10px;padding:1px 7px;border-radius:8px;background:#FF4800"><span style="font-weight:700;font-size:9px;color:#fff">{{ t.newTag }}</span></div>
+          <div style="position:absolute;left:12px;right:10px;bottom:10px;display:flex;flex-direction:column;gap:1px">
+            <span style="font-weight:700;font-size:14px;line-height:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.title }}</span>
+            <span style="font-weight:500;font-size:11px;line-height:16px;color:#746e63;white-space:nowrap">{{ m.flag }} {{ m.city }}</span>
+            <sc-if value="{{ m.locked }}" hint-placeholder-val="{{ false }}">
+              <span style="margin-top:3px;font-weight:600;font-size:10.5px;line-height:15px;color:#010002;white-space:nowrap">🔒 {{ t.locked }}</span>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div>
+      <sc-if value="{{ noNewMail }}" hint-placeholder-val="{{ true }}">
+        <!-- empty envelope: nothing has arrived yet -->
+        <div style="margin-top:-12px;position:relative;height:124px;border-radius:5px;background:#FBF8F2;box-shadow:0 2px 8px rgba(0,0,0,.05);overflow:hidden">
+          <div style="position:absolute;left:0;right:0;top:0;height:50px;background:#F3ECDD;opacity:.7;clip-path:polygon(0 0,100% 0,50% 100%)"></div>
+          <div style="position:absolute;right:12px;top:12px;width:32px;height:43px;border:1.5px dashed #D9D1C1;border-radius:2px;box-sizing:border-box"></div>
+          <span style="position:absolute;left:14px;right:14px;bottom:12px;font-weight:500;font-size:12px;line-height:17px;color:#a89f8d">{{ t.noMail }}</span>
+        </div>
+      </sc-if>
+    </div>
+
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== 02 UPLOAD ===== -->
+<sc-if value="{{ sUpload }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="02 Upload" style="position:absolute;inset:0;background:#fff;animation:cp-fadeup .3s ease">
+  <div style="position:absolute;left:0;right:0;top:150px;display:flex;flex-direction:column;align-items:center;gap:2px">
+    <span style="font-family:Inter,sans-serif;font-size:12px;color:#746e63">To.</span>
+    <span style="font-weight:700;font-size:18px;line-height:27px">{{ t.toName }}</span>
+  </div>
+  <div style="position:absolute;left:46px;top:240px;width:310px;height:220px;background:#F9F4EB"></div>
+  <div onClick="{{ openPhotoSheet }}" style-hover="transform:scale(1.02)" style="position:absolute;left:126px;top:262px;width:150px;height:176px;background:#D9D9D9;border:5px solid #fff;box-sizing:border-box;box-shadow:0 2px 3.6px #cecece;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:transform .15s ease">
+    <span style="font-weight:500;font-size:36px;line-height:1">+</span>
+    <span style="font-weight:500;font-size:13px;line-height:22px;text-align:center;white-space:pre-line">{{ t.upload }}</span>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== 03 CAMERA ===== -->
+<sc-if value="{{ sCamera }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="03 Camera" style="position:absolute;inset:0;background:#161412;animation:cp-fade .25s ease">
+  <div style="position:absolute;left:0;right:0;top:100px;height:560px">
+    <video ref="{{ videoRef }}" autoPlay="{{ true }}" playsInline="{{ true }}" muted="{{ true }}" style="width:100%;height:100%;object-fit:cover;background:#161412"></video>
+    <sc-if value="{{ camErr }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 40px;text-align:center">
+        <span style="font-weight:500;font-size:14px;line-height:22px;color:#fff">{{ t.camErr }}</span>
+        <div onClick="{{ pickAlbum }}" style="height:44px;padding:0 20px;border-radius:22px;background:#fff;display:flex;align-items:center;cursor:pointer"><span style="font-weight:700;font-size:14px">{{ t.album }}</span></div>
+      </div>
+    </sc-if>
+  </div>
+  <div onClick="{{ back }}" style="position:absolute;left:20px;top:50px;width:34px;height:34px;border-radius:50%;background:rgba(60,58,54,.9);display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="color:#fff;font-size:15px;line-height:1">✕</span></div>
+  <div onClick="{{ pickAlbum }}" style="position:absolute;right:20px;top:50px;width:34px;height:34px;border-radius:8px;background:rgba(60,58,54,.9);display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="font-size:14px">🖼</span></div>
+  <div style="position:absolute;left:0;right:0;bottom:36px;display:flex;justify-content:center;align-items:center">
+    <div onClick="{{ capture }}" style-hover="transform:scale(1.06)" style="width:66px;height:66px;border-radius:50%;border:4px solid #fff;box-sizing:border-box;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s ease"><div style="width:50px;height:50px;border-radius:50%;background:#fff"></div></div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== 04 CAT INFO (first time) ===== -->
+<sc-if value="{{ sInfo }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="04 Cat info" style="position:absolute;inset:0;background:#fff;animation:cp-fadeup .3s ease">
+  <div style="position:absolute;left:134px;top:120px;width:134px;height:166px;box-shadow:0 0 0 7px #FEFEFE,0 2px 6px #cecece;overflow:hidden">
+    <sc-if value="{{ hasPhoto }}" hint-placeholder-val="{{ false }}"><div style="width:100%;height:100%;background:url({{ myPhoto }}) center / cover no-repeat"></div></sc-if>
+    <sc-if value="{{ noPhoto }}" hint-placeholder-val="{{ true }}"><image-slot id="my-cat" shape="rect" placeholder="cat pic"></image-slot></sc-if>
+  </div>
+  <span style="position:absolute;left:0;right:0;top:310px;text-align:center;font-weight:500;font-size:12px;color:#a89f8d">{{ t.infoHint }}</span>
+  <div style="position:absolute;left:82px;top:350px;width:237px;height:93px">
+    <span style="position:absolute;left:3px;top:0;font-weight:500;font-size:14px;line-height:24px">{{ t.name }}</span>
+    <input value="{{ nameVal }}" onChange="{{ setName }}" style="position:absolute;left:62px;top:0;width:171px;height:24px;border:none;outline:none;background:transparent;font-weight:500;font-size:14px;color:#010002;padding:0">
+    <div style="position:absolute;left:0;top:33px;width:237px;height:2px;background:#D9D9D9"></div>
+    <span style="position:absolute;left:3px;top:58px;font-weight:500;font-size:14px;line-height:24px">{{ t.age }}</span>
+    <input value="{{ ageVal }}" onChange="{{ setAge }}" style="position:absolute;left:62px;top:58px;width:171px;height:24px;border:none;outline:none;background:transparent;font-weight:500;font-size:14px;color:#010002;padding:0">
+    <div style="position:absolute;left:0;top:91px;width:237px;height:2px;background:#D9D9D9"></div>
+  </div>
+  <span style="position:absolute;left:44px;top:474px;font-weight:500;font-size:14px;line-height:24px">{{ t.personality }}</span>
+  <div style="position:absolute;left:44px;right:44px;top:506px;display:flex;flex-wrap:wrap;gap:8px">
+    <sc-for list="{{ myTagChips }}" as="g" hint-placeholder-count="8">
+      <div onClick="{{ g.tap }}" style="height:34px;padding:0 14px;border-radius:17px;background:{{ g.bg }};display:flex;align-items:center;cursor:pointer;transition:background .15s ease"><span style="font-weight:500;font-size:13px;white-space:nowrap;color:{{ g.color }}">{{ g.label }}</span></div>
+    </sc-for>
+  </div>
+  <div onClick="{{ infoNext }}" style-hover="transform:scale(1.04)" style="position:absolute;left:142px;top:680px;width:119px;height:61px;border-radius:32px;background:#010002;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s ease"><span style="color:#fff;font-size:22px;line-height:1">✓</span></div>
+</div>
+</sc-if>
+
+<!-- ===== 04b MESSAGE ===== -->
+<sc-if value="{{ sMessage }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="04b Message" style="position:absolute;inset:0;background:#fff;animation:cp-fadeup .3s ease">
+  <span style="position:absolute;left:60px;right:60px;top:56px;text-align:center;font-weight:700;font-size:17px;line-height:28px">{{ t.toLine }}</span>
+  <div style="position:absolute;left:121px;top:104px;width:160px;height:196px;box-shadow:0 0 0 6px #FEFEFE,0 2px 6px #cecece;overflow:hidden;transform:rotate(-2deg)">
+    <sc-if value="{{ hasPhoto }}" hint-placeholder-val="{{ false }}"><div style="width:100%;height:100%;background:url({{ myPhoto }}) center / cover no-repeat"></div></sc-if>
+    <sc-if value="{{ noPhoto }}" hint-placeholder-val="{{ true }}"><image-slot id="my-cat" shape="rect" placeholder="cat pic"></image-slot></sc-if>
+  </div>
+  <div style="position:absolute;left:25px;right:25px;top:330px;height:104px;background:#F9F4EB;padding:14px 16px 10px;box-sizing:border-box;display:flex;flex-direction:column">
+    <textarea value="{{ msgVal }}" onChange="{{ setMsg }}" maxlength="120" placeholder="{{ t.msgPh }}" style="flex:1;border:none;outline:none;background:transparent;resize:none;font-weight:500;font-size:16px;line-height:23px;color:#010002;padding:0"></textarea>
+    <span style="align-self:flex-end;font-weight:500;font-size:11px;color:#a89f8d">{{ msgCount }}/120</span>
+  </div>
+  <div onClick="{{ msgNext }}" style-hover="transform:scale(1.02)" style="position:absolute;left:25px;right:25px;top:452px;height:56px;border-radius:15px;background:#010002;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s ease"><span style="font-family:Inter,sans-serif;font-weight:700;font-size:15px;color:#fff">{{ t.sendMail }}</span></div>
+</div>
+</sc-if>
+
+<!-- ===== 05 STAMP ===== -->
+<sc-if value="{{ sStamp }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="05 Stamp" style="position:absolute;inset:0;background:#fff;animation:cp-fadeup .3s ease">
+  <div style="position:absolute;left:56px;top:150px;width:290px;height:110px;background:#F3ECDD;clip-path:polygon(50% 0,100% 100%,0 100%)"></div>
+  <!-- envelope back (inside) -->
+  <div style="position:absolute;left:56px;top:258px;width:290px;height:170px;background:#F3ECDD;box-shadow:0 3px 12px rgba(0,0,0,.07);transform-origin:50% 100%;animation:cp-gulp .35s ease .62s"></div>
+  <!-- photo drops into the envelope -->
+  <div style="position:absolute;left:142px;top:186px;width:118px;height:150px;background:#fff;padding:5px;box-sizing:border-box;box-shadow:0 2px 6px rgba(0,0,0,.14);animation:cp-tuck .95s cubic-bezier(.3,1.1,.5,1) .1s both">
+    <div style="width:100%;height:100%;overflow:hidden">
+      <sc-if value="{{ hasPhoto }}" hint-placeholder-val="{{ false }}"><div style="width:100%;height:100%;background:url({{ myPhoto }}) center / cover no-repeat"></div></sc-if>
+      <sc-if value="{{ noPhoto }}" hint-placeholder-val="{{ true }}"><image-slot id="my-cat" shape="rect" placeholder="cat pic"></image-slot></sc-if>
+    </div>
+  </div>
+  <!-- envelope front: V-shaped pocket over the photo -->
+  <div style="position:absolute;left:56px;top:258px;width:290px;height:170px;transform-origin:50% 100%;animation:cp-gulp .35s ease .62s;filter:drop-shadow(0 -2px 3px rgba(0,0,0,.08));pointer-events:none">
+    <div style="width:100%;height:100%;background:#F9F4EB;clip-path:polygon(0 0,50% 34%,100% 0,100% 100%,0 100%)"></div>
+  </div>
+  <span style="position:absolute;left:44px;top:506px;font-weight:500;font-size:14px;line-height:24px">{{ t.pickStamp }}</span>
+  <div style="position:absolute;left:0;right:0;top:534px;display:flex;gap:12px;overflow-x:auto;padding:6px 40px 10px;box-sizing:border-box;scrollbar-width:none">
+    <sc-for list="{{ stampsGo }}" as="st" hint-placeholder-count="5">
+      <div onClick="{{ st.pick }}" role="img" aria-label="stamp" style-hover="transform:translateY(-4px)" style="flex:none;width:52px;height:70px;background:url({{ st.m }}) center / contain no-repeat;outline:{{ st.border }};outline-offset:2px;border-radius:2px;cursor:pointer;transition:transform .15s ease;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18))"></div>
+    </sc-for>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== 06 SEND ===== -->
+<sc-if value="{{ sSend }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="06 Send" style="position:absolute;inset:0;background:#fff;animation:cp-fadeup .3s ease">
+  <div style="position:absolute;left:46px;top:220px;width:310px;height:200px;background:#F9F4EB;box-shadow:0 3px 12px rgba(0,0,0,.07)">
+    <span style="position:absolute;left:20px;top:20px;font-family:Inter,sans-serif;font-size:12px;white-space:nowrap">To. {{ t.toShort }}</span>
+    <div style="position:absolute;left:228px;top:14px;width:58px;height:78px;background:url({{ stampMotif }}) center / contain no-repeat;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18))"></div>
+    <div style="position:absolute;left:140px;top:10px;width:118px;height:86px;background:url({{ myPm }}) center / contain no-repeat;mix-blend-mode:multiply;animation:cp-postmark .55s cubic-bezier(.3,1.4,.5,1) .35s both"></div>
+    <span style="position:absolute;right:16px;bottom:12px;font-weight:500;font-size:12px;line-height:23px">{{ t.fromLine }}</span>
+  </div>
+  <span style="position:absolute;left:44px;top:506px;font-weight:500;font-size:14px;line-height:24px">{{ t.pickStamp }}</span>
+  <div style="position:absolute;left:0;right:0;top:534px;display:flex;gap:12px;overflow-x:auto;padding:6px 40px 10px;box-sizing:border-box;scrollbar-width:none">
+    <sc-for list="{{ stamps }}" as="st" hint-placeholder-count="5">
+      <div onClick="{{ st.pick }}" role="img" aria-label="stamp" style-hover="transform:translateY(-4px)" style="flex:none;width:52px;height:70px;background:url({{ st.m }}) center / contain no-repeat;outline:{{ st.border }};outline-offset:2px;border-radius:2px;cursor:pointer;transition:transform .15s ease;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18))"></div>
+    </sc-for>
+  </div>
+  <div onClick="{{ sendNow }}" style-hover="transform:scale(1.04)" style="position:absolute;left:124px;top:665px;width:153px;height:61px;border-radius:32px;background:#010002;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;transition:transform .15s ease">
+    <span style="font-family:Inter,sans-serif;font-weight:700;font-size:15px;color:#fff">{{ t.send }}</span>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== DELIVERY (globe) ===== -->
+<sc-if value="{{ sDelivery }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="07 Delivery" style="position:absolute;inset:0;background:#F9F4EB;animation:cp-fade .35s ease;overflow:hidden">
+  <div style="position:absolute;left:0;right:0;top:172px;display:flex;justify-content:center;align-items:baseline;gap:2px">
+    <span style="font-weight:700;font-size:20px;line-height:30px">{{ t.finding }}</span>
+    <span style="font-weight:700;font-size:20px;animation:cp-pulse 1s ease infinite">.</span>
+    <span style="font-weight:700;font-size:20px;animation:cp-pulse 1s ease .2s infinite">.</span>
+    <span style="font-weight:700;font-size:20px;animation:cp-pulse 1s ease .4s infinite">.</span>
+  </div>
+  <div style="position:absolute;left:71px;top:280px;width:260px;height:260px">
+    <div style="position:absolute;inset:0;border-radius:50%;background:#fff;border:2px solid #010002;overflow:hidden">
+      <div style="position:absolute;left:0;top:0;width:1040px;height:260px;animation:cp-drift {{ globeDur }} linear infinite">
+        <div style="position:absolute;left:30px;top:52px;width:96px;height:64px;background:#E7E2D8;border-radius:58% 42% 55% 45% / 55% 60% 40% 45%"></div>
+        <div style="position:absolute;left:150px;top:140px;width:70px;height:88px;background:#E7E2D8;border-radius:45% 55% 48% 52% / 60% 40% 58% 42%"></div>
+        <div style="position:absolute;left:262px;top:40px;width:120px;height:70px;background:#E7E2D8;border-radius:52% 48% 60% 40% / 48% 55% 45% 52%"></div>
+        <div style="position:absolute;left:330px;top:150px;width:56px;height:52px;background:#E7E2D8;border-radius:50% 50% 45% 55% / 55% 45% 50% 50%"></div>
+        <div style="position:absolute;left:430px;top:88px;width:78px;height:60px;background:#E7E2D8;border-radius:60% 40% 50% 50% / 45% 60% 40% 55%"></div>
+        <div style="position:absolute;left:550px;top:52px;width:96px;height:64px;background:#E7E2D8;border-radius:58% 42% 55% 45% / 55% 60% 40% 45%"></div>
+        <div style="position:absolute;left:670px;top:140px;width:70px;height:88px;background:#E7E2D8;border-radius:45% 55% 48% 52% / 60% 40% 58% 42%"></div>
+        <div style="position:absolute;left:782px;top:40px;width:120px;height:70px;background:#E7E2D8;border-radius:52% 48% 60% 40% / 48% 55% 45% 52%"></div>
+        <div style="position:absolute;left:850px;top:150px;width:56px;height:52px;background:#E7E2D8;border-radius:50% 50% 45% 55% / 55% 45% 50% 50%"></div>
+        <div style="position:absolute;left:950px;top:88px;width:78px;height:60px;background:#E7E2D8;border-radius:60% 40% 50% 50% / 45% 60% 40% 55%"></div>
+      </div>
+      <div style="position:absolute;left:50%;top:0;width:132px;height:256px;transform:translateX(-50%);border:1.4px solid rgba(1,0,2,.22);border-radius:50%"></div>
+      <div style="position:absolute;left:50%;top:0;width:224px;height:257px;transform:translateX(-50%);border:1.4px solid rgba(1,0,2,.14);border-radius:50%"></div>
+      <div style="position:absolute;left:0;right:0;top:33%;height:1.4px;background:rgba(1,0,2,.18)"></div>
+      <div style="position:absolute;left:0;right:0;top:50%;height:1.4px;background:rgba(1,0,2,.25)"></div>
+      <div style="position:absolute;left:0;right:0;top:67%;height:1.4px;background:rgba(1,0,2,.18)"></div>
+    </div>
+    <sc-if value="{{ phFly }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:98px;top:112px;width:64px;height:44px;background:#F9F4EB;border:1.5px solid #010002;border-radius:4px;animation:cp-fly 1.4s ease-in-out forwards;box-shadow:0 3px 8px rgba(0,0,0,.15)">
+        <div style="position:absolute;right:5px;top:5px;width:11px;height:12px;background:repeating-linear-gradient(45deg,#efe9dd 0 3px,#dcd2ba 3px 6px)"></div>
+        <div style="position:absolute;left:6px;top:18px;width:26px;height:2px;background:#D9D9D9"></div>
+        <div style="position:absolute;left:6px;top:25px;width:34px;height:2px;background:#D9D9D9"></div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ phPin }}" hint-placeholder-val="{{ false }}">
+      <img src="./assets/icon-map-160.png" alt="pin" style="position:absolute;left:180px;top:28px;width:46px;height:46px;object-fit:contain;animation:cp-pin .55s cubic-bezier(.34,1.56,.64,1) both">
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== DELIVERY MAP ===== -->
+<sc-if value="{{ sDeliveryMap }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="08 Delivery map" style="position:absolute;inset:0;background:#fff;animation:cp-fade .4s ease;overflow:hidden">
+  <iframe src="{{ globeDeliverySrc }}" title="globe" style="position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none"></iframe>
+  <span style="position:absolute;left:0;right:0;top:56px;text-align:center;font-weight:700;font-size:14px;color:#010002">{{ t.mapTitle }}</span>
+  <div onClick="{{ tapDeliveryCard }}" style-hover="transform:translateY(-3px)" style="position:absolute;left:26px;top:600px;width:350px;height:150px;border-radius:24px;background:rgba(255,255,255,.96);cursor:pointer;transition:transform .2s ease;box-shadow:0 10px 30px rgba(0,20,40,.25)">
+    <span style="position:absolute;left:28px;top:28px;right:28px;font-family:Inter,sans-serif;font-weight:700;font-size:15px;line-height:21px">{{ t.deliveryCard }}</span>
+    <div style="position:absolute;left:27px;top:96px;width:296px;height:6px;border-radius:3px;background:#E7E2D8;overflow:hidden"><div style="height:100%;border-radius:3px;background:#010002;animation:cp-progress 7s cubic-bezier(.4,0,.35,1) both"></div></div>
+    <div style="position:absolute;left:-5px;top:62px;width:64px;height:28px;animation:cp-run 7s cubic-bezier(.4,0,.35,1) both;pointer-events:none"><img src="./assets/cat-run.gif" alt="" style="width:64px;height:28px;object-fit:contain;animation:cp-float 1.4s ease-in-out infinite"></div>
+    <span style="position:absolute;left:0;right:0;top:110px;text-align:center;font-family:Inter,sans-serif;font-weight:700;font-size:15px">{{ destKm }} km</span>
+    <sc-if value="{{ mapDone }}" hint-placeholder-val="{{ false }}">
+      <span style="position:absolute;left:0;right:0;bottom:6px;text-align:center;font-weight:500;font-size:11px;color:#8a8272;animation:cp-pulse 1.6s ease infinite">{{ t.tapContinue }}</span>
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== 09 ARRIVED ===== -->
+<sc-if value="{{ sArrived }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="09 Arrived" style="position:absolute;inset:0;background:#fff;animation:cp-fadeup .3s ease">
+  <img src="./assets/icon-map-160.png" alt="pin" style="position:absolute;left:171px;top:96px;width:60px;height:60px;object-fit:contain;animation:cp-pop .5s cubic-bezier(.34,1.56,.64,1) both">
+  <div style="position:absolute;left:30px;right:30px;top:166px;display:flex;flex-direction:column;align-items:center;text-align:center">
+    <span style="font-weight:700;font-size:17px;line-height:26px">{{ t.arr1 }}</span>
+    <span style="font-weight:700;font-size:17px;line-height:26px">Seoul → {{ destCity }}</span>
+    <span style="font-weight:500;font-size:13px;line-height:22px;color:#a89f8d">{{ destKm }} km 🐾</span>
+  </div>
+  <div style="position:absolute;left:70px;top:264px;width:263px;height:176px;background:#F9F4EB;box-shadow:0 4px 14px rgba(0,0,0,.08)">
+    <span style="position:absolute;left:16px;top:16px;font-family:Inter,sans-serif;font-size:11px;white-space:nowrap">To. {{ t.toShort }}</span>
+    <div style="position:absolute;left:194px;top:12px;width:52px;height:70px;background:url({{ stampMotif }}) center / contain no-repeat;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18))"></div>
+    <div style="position:absolute;left:116px;top:10px;width:100px;height:73px;background:url({{ myPm }}) center / contain no-repeat;mix-blend-mode:multiply;opacity:.92;transform:rotate(-8deg)"></div>
+    <span style="position:absolute;left:0;right:14px;bottom:9px;text-align:right;font-weight:500;font-size:10.2px;line-height:19.5px">{{ t.fromLine }}</span>
+  </div>
+  <span style="position:absolute;left:0;right:0;top:452px;text-align:center;font-weight:500;font-size:14px;line-height:24px">{{ todayDate }}</span>
+  <sc-if value="{{ isNewPal }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ openDestProfile }}" style-hover="transform:translateY(-2px)" style="position:absolute;left:36px;right:36px;top:520px;height:96px;background:#F9F4EB;display:flex;align-items:center;gap:14px;padding:0 16px;box-sizing:border-box;cursor:pointer;transition:transform .15s ease;animation:cp-fadeup .4s ease .2s both">
+      <div style="flex:none;width:52px;height:62px;box-shadow:0 0 0 4px #FEFEFE,0 2px 4px #cecece;overflow:hidden;transform:rotate(-3deg)"><image-slot id="{{ destSlot }}" src="{{ destImg }}" shape="rect" placeholder="🐱"></image-slot></div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <span style="font-weight:700;font-size:15px;line-height:22px">{{ t.newPalTitle }}</span>
+        <span style="font-weight:500;font-size:12px;line-height:18px;color:#746e63">{{ t.stampCollected }}</span>
+      </div>
+      <div style="flex:none;width:40px;height:54px;background:url({{ destStamp }}) center / contain no-repeat;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18));animation:cp-pop .5s cubic-bezier(.34,1.56,.64,1) .5s both"></div>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<!-- ===== OPEN CAT MAIL ===== -->
+<sc-if value="{{ sMail }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Cat Mail" style="position:absolute;inset:0;background:#fff;animation:cp-fadeup .3s ease">
+  <div style="position:absolute;left:126px;top:84px;width:150px;height:260px;background:#fff;padding:5px;box-sizing:border-box;box-shadow:0 2px 8px rgba(0,0,0,.16);animation:{{ mWiggle }}">
+    <div style="width:100%;height:100%;overflow:hidden"><image-slot id="{{ mSlot }}" src="{{ mImg }}" shape="rect" placeholder="pal’s cat 🐈"></image-slot></div>
+  </div>
+  <div style="position:absolute;left:66px;top:290px;width:270px;height:120px;background:#F9F4EB;box-shadow:0 -4px 14px rgba(0,0,0,.06)">
+    <div style="position:absolute;left:0;right:0;top:0;height:44px;background:#F3ECDD;clip-path:polygon(0 0,100% 0,50% 100%)"></div>
+    <div style="position:absolute;right:12px;bottom:10px;width:40px;height:54px;background:url({{ mStamp }}) center / contain no-repeat;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18))"></div>
+    <div style="position:absolute;right:40px;bottom:6px;width:76px;height:56px;background:url({{ mPm }}) center / contain no-repeat;mix-blend-mode:multiply;opacity:.92;transform:rotate(-8deg)"></div>
+  </div>
+  <div style="position:absolute;left:25px;right:25px;top:430px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">
+    <span style="font-weight:700;font-size:20px;line-height:30px">{{ t.mailTitle }}</span>
+    <span onClick="{{ openMailProfile }}" style="font-weight:500;font-size:13px;line-height:20px;color:#746e63;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:#D9D9D9">{{ mPlace }} · {{ mDist }}</span>
+    <div style="margin-top:8px;max-width:300px;padding:12px 16px;border-radius:16px 16px 16px 4px;background:#F9F4EB;align-self:center"><span style="font-weight:500;font-size:15px;line-height:22px;text-wrap:pretty">“{{ mNote }}”</span></div>
+  </div>
+  <div style="position:absolute;left:68px;top:620px;width:265px;height:46px;border-radius:29px;background:#EDEBEB;display:flex;align-items:center;justify-content:space-around;padding:0 10px;box-sizing:border-box">
+    <sc-for list="{{ reactions }}" as="r" hint-placeholder-count="5">
+      <div onClick="{{ r.pick }}" style-hover="transform:scale(1.25)" style="width:34px;height:34px;border-radius:50%;background:{{ r.bg }};animation:{{ r.anim }};display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;transition:transform .15s ease,background .15s ease">{{ r.e }}</div>
+    </sc-for>
+  </div>
+  <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:5">
+    <sc-for list="{{ reactBurst }}" as="b" hint-placeholder-count="0">
+      <span style="position:absolute;left:{{ b.left }}px;top:622px;font-size:26px;line-height:1;opacity:0;animation:{{ b.anim }}">{{ b.e }}</span>
+    </sc-for>
+  </div>
+  <div style="position:absolute;left:25px;right:25px;top:690px;display:flex;justify-content:center;gap:12px">
+    <div onClick="{{ openMailLetters }}" style-hover="transform:scale(1.03)" style="height:58px;padding:0 44px;border-radius:32px;background:#010002;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s ease"><span style="font-family:Inter,sans-serif;font-weight:700;font-size:15px;color:#fff;white-space:nowrap">{{ t.reply }}</span></div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== LETTERS (thread) ===== -->
+<sc-if value="{{ sLetters }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Letters" style="position:absolute;inset:0;background:#fff;animation:cp-fadeup .3s ease">
+  <div style="position:absolute;left:60px;right:20px;top:52px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+    <div style="display:flex;flex-direction:column;min-width:0">
+      <span style="font-weight:700;font-size:19px;line-height:28px">{{ t.lettersWith }}</span>
+      <span style="font-weight:500;font-size:12px;line-height:18px;color:#a89f8d">{{ lPal.city }} {{ lPal.flag }} · {{ lPal.dist }} · {{ t.letterCount }}</span>
+    </div>
+  </div>
+  <div ref="{{ threadRef }}" style="position:absolute;left:0;right:0;top:112px;bottom:262px;overflow-y:auto;padding:10px 25px 20px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px;scrollbar-width:none">
+    <sc-for list="{{ thread }}" as="l" hint-placeholder-count="2">
+      <sc-if value="{{ l.them }}" hint-placeholder-val="{{ true }}">
+        <div style="flex:none;align-self:flex-start;position:relative;width:270px;min-height:92px;background:#F9F4EB;padding:14px 62px 14px 16px;box-sizing:border-box;box-shadow:0 2px 8px rgba(0,0,0,.07);transform:rotate(-1deg);animation:cp-pop .45s cubic-bezier(.34,1.56,.64,1) both">
+          <span style="display:block;font-weight:700;font-size:9px;letter-spacing:.1em;color:#a89f8d">{{ l.who }}</span>
+          <span style="display:block;margin-top:6px;font-weight:500;font-size:16px;line-height:23px;text-wrap:pretty">{{ l.text }}</span>
+          <div style="position:absolute;right:10px;top:10px;width:36px;height:49px;background:url({{ l.stamp }}) center / contain no-repeat;filter:drop-shadow(0 1px 1px rgba(0,0,0,.18))"></div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ l.you }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:none;align-self:flex-end;position:relative;width:270px;min-height:92px;background:#fff;border:1.5px solid #010002;padding:14px 62px 14px 16px;box-sizing:border-box;transform:rotate(1deg);animation:cp-fadeup .35s ease both">
+          <span style="display:block;font-weight:700;font-size:9px;letter-spacing:.1em;color:#a89f8d">{{ l.who }}</span>
+          <sc-if value="{{ l.hasPhoto }}" hint-placeholder-val="{{ false }}"><div style="margin-top:8px;height:150px;background:url({{ l.photo }}) center / cover no-repeat;box-shadow:0 0 0 4px #FEFEFE,0 1px 3px #cecece"></div></sc-if>
+          <span style="display:block;margin-top:6px;font-weight:500;font-size:16px;line-height:23px;text-wrap:pretty">{{ l.text }}</span>
+          <div style="position:absolute;right:10px;top:10px;width:36px;height:49px;background:url({{ l.stamp }}) center / contain no-repeat;filter:drop-shadow(0 1px 1px rgba(0,0,0,.18))"></div>
+        </div>
+      </sc-if>
+    </sc-for>
+    <sc-if value="{{ inTransit }}" hint-placeholder-val="{{ false }}">
+      <div style="align-self:center;display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:16px;background:#F6F6F6;animation:cp-fade .25s ease">
+        <span style="font-size:14px;animation:cp-bob 1.2s ease infinite">✈️</span>
+        <span style="font-weight:500;font-size:12px;color:#746e63;animation:cp-pulse 1.4s ease infinite">{{ t.transit }}</span>
+      </div>
+    </sc-if>
+  </div>
+  <div style="position:absolute;left:25px;right:25px;bottom:40px;height:210px;background:#F9F4EB;padding:16px 18px;box-sizing:border-box;box-shadow:0 -2px 14px rgba(0,0,0,.06);display:flex;flex-direction:column">
+    <span style="font-weight:700;font-size:9px;letter-spacing:.1em;color:#a89f8d">{{ t.toUpper }}</span>
+    <textarea value="{{ draft }}" onChange="{{ setDraft }}" placeholder="{{ t.draftHint }}" style="flex:1;margin-top:6px;border:none;outline:none;background:transparent;resize:none;font-weight:500;font-size:16px;line-height:23px;color:#010002;padding:0"></textarea>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+      <sc-if value="{{ noDraftPhoto }}" hint-placeholder-val="{{ true }}">
+        <div onClick="{{ pickReplyPhoto }}" style-hover="background:#E7E2D8" style="flex:none;height:36px;padding:0 14px;border-radius:18px;background:#fff;display:flex;align-items:center;gap:6px;cursor:pointer;transition:background .15s ease;box-shadow:0 1px 2px rgba(0,0,0,.06)"><span style="font-size:14px">📷</span><span style="font-weight:600;font-size:13px;white-space:nowrap">{{ t.photoShort }}</span></div>
+      </sc-if>
+      <sc-if value="{{ hasDraftPhoto }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:none;position:relative;width:52px;height:52px;background:url({{ draftPhoto }}) center / cover no-repeat;box-shadow:0 0 0 3px #FEFEFE,0 1px 3px #cecece">
+          <div onClick="{{ clearReplyPhoto }}" role="button" aria-label="remove photo" style="position:absolute;right:-8px;top:-8px;width:20px;height:20px;border-radius:50%;background:#010002;display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="font-size:11px;line-height:1;color:#fff">✕</span></div>
+        </div>
+      </sc-if>
+      <div onClick="{{ sendLetter }}" style-hover="transform:scale(1.04)" style="flex:none;height:48px;padding:0 22px;border-radius:26px;background:{{ sendBg }};display:flex;align-items:center;gap:8px;cursor:pointer;transition:transform .15s ease,background .15s ease">
+        <span style="font-family:Inter,sans-serif;font-weight:700;font-size:14px;color:#fff;white-space:nowrap">{{ t.reply }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== MAILBOX ===== -->
+<sc-if value="{{ sMailbox }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Mailbox" style="position:absolute;inset:0;background:#fff;animation:cp-fade .25s ease;overflow-y:auto;scrollbar-width:none">
+  <div style="padding:58px 25px 120px;display:flex;flex-direction:column">
+    <span style="font-weight:700;font-size:21px;line-height:30px">{{ t.mailbox }}</span>
+    <div style="margin-top:14px;display:flex;gap:6px;padding:4px;border-radius:22px;background:#F6F6F6">
+      <sc-for list="{{ mbTabs }}" as="b" hint-placeholder-count="3">
+        <div onClick="{{ b.tap }}" style="flex:1;height:36px;border-radius:18px;background:{{ b.bg }};display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:background .15s ease;box-shadow:{{ b.shadow }}">
+          <span style="font-weight:700;font-size:13px;white-space:nowrap;color:{{ b.color }}">{{ b.label }}</span>
+          <sc-if value="{{ b.badge }}" hint-placeholder-val="{{ false }}"><div style="min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#FF4800;display:flex;align-items:center;justify-content:center"><span style="font-weight:700;font-size:10px;color:#fff">{{ b.count }}</span></div></sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ mbShowCards }}" hint-placeholder-val="{{ true }}">
+      <div style="margin-top:20px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:20px;row-gap:22px">
+        <sc-for list="{{ mbCards }}" as="c" hint-placeholder-count="4">
+          <div onClick="{{ c.open }}" style-hover="transform:translateY(-2px)" style="display:flex;flex-direction:column;gap:4px;cursor:pointer;transition:transform .15s ease">
+            <div style="position:relative;height:104px;background:#F9F4EB;box-shadow:0 1px 4px rgba(0,0,0,.1);overflow:hidden">
+              <div style="position:absolute;right:8px;top:7px;width:30px;height:40px;background:url({{ c.stamp }}) center / contain no-repeat;filter:drop-shadow(0 1px 1px rgba(0,0,0,.18))"></div>
+              <div style="position:absolute;right:26px;top:5px;width:56px;height:41px;background:url({{ c.pm }}) center / contain no-repeat;mix-blend-mode:multiply;opacity:.92;transform:rotate(-8deg)"></div>
+              <span style="position:absolute;left:10px;bottom:8px;font-weight:700;font-size:13px;line-height:18px">{{ c.who }}</span>
+              <sc-if value="{{ c.isNew }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:8px;top:8px;padding:1px 7px;border-radius:9px;background:#FF4800"><span style="font-weight:700;font-size:9px;color:#fff">{{ t.newTag }}</span></div></sc-if>
+              <sc-if value="{{ c.locked }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:8px;top:8px;padding:1px 7px;border-radius:9px;background:#010002"><span style="font-weight:700;font-size:9px;color:#fff">🔒</span></div></sc-if>
+            </div>
+            <div style="display:flex;justify-content:space-between;gap:6px">
+              <span style="font-weight:500;font-size:12px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.place }}</span>
+              <span style="flex:none;font-weight:500;font-size:12px;line-height:20px;color:#a89f8d">{{ c.date }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ mbShowPals }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:16px;display:flex;flex-direction:column;gap:12px">
+        <sc-for list="{{ palRows }}" as="p" hint-placeholder-count="4">
+          <div onClick="{{ p.open }}" style-hover="transform:translateY(-2px)" style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:#F9F4EB;cursor:pointer;transition:transform .15s ease">
+            <div style="flex:none;width:48px;height:58px;box-shadow:0 0 0 4px #FEFEFE,0 1px 3px #cecece;overflow:hidden;transform:rotate(-2deg)"><image-slot id="{{ p.slot }}" src="{{ p.img }}" shape="rect" placeholder="🐱"></image-slot></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+              <span style="font-weight:700;font-size:15px;line-height:22px">{{ myName }} &amp; {{ p.name }}</span>
+              <span style="font-weight:500;font-size:12px;line-height:18px;color:#746e63">{{ p.flag }} {{ p.city }} · {{ p.dist }}</span>
+              <span style="font-weight:500;font-size:12px;line-height:18px;color:#a89f8d">{{ p.meta }}</span>
+            </div>
+            <div onClick="{{ p.letters }}" style-hover="background:#fff" style="flex:none;height:32px;padding:0 12px;border-radius:16px;border:1.5px solid #010002;box-sizing:border-box;display:flex;align-items:center;cursor:pointer"><span style="font-weight:700;font-size:11px;white-space:nowrap">{{ t.letters }}</span></div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== WORLD MAP ===== -->
+<sc-if value="{{ sMap }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="World Map" style="position:absolute;inset:0;background:#fff;animation:cp-fade .3s ease;overflow:hidden">
+  <iframe src="{{ globeMapSrc }}" title="globe" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>
+  <div style="position:absolute;left:0;right:0;top:54px;display:flex;flex-direction:column;align-items:center;gap:2px;pointer-events:none">
+    <span style="font-weight:700;font-size:16px;color:#010002">{{ t.mapTitle }}</span>
+    <span style="font-weight:500;font-size:12px;color:#746e63">{{ t.mapSub }}</span>
+  </div>
+  <div style="position:absolute;right:18px;top:110px;display:flex;flex-direction:column;gap:2px;pointer-events:none">
+    <div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:#FF4B3E;box-shadow:0 0 0 2px #fff"></div><span style="font-weight:700;font-size:12px;line-height:22px;color:#010002">{{ t.legendSent }}</span></div>
+    <div style="display:flex;align-items:center;gap:8px"><img src="./assets/icon-map-160.png" alt="" style="width:14px;height:14px;object-fit:contain"><span style="font-weight:700;font-size:12px;line-height:22px;color:#010002">{{ t.legendMet }}</span></div>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:104px;display:flex;flex-direction:column;gap:10px">
+    <span style="padding:0 25px;font-weight:700;font-size:13px;color:#010002">{{ t.mapStats }}</span>
+    <div style="display:flex;gap:10px;overflow-x:auto;padding:0 25px 4px;scrollbar-width:none">
+      <sc-for list="{{ palRows }}" as="p" hint-placeholder-count="4">
+        <div onClick="{{ p.open }}" style-hover="transform:translateY(-2px)" style="flex:none;display:flex;align-items:center;gap:10px;padding:8px 14px 8px 8px;border-radius:14px;background:#fff;cursor:pointer;transition:transform .15s ease;box-shadow:0 4px 12px rgba(0,0,0,.1),0 0 0 1px #EFEBE2">
+          <div style="flex:none;width:34px;height:40px;box-shadow:0 0 0 3px #FEFEFE,0 1px 2px #cecece;overflow:hidden"><image-slot id="{{ p.slot }}" src="{{ p.img }}" shape="rect" placeholder="🐱"></image-slot></div>
+          <div style="display:flex;flex-direction:column">
+            <span style="font-weight:700;font-size:13px;line-height:18px;white-space:nowrap">{{ p.flag }} {{ p.name }}</span>
+            <span style="font-weight:500;font-size:11px;line-height:16px;color:#746e63;white-space:nowrap">{{ p.city }} · {{ p.dist }}</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== PASSPORT ===== -->
+<sc-if value="{{ sPassport }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Passport" style="position:absolute;inset:0;background:#fff;animation:cp-fade .25s ease;overflow-y:auto;scrollbar-width:none">
+  <div style="padding:58px 25px 120px;display:flex;flex-direction:column">
+    <span style="font-weight:700;font-size:21px;line-height:30px">{{ t.passportTitle }}</span>
+    <span style="font-weight:500;font-size:12px;line-height:18px;color:#a89f8d">{{ t.passportSub }}</span>
+    <div style="margin-top:16px;background:#F9F4EB;padding:18px;display:flex;gap:16px;align-items:center">
+      <div onClick="{{ openMe }}" style="flex:none;width:64px;height:76px;box-shadow:0 0 0 4px #FEFEFE,0 2px 4px #cecece;overflow:hidden;transform:rotate(-3deg);cursor:pointer">
+        <sc-if value="{{ hasPhoto }}" hint-placeholder-val="{{ false }}"><div style="width:100%;height:100%;background:url({{ myPhoto }}) center / cover no-repeat"></div></sc-if>
+        <sc-if value="{{ noPhoto }}" hint-placeholder-val="{{ true }}"><image-slot id="my-cat" shape="rect" placeholder="🐈"></image-slot></sc-if>
+      </div>
+      <div style="flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px">
+        <sc-for list="{{ ppStats }}" as="s" hint-placeholder-count="3">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+            <span style="font-weight:700;font-size:22px;line-height:28px">{{ s.n }}</span>
+            <span style="font-weight:500;font-size:11px;line-height:15px;color:#746e63;text-align:center">{{ s.l }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="margin-top:18px;display:flex;gap:6px;padding:4px;border-radius:22px;background:#F6F6F6">
+      <sc-for list="{{ ppTabs }}" as="b" hint-placeholder-count="2">
+        <div onClick="{{ b.tap }}" style="flex:1;height:36px;border-radius:18px;background:{{ b.bg }};display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s ease;box-shadow:{{ b.shadow }}"><span style="font-weight:700;font-size:13px;color:{{ b.color }}">{{ b.label }}</span></div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ ppShowStamps }}" hint-placeholder-val="{{ true }}">
+      <div style="margin-top:20px;padding:22px 16px 26px;background:#F9F4EB;box-shadow:inset 0 0 0 1px #EFE7D6;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:6px;row-gap:18px">
+        <sc-for list="{{ stampBook }}" as="s" hint-placeholder-count="8">
+          <div onClick="{{ s.open }}" style-hover="transform:scale(1.05)" style="display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:transform .15s ease">
+            <div style="position:relative;width:100%;height:76px;transform:translateY({{ s.dy }}px)">
+              <div style="position:absolute;inset:0;background:url({{ s.img }}) center / contain no-repeat;mix-blend-mode:multiply;opacity:{{ s.opacity }};filter:{{ s.filter }};transform:rotate({{ s.rot }}deg)"></div>
+              <sc-if value="{{ s.locked }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><span style="font-weight:700;font-size:22px;color:#a89f8d">?</span></div></sc-if>
+            </div>
+            <span style="font-weight:700;font-size:11px;line-height:15px;text-align:center">{{ s.label }}</span>
+            <span style="margin-top:-6px;font-weight:500;font-size:10px;line-height:14px;color:#a89f8d;text-align:center">{{ s.sub }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ ppShowJournal }}" hint-placeholder-val="{{ false }}">
+      <span style="margin-top:20px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#a89f8d;letter-spacing:.12em">{{ t.month }}</span>
+      <div style="margin-top:10px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr))">
+        <sc-for list="{{ weekDays }}" as="w" hint-placeholder-count="7"><span style="text-align:center;font-weight:500;font-size:10px;color:#a89f8d;line-height:20px">{{ w }}</span></sc-for>
+        <sc-for list="{{ calCells }}" as="d" hint-placeholder-count="35">
+          <div style="position:relative;height:74px;border-top:1px solid #E7E2D8;box-sizing:border-box">
+            <span style="position:absolute;left:4px;top:2px;font-weight:{{ d.weight }};font-size:11px;color:{{ d.color }}">{{ d.n }}</span>
+            <sc-if value="{{ d.sent }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:5px;top:20px;width:28px;height:36px;box-shadow:0 0 0 2.5px #FEFEFE,0 1px 2.3px #cecece;background:repeating-linear-gradient(45deg,#efe9dd 0 4px,#e3dccb 4px 8px);display:flex;align-items:center;justify-content:center;font-size:11px;transform:rotate(-3deg)">🐈</div></sc-if>
+            <sc-if value="{{ d.recv }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:12px;top:26px;width:28px;height:36px;border:2.5px solid #fff;box-sizing:border-box;box-shadow:0 2px 3.6px #cecece;background:repeating-linear-gradient(45deg,#e9e0cd 0 4px,#dbd0b6 4px 8px);display:flex;align-items:center;justify-content:center;font-size:11px;transform:rotate(3deg)">🐱</div></sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== CAT PROFILE ===== -->
+<sc-if value="{{ sProfile }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Cat Profile" style="position:absolute;inset:0;background:#fff;animation:cp-fadeup .3s ease;overflow-y:auto;scrollbar-width:none">
+  <div style="padding:70px 30px 120px;display:flex;flex-direction:column;align-items:center">
+    <div style="width:180px;height:216px;box-shadow:0 0 0 8px #FEFEFE,0 3px 10px rgba(0,0,0,.14);overflow:hidden;transform:rotate(-2deg)">
+      <sc-if value="{{ pfMePhoto }}" hint-placeholder-val="{{ false }}"><div style="width:100%;height:100%;background:url({{ myPhoto }}) center / cover no-repeat"></div></sc-if>
+      <sc-if value="{{ pfSlotShow }}" hint-placeholder-val="{{ true }}"><image-slot id="{{ pf.slot }}" src="{{ pf.img }}" shape="rect" placeholder="cat photo"></image-slot></sc-if>
+    </div>
+    <span style="margin-top:26px;font-weight:700;font-size:24px;line-height:32px">{{ pf.name }}, {{ pf.age }}</span>
+    <span style="font-weight:500;font-size:14px;line-height:22px">{{ pf.flag }} {{ pf.city }}, {{ pf.country }}</span>
+    <span style="font-weight:500;font-size:12px;line-height:20px;color:#a89f8d">{{ pf.meta }}</span>
+    <div style="align-self:stretch;margin-top:26px;display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font-weight:700;font-size:14px;line-height:22px">{{ t.personality }}</span>
+      <sc-if value="{{ pf.isMe }}" hint-placeholder-val="{{ false }}"><span style="font-weight:500;font-size:11px;color:#a89f8d">{{ t.tapToEdit }}</span></sc-if>
+    </div>
+    <div style="align-self:stretch;margin-top:10px;display:flex;flex-wrap:wrap;gap:8px">
+      <sc-for list="{{ pfTags }}" as="g" hint-placeholder-count="3">
+        <div onClick="{{ g.tap }}" style="height:34px;padding:0 14px;border-radius:17px;background:{{ g.bg }};display:flex;align-items:center;cursor:{{ g.cursor }};transition:background .15s ease"><span style="font-weight:500;font-size:13px;white-space:nowrap;color:{{ g.color }}">{{ g.label }}</span></div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ pf.isMe }}" hint-placeholder-val="{{ false }}">
+      <div style="align-self:stretch;margin-top:26px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;gap:10px;border-bottom:2px solid #D9D9D9;padding-bottom:8px"><span style="flex:none;width:60px;font-weight:500;font-size:14px">{{ t.name }}</span><input value="{{ nameVal }}" onChange="{{ setName }}" style="flex:1;min-width:0;border:none;outline:none;background:transparent;font-weight:500;font-size:14px;color:#010002;padding:0"></div>
+        <div style="display:flex;align-items:center;gap:10px;border-bottom:2px solid #D9D9D9;padding-bottom:8px"><span style="flex:none;width:60px;font-weight:500;font-size:14px">{{ t.age }}</span><input value="{{ ageVal }}" onChange="{{ setAge }}" style="flex:1;min-width:0;border:none;outline:none;background:transparent;font-weight:500;font-size:14px;color:#010002;padding:0"></div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ pf.isPal }}" hint-placeholder-val="{{ true }}">
+      <div style="align-self:stretch;margin-top:24px;display:flex;align-items:center;gap:14px;padding:14px 16px;background:#F9F4EB">
+        <div style="flex:none;width:40px;height:54px;background:url({{ pf.stamp }}) center / contain no-repeat;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18))"></div>
+        <span style="font-weight:500;font-size:12.5px;line-height:19px;color:#4a4438;text-wrap:pretty">{{ t.pfStampNote }}</span>
+      </div>
+      <div onClick="{{ pfSend }}" style-hover="transform:scale(1.02)" style="align-self:stretch;margin-top:20px;height:58px;border-radius:15px;background:#010002;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .15s ease"><span style="font-family:Inter,sans-serif;font-weight:700;font-size:15px;color:#fff">{{ t.pfSend }}</span></div>
+      <div onClick="{{ pfLetters }}" style-hover="background:#F6F6F6" style="align-self:stretch;margin-top:10px;height:52px;border-radius:15px;border:2px solid #010002;box-sizing:border-box;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s ease"><span style="font-family:Inter,sans-serif;font-weight:700;font-size:14px">{{ t.letters }}</span></div>
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===== BACK BUTTON ===== -->
+<sc-if value="{{ showBack }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ back }}" style-hover="background:#F6F6F6" style="position:absolute;left:12px;top:50px;width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:45;transition:background .15s ease"><div style="width:10px;height:10px;border-left:2px solid #010002;border-bottom:2px solid #010002;transform:rotate(45deg);margin-left:4px"></div></div>
+</sc-if>
+
+<!-- ===== NAV ===== -->
+<sc-if value="{{ showNav }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;left:0;right:0;bottom:0;height:94px;background:#fff;border-top:1px solid #F1EDE5;z-index:40;display:flex;justify-content:space-around;align-items:flex-start;padding:10px 14px 0;box-sizing:border-box">
+  <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="4">
+    <div onClick="{{ n.tap }}" style-hover="transform:translateY(-2px)" style="position:relative;width:78px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;transition:transform .15s ease">
+      <div style="width:{{ n.iconW }}px;height:{{ n.iconH }}px;margin-top:{{ n.iconMt }}px;background:url({{ n.icon }}) center / contain no-repeat;opacity:{{ n.opacity }};transition:opacity .15s ease"></div>
+      <span style="font-weight:{{ n.weight }};font-size:12px;line-height:16px;white-space:nowrap;color:{{ n.color }}">{{ n.label }}</span>
+      <sc-if value="{{ n.badge }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;right:12px;top:-4px;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#FF4800;display:flex;align-items:center;justify-content:center"><span style="font-weight:700;font-size:10px;color:#fff">{{ n.count }}</span></div></sc-if>
+    </div>
+  </sc-for>
+</div>
+</sc-if>
+
+<!-- ===== SEND-TO SHEET ===== -->
+<sc-if value="{{ sheetTo }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(1,0,2,.35);z-index:70;animation:cp-fade .2s ease"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;max-height:700px;overflow-y:auto;z-index:71;background:#fff;border-radius:22px 22px 0 0;padding:14px 22px 34px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px;animation:cp-sheet .28s cubic-bezier(.2,.8,.2,1);scrollbar-width:none">
+    <div style="align-self:center;width:38px;height:4px;border-radius:2px;background:#E7E2D8"></div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <span style="font-weight:700;font-size:18px;line-height:26px">{{ t.whoTo }}</span>
+      <sc-if value="{{ lockHint }}" hint-placeholder-val="{{ false }}"><span style="font-weight:500;font-size:12px;line-height:18px;color:#FF4800">🔒 {{ t.lockHint }}</span></sc-if>
+    </div>
+    <div onClick="{{ chooseSurprise }}" style-hover="transform:translateY(-2px)" style="position:relative;height:96px;border-radius:16px;background:#010002;padding:18px 20px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:4px;cursor:pointer;transition:transform .15s ease;overflow:hidden">
+      <span style="font-family:Inter,sans-serif;font-weight:700;font-size:17px;color:#fff">{{ t.surprise }}</span>
+      <span style="font-weight:500;font-size:12.5px;line-height:18px;color:rgba(255,255,255,.75);max-width:220px">{{ t.surpriseSub }}</span>
+      <img src="./assets/icon-map-160.png" alt="" style="position:absolute;right:14px;top:18px;width:58px;height:58px;object-fit:contain;transform:rotate(8deg)">
+    </div>
+    <span style="margin-top:4px;font-weight:700;font-size:13px;color:#746e63">{{ t.yourPals }}</span>
+    <sc-for list="{{ palRows }}" as="p" hint-placeholder-count="4">
+      <div onClick="{{ p.choose }}" style-hover="background:#F9F4EB" style="display:flex;align-items:center;gap:14px;padding:8px 6px;border-radius:12px;cursor:pointer;transition:background .15s ease">
+        <div style="flex:none;width:40px;height:48px;box-shadow:0 0 0 3px #FEFEFE,0 1px 3px #cecece;overflow:hidden;transform:rotate(-2deg)"><image-slot id="{{ p.slot }}" src="{{ p.img }}" shape="rect" placeholder="🐱"></image-slot></div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <span style="font-weight:700;font-size:14px;line-height:21px">{{ p.name }}</span>
+          <span style="font-weight:500;font-size:12px;line-height:18px;color:#746e63">{{ p.flag }} {{ p.city }} · {{ p.dist }}</span>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</sc-if>
+
+<!-- ===== PHOTO SHEET ===== -->
+<sc-if value="{{ sheetPhoto }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(1,0,2,.35);z-index:70;animation:cp-fade .2s ease"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;z-index:71;background:#fff;border-radius:22px 22px 0 0;padding:14px 22px 34px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px;animation:cp-sheet .28s cubic-bezier(.2,.8,.2,1)">
+    <div style="align-self:center;width:38px;height:4px;border-radius:2px;background:#E7E2D8"></div>
+    <span style="font-weight:700;font-size:16px;line-height:24px">{{ t.sheetTitle }}</span>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div onClick="{{ pickAlbum }}" style-hover="transform:translateY(-2px)" style="height:96px;border-radius:16px;background:#F9F4EB;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:transform .15s ease"><span style="font-size:28px;line-height:1">🖼</span><span style="font-weight:700;font-size:14px">{{ t.album }}</span></div>
+      <div onClick="{{ pickCamera }}" style-hover="transform:translateY(-2px)" style="height:96px;border-radius:16px;background:#010002;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:transform .15s ease"><span style="font-size:28px;line-height:1">📷</span><span style="font-weight:700;font-size:14px;color:#fff">{{ t.camera }}</span></div>
+    </div>
+    <div onClick="{{ closeSheet }}" style="height:48px;border-radius:14px;background:#F6F6F6;display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="font-weight:500;font-size:14px;color:#746e63">{{ t.cancel }}</span></div>
+  </div>
+</sc-if>
+
+<input ref="{{ albumRef }}" type="file" accept="image/*" onChange="{{ onAlbum }}" style="display:none">
+<input ref="{{ replyPhotoRef }}" type="file" accept="image/*" onChange="{{ onReplyPhoto }}" style="display:none">
+
+<!-- ===== LANGUAGE ===== -->
+<sc-if value="{{ langOpen }}" hint-placeholder-val="{{ false }}"><div onClick="{{ closeLang }}" style="position:absolute;inset:0;z-index:59"></div></sc-if>
+<sc-if value="{{ showLogo }}" hint-placeholder-val="{{ true }}"><img src="./assets/catpal-logo.png" alt="CatPal" onClick="{{ goHome }}" style="position:absolute;left:16px;top:9px;height:36px;width:auto;z-index:55;cursor:pointer"></sc-if>
+<div style="position:absolute;right:16px;top:12px;z-index:60;display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+  <div onClick="{{ toggleLang }}" style-hover="background:#F6F6F6" style="height:30px;padding:0 10px 0 9px;border-radius:15px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.14);display:flex;align-items:center;gap:6px;cursor:pointer;transition:background .15s ease">
+    <span style="font-size:13px;line-height:1">🌐</span>
+    <span style="font-weight:700;font-size:12px;white-space:nowrap;color:#010002">{{ langCurrent }}</span>
+    <div style="width:6px;height:6px;border-left:1.5px solid #010002;border-bottom:1.5px solid #010002;transform:{{ langCaret }};margin-left:1px;transition:transform .2s ease"></div>
+  </div>
+  <sc-if value="{{ langOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="min-width:180px;max-height:300px;overflow-y:auto;padding:6px;border-radius:14px;background:#fff;box-shadow:0 8px 24px rgba(0,0,0,.16),0 0 0 1px rgba(0,0,0,.04);display:flex;flex-direction:column;flex-wrap:nowrap;animation:cp-fadeup .18s ease;scrollbar-width:thin">
+      <sc-for list="{{ langOpts }}" as="o" hint-placeholder-count="2">
+        <div onClick="{{ o.pick }}" style-hover="background:#F6F6F6" style="flex:none;height:40px;padding:0 12px;border-radius:9px;display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;background:{{ o.bg }}">
+          <span style="font-weight:500;font-size:14px;white-space:nowrap;color:#010002">{{ o.label }}</span>
+          <span style="font-weight:700;font-size:13px;color:#010002;opacity:{{ o.checkOpacity }}">✓</span>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:470,&quot;height&quot;:930},&quot;language&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;English&quot;,&quot;options&quot;:[&quot;English&quot;,&quot;한국어&quot;,&quot;日本語&quot;,&quot;中文&quot;,&quot;Español&quot;,&quot;Français&quot;,&quot;Deutsch&quot;,&quot;Português&quot;,&quot;ไทย&quot;,&quot;Bahasa Indonesia&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Prototype&quot;},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Intro&quot;,&quot;options&quot;:[&quot;Intro&quot;,&quot;Home&quot;,&quot;Mailbox&quot;,&quot;World Map&quot;,&quot;Passport&quot;,&quot;Cat Profile&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Prototype&quot;},&quot;sendToUnlock&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Rules&quot;},&quot;surpriseCity&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Random&quot;,&quot;options&quot;:[&quot;Random&quot;,&quot;Jakarta&quot;,&quot;Zurich&quot;,&quot;Tokyo&quot;,&quot;Florence&quot;,&quot;Hong Kong&quot;,&quot;Reykjavík&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Rules&quot;}}">
+class Component extends DCLogic {
+  state = {
+    screen: null, prev: "home", lang: null, langOpen: false, sheet: null, lockHint: false, to: null,
+    myPhoto: null, profileDone: false, name: "Tori", age: "4", myTags: ["Sleepy", "Food Lover"], msg: "", stamp: 0, camErr: false,
+    dest: null, phase: null, mapDone: false, sendCount: 0, sentToday: false, isNewPal: false,
+    known: ["momo", "lumi", "bao", "frost"],
+    inbox: [
+      { id: "i0", pal: "momo", note: "Momo has three beds but still sleeps in a cardboard box 😭", date: "26-09-23", unread: true },
+      { id: "i1", pal: "lumi", note: "Lumi supervised my cooking today. Zero stars, apparently.", date: "26-09-20", unread: false },
+      { id: "i2", pal: "bao", note: "Knock, knock. 🐾", date: "26-09-14", unread: false },
+      { id: "i3", pal: "frost", note: "Rainy London again — Frost refuses to go outside ☔", date: "26-09-09", unread: false },
+    ],
+    sent: [
+      { pal: "lumi", date: "26-09-20", stamp: 2 }, { pal: "bao", date: "26-09-14", stamp: 3 },
+      { pal: "momo", date: "26-09-10", stamp: 0 }, { pal: "frost", date: "26-09-08", stamp: 4 },
+    ],
+    threads: {}, tstate: { bao: "p0" }, mailId: null, profileId: "me", lettersId: "momo",
+    draft: "", transit: null, mbTab: "received", ppTab: "stamps", reaction: null,
+  };
+  timers = [];
+  I18N = {"en":{"introTitle":"A pen pal, but for cats.","introSub":"Swap everyday cat moments with\ncats around the world.","start":"Let’s Start!","homeQ":"I wonder what a cat far away is doing today…","heroToSent":"To {name}","heroToNone":"To a cat somewhere 🌎","heroStatusSent":"✓ Sent to {city}","heroStatusNone":"Not sent yet","sendCatMail":"Send today’s Cat Mail","newMail":"New Cat Mail","locked":"Send yours to open","noMail":"No new Cat Mail — something is on its way ✈️","whoTo":"Who’s getting your Cat Mail?","lockHint":"Send one first to open your new Cat Mail","surprise":"🌍 Meet a New CatPal","surpriseSub":"Send to a random cat somewhere in the world","yourPals":"Your CatPals","somewhere":"A cat somewhere 🌏","somewhereShort":"somewhere 🌏","toLinePal":"To. {name} in {city}","toLineNone":"To. a cat somewhere 🌎","upload":"Upload your\nToday’s cat","sheetTitle":"Today’s cat photo","album":"Album","camera":"Camera","cancel":"Cancel","camErr":"Camera isn’t available here. Pick a photo from your album instead.","infoHint":"Just once — introduce your cat","name":"Name :","age":"Age :","personality":"Personality","tapToEdit":"tap to edit","msgPh":"Add a little note about this moment…","guideTitle":"💡 Try starting a knock-knock joke","useKnock":"Use “Knock, knock.”","guideNote":"Just send the first line — your pal writes back to keep the joke going ✉️","pickStamp":"Pick a stamp","send":"Send","fromLine":"From Seoul, Korea 🇰🇷 · ","finding":"Finding a CatPal","flyingTo":"Flying to {name}","mapTitle":"World Map","deliveryDone":"Your cat pic reached {city}!","deliveryGoing":"Your cat pic is flying to {city}…","tapContinue":"tap to continue","arr1":"{name} sent to {country} today","newPal":"🎉 New CatPal: {name} in {city}","stampCollected":"+1 stamp in your Passport","backHome":"Back to Home","mailTitle":"{name} sent you a picture!","replyPhoto":"Reply with a photo","letters":"Letters","lettersWith":"Letters with {name}","letterCount":"{n} letters","photoShort":"Photo","transitSending":"Your letter is on its way to {city}…","transitWriting":"{name} is writing back…","draftHint":"Write back to {name}…","composeWait":"wait for their reply ✉️","composeKeep":"keep the letters going","sendBack":"Send back","mailbox":"Mailbox","mapSub":"Cats {name} has met","legendSent":"Cat Mail sent","legendMet":"Cats met","mapStats":"{c} countries · {n} cats · {km} km traveled","passportTitle":"{name}’s Passport","passportSub":"One stamp for every cat you meet","pfSend":"Send Cat Mail to {name}","pfStampNote":"{name}’s stamp is in your Passport — collected through your first Cat Mail.","navHome":"Home","navMailbox":"Mailbox","navMap":"World Map","navPassport":"Passport","received":"Received","sent":"Sent","catpals":"CatPals","stampBook":"Stamp Book","journal":"Journal","countries":"countries","catsMet":"cats met","stamps":"stamps","away":"{d} away","palMeta":"{n} letters · since {since}","yetToMeet":"Yet to meet","toPrefix":"To {name}","fromPrefix":"From {name}","mailFrom":"From {name}","pfMeMeta":"That’s you! {n} Cat Mails sent","pfPalMeta":"{d} from Seoul · CatPal since {since}","korea":"Korea","today":"Today","tags":["Sleepy","Shy","Mischievous","Food Lover","Curious","Cuddly","Chatty","Explorer"],"C":["Japan","Italy","Taiwan","UK","Indonesia","France","Thailand","Australia","USA","Canada","Singapore"],"starters":"Conversation starters","reply":"Reply","sendMail":"Send Cat Mail"},"ko":{"introTitle":"고양이들의 펜팔.","introSub":"전 세계 고양이들과\n일상의 순간을 주고받아요.","start":"시작하기!","homeQ":"저 멀리 어떤 고양이는 오늘 뭘 하고 있을까?","heroToSent":"To. {name}","heroToNone":"To. 어딘가의 고양이 🌏","heroStatusSent":"✓ {city}로 보냈어요","heroStatusNone":"아직 안 보냈어요","sendCatMail":"오늘의 캣메일 보내기","newMail":"새 캣메일","locked":"내 캣메일을 보내면 열려요","noMail":"새 캣메일이 없어요 — 곧 도착할 거예요 ✈️","whoTo":"누구에게 캣메일을 보낼까요?","lockHint":"먼저 하나를 보내야 새 캣메일을 열 수 있어요","surprise":"🌍 새 캣팔 만나기","surpriseSub":"세계 어딘가의 낯선 고양이에게 보내요","yourPals":"나의 캣팔","somewhere":"어딘가의 고양이 🌏","somewhereShort":"어딘가 🌏","toLinePal":"To. {city}의 {name}","toLineNone":"To. 어딘가의 고양이 🌏","upload":"오늘의 고양이\n사진 올리기","sheetTitle":"오늘의 고양이 사진","album":"앨범","camera":"카메라","cancel":"취소","camErr":"카메라를 사용할 수 없어요. 앨범에서 사진을 골라주세요.","infoHint":"처음 한 번만 — 고양이를 소개해 주세요","name":"이름 :","age":"나이 :","personality":"성격","tapToEdit":"탭해서 수정","msgPh":"이 순간에 대해 짧게 남겨 보세요…","guideTitle":"💡 knock-knock 농담으로 시작해보세요","useKnock":"“Knock, knock.” 쓰기","guideNote":"첫 줄만 보내면 돼요. 캣팔이 답장을 보내야 다음 이야기가 이어져요 ✉️","pickStamp":"우표를 골라주세요","send":"보내기","fromLine":"대한민국 서울에서 🇰🇷 · ","finding":"캣팔을 찾는 중","flyingTo":"{name}에게 날아가는 중","mapTitle":"월드맵","deliveryDone":"{city}에 고양이 사진이 도착했어요!","deliveryGoing":"{city}(으)로 날아가는 중…","tapContinue":"탭해서 계속하기","arr1":"{name}의 사진이 오늘 {country}에 도착했어요","newPal":"🎉 새 캣팔: {city}의 {name}","stampCollected":"여권에 우표 +1","backHome":"홈으로","mailTitle":"{name}가 사진을 보냈어요!","replyPhoto":"사진으로 답장","letters":"편지","lettersWith":"{name}와의 편지","letterCount":"편지 {n}통","photoShort":"사진","transitSending":"편지가 {city}(으)로 날아가는 중…","transitWriting":"{name}가 답장을 쓰는 중…","draftHint":"{name}에게 답장 쓰기…","composeWait":"답장을 기다리는 중 ✉️","composeKeep":"편지를 계속 이어가요","sendBack":"답장 보내기","mailbox":"우편함","mapSub":"{name}가 만난 고양이들","legendSent":"보낸 캣메일","legendMet":"만난 고양이","mapStats":"{c}개국 · 고양이 {n}마리 · {km} km 여행","passportTitle":"{name}의 여권","passportSub":"만난 고양이마다 우표가 하나씩","pfSend":"{name}에게 캣메일 보내기","pfStampNote":"{name}의 우표가 여권에 있어요 — 첫 캣메일로 모았어요.","navHome":"홈","navMailbox":"우편함","navMap":"월드맵","navPassport":"여권","received":"받은 편지","sent":"보낸 편지","catpals":"캣팔","stampBook":"우표첩","journal":"기록","countries":"개국","catsMet":"만난 고양이","stamps":"우표","away":"{d} 떨어진 곳","palMeta":"편지 {n}통 · {since}부터","yetToMeet":"아직 못 만났어요","toPrefix":"To. {name}","fromPrefix":"From. {name}","mailFrom":"{name}에게서 온 편지","pfMeMeta":"나의 고양이 · 캣메일 {n}통 보냄","pfPalMeta":"서울에서 {d} · {since}부터 캣팔","korea":"대한민국","today":"오늘","tags":["잠꾸러기","수줍음","장난꾸러기","먹보","호기심","애교쟁이","수다쟁이","탐험가"],"C":["일본","이탈리아","대만","영국","인도네시아","프랑스","태국","호주","미국","캐나다","싱가포르"],"starters":"대화 시작하기","reply":"답장하기","sendMail":"캣메일 보내기"},"ja":{"introTitle":"猫のためのペンパル。","introSub":"世界中の猫たちと\n毎日の瞬間を交換しよう。","start":"はじめる！","homeQ":"遠くの猫は、今日なにをしているかな…","heroToSent":"To. {name}","heroToNone":"To. どこかの猫へ 🌏","heroStatusSent":"✓ {city}へ送りました","heroStatusNone":"まだ送っていません","sendCatMail":"今日のキャットメールを送る","newMail":"新しいキャットメール","locked":"送ると開きます","noMail":"新しいキャットメールはありません — もうすぐ届きます ✈️","whoTo":"誰にキャットメールを送る？","lockHint":"新しいキャットメールを開くには、まず1通送ってね","surprise":"🌍 新しいキャットパルに出会う","surpriseSub":"世界のどこかの猫にランダムで送ります","yourPals":"あなたのキャットパル","somewhere":"どこかの猫 🌏","somewhereShort":"どこか 🌏","toLinePal":"To. {city}の{name}","toLineNone":"To. どこかの猫へ 🌏","upload":"今日の猫を\nアップロード","sheetTitle":"今日の猫の写真","album":"アルバム","camera":"カメラ","cancel":"キャンセル","camErr":"カメラが使えません。アルバムから写真を選んでください。","infoHint":"最初の一回だけ — 猫を紹介してね","name":"名前 :","age":"年齢 :","personality":"性格","tapToEdit":"タップして編集","msgPh":"この瞬間にひとことメモを…","guideTitle":"💡 ノックノックジョークで始めてみよう","useKnock":"「Knock, knock.」を使う","guideNote":"最初の一行だけ送ればOK。パルの返事でジョークが続きます ✉️","pickStamp":"切手を選んでね","send":"送る","fromLine":"韓国・ソウルより 🇰🇷 · ","finding":"キャットパルを探しています","flyingTo":"{name}のもとへ飛行中","mapTitle":"ワールドマップ","deliveryDone":"猫の写真が{city}に届きました！","deliveryGoing":"猫の写真が{city}へ飛んでいます…","tapContinue":"タップして続ける","arr1":"{name}の写真が今日{country}に届きました","newPal":"🎉 新しいキャットパル：{city}の{name}","stampCollected":"パスポートに切手 +1","backHome":"ホームへ","mailTitle":"{name}から写真が届きました！","replyPhoto":"写真で返信","letters":"手紙","lettersWith":"{name}との手紙","letterCount":"手紙 {n}通","photoShort":"写真","transitSending":"手紙が{city}へ向かっています…","transitWriting":"{name}が返事を書いています…","draftHint":"{name}に返事を書く…","composeWait":"返事を待っています ✉️","composeKeep":"手紙を続けよう","sendBack":"返信する","mailbox":"メールボックス","mapSub":"{name}が出会った猫たち","legendSent":"送ったキャットメール","legendMet":"出会った猫","mapStats":"{c}か国 · 猫{n}匹 · {km} km の旅","passportTitle":"{name}のパスポート","passportSub":"出会った猫ごとに切手が1枚","pfSend":"{name}にキャットメールを送る","pfStampNote":"{name}の切手はパスポートにあります — 最初のキャットメールで集めました。","navHome":"ホーム","navMailbox":"メール","navMap":"マップ","navPassport":"パスポート","received":"受信","sent":"送信","catpals":"キャットパル","stampBook":"切手帳","journal":"記録","countries":"か国","catsMet":"出会った猫","stamps":"切手","away":"{d} 先","palMeta":"手紙{n}通 · {since}から","yetToMeet":"まだ出会っていません","toPrefix":"To. {name}","fromPrefix":"From. {name}","mailFrom":"{name}からの手紙","pfMeMeta":"あなたの猫 · キャットメール{n}通送信","pfPalMeta":"ソウルから{d} · {since}からのキャットパル","korea":"韓国","today":"今日","tags":["ねぼすけ","人見知り","いたずらっ子","食いしん坊","好奇心旺盛","甘えん坊","おしゃべり","冒険家"],"C":["日本","イタリア","台湾","イギリス","インドネシア","フランス","タイ","オーストラリア","アメリカ","カナダ","シンガポール"],"starters":"会話のきっかけ","reply":"返信する","sendMail":"キャットメールを送る"},"zh":{"introTitle":"猫咪的笔友。","introSub":"和世界各地的猫咪\n交换日常的瞬间。","start":"开始吧！","homeQ":"远方的一只猫，今天在做什么呢…","heroToSent":"To. {name}","heroToNone":"To. 某处的一只猫 🌏","heroStatusSent":"✓ 已寄往{city}","heroStatusNone":"还没寄出","sendCatMail":"寄出今天的猫咪邮件","newMail":"新的猫咪邮件","locked":"寄出你的就能打开","noMail":"暂无新的猫咪邮件 — 正在路上 ✈️","whoTo":"要把猫咪邮件寄给谁？","lockHint":"先寄出一封，才能打开新的猫咪邮件","surprise":"🌍 认识新猫友","surpriseSub":"随机寄给世界某处的一只猫","yourPals":"你的猫友","somewhere":"某处的一只猫 🌏","somewhereShort":"某处 🌏","toLinePal":"To. {city}的{name}","toLineNone":"To. 某处的一只猫 🌏","upload":"上传今天的\n猫咪照片","sheetTitle":"今天的猫咪照片","album":"相册","camera":"相机","cancel":"取消","camErr":"这里无法使用相机，请从相册中选择照片。","infoHint":"只需一次 — 介绍一下你的猫","name":"名字 :","age":"年龄 :","personality":"性格","tapToEdit":"点击编辑","msgPh":"为这一刻写一句小小的话…","guideTitle":"💡 试试用敲门笑话开场","useKnock":"使用“Knock, knock.”","guideNote":"只需发送第一句 — 猫友回信后笑话才会继续 ✉️","pickStamp":"选一枚邮票","send":"寄出","fromLine":"来自韩国首尔 🇰🇷 · ","finding":"正在寻找猫友","flyingTo":"正飞往{name}身边","mapTitle":"世界地图","deliveryDone":"你的猫咪照片已抵达{city}！","deliveryGoing":"你的猫咪照片正飞往{city}…","tapContinue":"点击继续","arr1":"{name}的照片今天寄到了{country}","newPal":"🎉 新猫友：{city}的{name}","stampCollected":"护照里多了一枚邮票","backHome":"返回首页","mailTitle":"{name}给你寄来了照片！","replyPhoto":"用照片回信","letters":"信件","lettersWith":"与{name}的信件","letterCount":"{n}封信","photoShort":"照片","transitSending":"你的信正在寄往{city}…","transitWriting":"{name}正在回信…","draftHint":"给{name}回信…","composeWait":"等待回信 ✉️","composeKeep":"让通信继续下去","sendBack":"回信","mailbox":"邮箱","mapSub":"{name}遇见的猫咪们","legendSent":"已寄出的猫咪邮件","legendMet":"遇见的猫","mapStats":"{c}个国家 · {n}只猫 · 旅行{km}公里","passportTitle":"{name}的护照","passportSub":"每遇见一只猫，就收集一枚邮票","pfSend":"给{name}寄猫咪邮件","pfStampNote":"{name}的邮票在你的护照里 — 通过第一封猫咪邮件收集。","navHome":"首页","navMailbox":"邮箱","navMap":"地图","navPassport":"护照","received":"收到","sent":"寄出","catpals":"猫友","stampBook":"邮票册","journal":"日记","countries":"个国家","catsMet":"遇见的猫","stamps":"邮票","away":"相距{d}","palMeta":"{n}封信 · 自{since}起","yetToMeet":"尚未遇见","toPrefix":"To. {name}","fromPrefix":"From. {name}","mailFrom":"来自{name}的信","pfMeMeta":"这是你的猫 · 已寄出{n}封猫咪邮件","pfPalMeta":"距首尔{d} · 自{since}起成为猫友","korea":"韩国","today":"今天","tags":["瞌睡虫","害羞","调皮鬼","吃货","好奇宝宝","黏人精","话痨","探险家"],"C":["日本","意大利","台湾","英国","印度尼西亚","法国","泰国","澳大利亚","美国","加拿大","新加坡"],"starters":"聊天开场白","reply":"回信","sendMail":"寄猫咪邮件"},"es":{"introTitle":"Un amigo por correspondencia, pero para gatos.","introSub":"Intercambia momentos cotidianos\ncon gatos de todo el mundo.","start":"¡Empecemos!","homeQ":"¿Qué estará haciendo hoy un gato muy lejos de aquí…?","heroToSent":"Para {name}","heroToNone":"Para un gato en algún lugar 🌏","heroStatusSent":"✓ Enviado a {city}","heroStatusNone":"Aún no enviado","sendCatMail":"Enviar el Cat Mail de hoy","newMail":"Nuevo Cat Mail","locked":"Envía el tuyo para abrir","noMail":"No hay Cat Mail nuevo — algo viene en camino ✈️","whoTo":"¿Quién recibirá tu Cat Mail?","lockHint":"Envía uno primero para abrir tu nuevo Cat Mail","surprise":"🌍 Conoce a un nuevo CatPal","surpriseSub":"Envíalo a un gato al azar en algún lugar del mundo","yourPals":"Tus CatPals","somewhere":"Un gato en algún lugar 🌏","somewhereShort":"algún lugar 🌏","toLinePal":"Para {name} en {city}","toLineNone":"Para un gato en algún lugar 🌏","upload":"Sube tu\ngato de hoy","sheetTitle":"La foto de tu gato de hoy","album":"Álbum","camera":"Cámara","cancel":"Cancelar","camErr":"La cámara no está disponible aquí. Elige una foto de tu álbum.","infoHint":"Solo una vez — presenta a tu gato","name":"Nombre :","age":"Edad :","personality":"Personalidad","tapToEdit":"toca para editar","msgPh":"Añade una notita sobre este momento…","guideTitle":"💡 Empieza con un chiste de toc toc","useKnock":"Usar “Knock, knock.”","guideNote":"Solo envía la primera línea — tu CatPal responde para seguir el chiste ✉️","pickStamp":"Elige un sello","send":"Enviar","fromLine":"Desde Seúl, Corea 🇰🇷 · ","finding":"Buscando un CatPal","flyingTo":"Volando hacia {name}","mapTitle":"Mapa del mundo","deliveryDone":"¡Tu foto llegó a {city}!","deliveryGoing":"Tu foto vuela hacia {city}…","tapContinue":"toca para continuar","arr1":"{name} llegó hoy a {country}","newPal":"🎉 Nuevo CatPal: {name} en {city}","stampCollected":"+1 sello en tu Pasaporte","backHome":"Volver al inicio","mailTitle":"¡{name} te envió una foto!","replyPhoto":"Responder con una foto","letters":"Cartas","lettersWith":"Cartas con {name}","letterCount":"{n} cartas","photoShort":"Foto","transitSending":"Tu carta va camino a {city}…","transitWriting":"{name} está respondiendo…","draftHint":"Responde a {name}…","composeWait":"espera su respuesta ✉️","composeKeep":"sigue escribiendo","sendBack":"Responder","mailbox":"Buzón","mapSub":"Gatos que {name} ha conocido","legendSent":"Cat Mail enviado","legendMet":"Gatos conocidos","mapStats":"{c} países · {n} gatos · {km} km recorridos","passportTitle":"Pasaporte de {name}","passportSub":"Un sello por cada gato que conoces","pfSend":"Enviar Cat Mail a {name}","pfStampNote":"El sello de {name} está en tu Pasaporte — conseguido con tu primer Cat Mail.","navHome":"Inicio","navMailbox":"Buzón","navMap":"Mapa","navPassport":"Pasaporte","received":"Recibidos","sent":"Enviados","catpals":"CatPals","stampBook":"Álbum de sellos","journal":"Diario","countries":"países","catsMet":"gatos conocidos","stamps":"sellos","away":"a {d}","palMeta":"{n} cartas · desde {since}","yetToMeet":"Por conocer","toPrefix":"Para {name}","fromPrefix":"De {name}","mailFrom":"De {name}","pfMeMeta":"¡Eres tú! {n} Cat Mails enviados","pfPalMeta":"A {d} de Seúl · CatPal desde {since}","korea":"Corea","today":"Hoy","tags":["Dormilón","Tímido","Travieso","Glotón","Curioso","Mimoso","Hablador","Explorador"],"C":["Japón","Italia","Taiwán","Reino Unido","Indonesia","Francia","Tailandia","Australia","EE. UU.","Canadá","Singapur"],"starters":"Para empezar a hablar","reply":"Responder","sendMail":"Enviar Cat Mail"},"fr":{"introTitle":"Un correspondant, mais pour les chats.","introSub":"Échange des moments du quotidien\navec des chats du monde entier.","start":"C’est parti !","homeQ":"Que fait aujourd’hui un chat très loin d’ici…","heroToSent":"À {name}","heroToNone":"À un chat quelque part 🌏","heroStatusSent":"✓ Envoyé à {city}","heroStatusNone":"Pas encore envoyé","sendCatMail":"Envoyer le Cat Mail du jour","newMail":"Nouveau Cat Mail","locked":"Envoie le tien pour ouvrir","noMail":"Pas de nouveau Cat Mail — quelque chose arrive ✈️","whoTo":"Qui recevra ton Cat Mail ?","lockHint":"Envoies-en un d’abord pour ouvrir ton nouveau Cat Mail","surprise":"🌍 Rencontre un nouveau CatPal","surpriseSub":"Envoie-le à un chat au hasard quelque part dans le monde","yourPals":"Tes CatPals","somewhere":"Un chat quelque part 🌏","somewhereShort":"quelque part 🌏","toLinePal":"À {name}, {city}","toLineNone":"À un chat quelque part 🌏","upload":"Ajoute ton\nchat du jour","sheetTitle":"La photo de ton chat du jour","album":"Album","camera":"Caméra","cancel":"Annuler","camErr":"La caméra n’est pas disponible ici. Choisis une photo dans ton album.","infoHint":"Une seule fois — présente ton chat","name":"Nom :","age":"Âge :","personality":"Personnalité","tapToEdit":"touche pour modifier","msgPh":"Ajoute un petit mot sur ce moment…","guideTitle":"💡 Commence par une blague toc-toc","useKnock":"Utiliser « Knock, knock. »","guideNote":"Envoie juste la première ligne — ton CatPal répond pour continuer la blague ✉️","pickStamp":"Choisis un timbre","send":"Envoyer","fromLine":"De Séoul, Corée 🇰🇷 · ","finding":"Recherche d’un CatPal","flyingTo":"En route vers {name}","mapTitle":"Carte du monde","deliveryDone":"Ta photo est arrivée à {city} !","deliveryGoing":"Ta photo s’envole vers {city}…","tapContinue":"touche pour continuer","arr1":"{name} → {country} aujourd’hui","newPal":"🎉 Nouveau CatPal : {name} à {city}","stampCollected":"+1 timbre dans ton Passeport","backHome":"Retour à l’accueil","mailTitle":"{name} t’a envoyé une photo !","replyPhoto":"Répondre avec une photo","letters":"Lettres","lettersWith":"Lettres avec {name}","letterCount":"{n} lettres","photoShort":"Photo","transitSending":"Ta lettre part pour {city}…","transitWriting":"{name} est en train de répondre…","draftHint":"Réponds à {name}…","composeWait":"attends sa réponse ✉️","composeKeep":"continue la correspondance","sendBack":"Répondre","mailbox":"Boîte aux lettres","mapSub":"Les chats que {name} a rencontrés","legendSent":"Cat Mail envoyés","legendMet":"Chats rencontrés","mapStats":"{c} pays · {n} chats · {km} km parcourus","passportTitle":"Passeport de {name}","passportSub":"Un timbre pour chaque chat rencontré","pfSend":"Envoyer un Cat Mail à {name}","pfStampNote":"Le timbre de {name} est dans ton Passeport — obtenu grâce à ton premier Cat Mail.","navHome":"Accueil","navMailbox":"Boîte","navMap":"Carte","navPassport":"Passeport","received":"Reçus","sent":"Envoyés","catpals":"CatPals","stampBook":"Carnet de timbres","journal":"Journal","countries":"pays","catsMet":"chats rencontrés","stamps":"timbres","away":"à {d}","palMeta":"{n} lettres · depuis {since}","yetToMeet":"À rencontrer","toPrefix":"À {name}","fromPrefix":"De {name}","mailFrom":"De {name}","pfMeMeta":"C’est toi ! {n} Cat Mails envoyés","pfPalMeta":"À {d} de Séoul · CatPal depuis {since}","korea":"Corée","today":"Aujourd’hui","tags":["Dormeur","Timide","Espiègle","Gourmand","Curieux","Câlin","Bavard","Explorateur"],"C":["Japon","Italie","Taïwan","Royaume-Uni","Indonésie","France","Thaïlande","Australie","États-Unis","Canada","Singapour"],"starters":"Pour lancer la conversation","reply":"Répondre","sendMail":"Envoyer un Cat Mail"},"de":{"introTitle":"Eine Brieffreundschaft – für Katzen.","introSub":"Teile Alltagsmomente\nmit Katzen auf der ganzen Welt.","start":"Los geht’s!","homeQ":"Was macht wohl eine Katze weit weg heute gerade…","heroToSent":"An {name}","heroToNone":"An eine Katze irgendwo 🌏","heroStatusSent":"✓ Nach {city} gesendet","heroStatusNone":"Noch nicht gesendet","sendCatMail":"Heutige Cat Mail senden","newMail":"Neue Cat Mail","locked":"Sende deine, um sie zu öffnen","noMail":"Keine neue Cat Mail — etwas ist unterwegs ✈️","whoTo":"Wer bekommt deine Cat Mail?","lockHint":"Sende zuerst eine, um deine neue Cat Mail zu öffnen","surprise":"🌍 Triff einen neuen CatPal","surpriseSub":"An eine zufällige Katze irgendwo auf der Welt senden","yourPals":"Deine CatPals","somewhere":"Eine Katze irgendwo 🌏","somewhereShort":"irgendwo 🌏","toLinePal":"An {name} in {city}","toLineNone":"An eine Katze irgendwo 🌏","upload":"Lade deine\nheutige Katze hoch","sheetTitle":"Das heutige Katzenfoto","album":"Album","camera":"Kamera","cancel":"Abbrechen","camErr":"Die Kamera ist hier nicht verfügbar. Wähle ein Foto aus deinem Album.","infoHint":"Nur einmal — stell deine Katze vor","name":"Name :","age":"Alter :","personality":"Persönlichkeit","tapToEdit":"tippen zum Bearbeiten","msgPh":"Schreib eine kleine Notiz zu diesem Moment…","guideTitle":"💡 Starte mit einem Klopf-Klopf-Witz","useKnock":"„Knock, knock.“ verwenden","guideNote":"Schick nur die erste Zeile — dein CatPal antwortet, damit der Witz weitergeht ✉️","pickStamp":"Wähle eine Briefmarke","send":"Senden","fromLine":"Aus Seoul, Korea 🇰🇷 · ","finding":"Suche einen CatPal","flyingTo":"Unterwegs zu {name}","mapTitle":"Weltkarte","deliveryDone":"Dein Katzenfoto ist in {city} angekommen!","deliveryGoing":"Dein Katzenfoto fliegt nach {city}…","tapContinue":"tippen zum Fortfahren","arr1":"{name} ist heute in {country} angekommen","newPal":"🎉 Neuer CatPal: {name} in {city}","stampCollected":"+1 Briefmarke in deinem Pass","backHome":"Zurück zur Startseite","mailTitle":"{name} hat dir ein Foto geschickt!","replyPhoto":"Mit Foto antworten","letters":"Briefe","lettersWith":"Briefe mit {name}","letterCount":"{n} Briefe","photoShort":"Foto","transitSending":"Dein Brief ist unterwegs nach {city}…","transitWriting":"{name} schreibt zurück…","draftHint":"Antworte {name}…","composeWait":"warte auf die Antwort ✉️","composeKeep":"schreibt euch weiter","sendBack":"Zurückschreiben","mailbox":"Briefkasten","mapSub":"Katzen, die {name} getroffen hat","legendSent":"Gesendete Cat Mail","legendMet":"Getroffene Katzen","mapStats":"{c} Länder · {n} Katzen · {km} km gereist","passportTitle":"Pass von {name}","passportSub":"Eine Briefmarke für jede Katze, die du triffst","pfSend":"Cat Mail an {name} senden","pfStampNote":"Die Briefmarke von {name} ist in deinem Pass — gesammelt mit deiner ersten Cat Mail.","navHome":"Start","navMailbox":"Briefkasten","navMap":"Weltkarte","navPassport":"Pass","received":"Empfangen","sent":"Gesendet","catpals":"CatPals","stampBook":"Briefmarkenalbum","journal":"Tagebuch","countries":"Länder","catsMet":"Katzen getroffen","stamps":"Briefmarken","away":"{d} entfernt","palMeta":"{n} Briefe · seit {since}","yetToMeet":"Noch nicht getroffen","toPrefix":"An {name}","fromPrefix":"Von {name}","mailFrom":"Von {name}","pfMeMeta":"Das bist du! {n} Cat Mails gesendet","pfPalMeta":"{d} von Seoul · CatPal seit {since}","korea":"Korea","today":"Heute","tags":["Schlafmütze","Schüchtern","Frech","Feinschmecker","Neugierig","Verschmust","Gesprächig","Entdecker"],"C":["Japan","Italien","Taiwan","Großbritannien","Indonesien","Frankreich","Thailand","Australien","USA","Kanada","Singapur"],"starters":"Gesprächsstarter","reply":"Antworten","sendMail":"Cat Mail senden"},"pt":{"introTitle":"Um amigo por correspondência, mas para gatos.","introSub":"Troque momentos do dia a dia\ncom gatos do mundo todo.","start":"Vamos começar!","homeQ":"O que será que um gato bem longe está fazendo hoje…","heroToSent":"Para {name}","heroToNone":"Para um gato em algum lugar 🌏","heroStatusSent":"✓ Enviado para {city}","heroStatusNone":"Ainda não enviado","sendCatMail":"Enviar o Cat Mail de hoje","newMail":"Novo Cat Mail","locked":"Envie o seu para abrir","noMail":"Nenhum Cat Mail novo — algo está a caminho ✈️","whoTo":"Quem vai receber seu Cat Mail?","lockHint":"Envie um primeiro para abrir seu novo Cat Mail","surprise":"🌍 Conheça um novo CatPal","surpriseSub":"Envie para um gato aleatório em algum lugar do mundo","yourPals":"Seus CatPals","somewhere":"Um gato em algum lugar 🌏","somewhereShort":"algum lugar 🌏","toLinePal":"Para {name} em {city}","toLineNone":"Para um gato em algum lugar 🌏","upload":"Envie seu\ngato de hoje","sheetTitle":"A foto do seu gato hoje","album":"Álbum","camera":"Câmera","cancel":"Cancelar","camErr":"A câmera não está disponível aqui. Escolha uma foto do seu álbum.","infoHint":"Só uma vez — apresente seu gato","name":"Nome :","age":"Idade :","personality":"Personalidade","tapToEdit":"toque para editar","msgPh":"Adicione uma notinha sobre este momento…","guideTitle":"💡 Comece com uma piada de toc-toc","useKnock":"Usar “Knock, knock.”","guideNote":"Envie só a primeira linha — seu CatPal responde para a piada continuar ✉️","pickStamp":"Escolha um selo","send":"Enviar","fromLine":"De Seul, Coreia 🇰🇷 · ","finding":"Procurando um CatPal","flyingTo":"Voando até {name}","mapTitle":"Mapa-múndi","deliveryDone":"Sua foto chegou a {city}!","deliveryGoing":"Sua foto está voando para {city}…","tapContinue":"toque para continuar","arr1":"{name} foi para {country} hoje","newPal":"🎉 Novo CatPal: {name} em {city}","stampCollected":"+1 selo no seu Passaporte","backHome":"Voltar ao início","mailTitle":"{name} te enviou uma foto!","replyPhoto":"Responder com foto","letters":"Cartas","lettersWith":"Cartas com {name}","letterCount":"{n} cartas","photoShort":"Foto","transitSending":"Sua carta está a caminho de {city}…","transitWriting":"{name} está respondendo…","draftHint":"Responda a {name}…","composeWait":"aguarde a resposta ✉️","composeKeep":"continue a conversa","sendBack":"Responder","mailbox":"Caixa de correio","mapSub":"Gatos que {name} conheceu","legendSent":"Cat Mail enviados","legendMet":"Gatos conhecidos","mapStats":"{c} países · {n} gatos · {km} km percorridos","passportTitle":"Passaporte de {name}","passportSub":"Um selo para cada gato que você conhece","pfSend":"Enviar Cat Mail para {name}","pfStampNote":"O selo de {name} está no seu Passaporte — coletado no seu primeiro Cat Mail.","navHome":"Início","navMailbox":"Correio","navMap":"Mapa","navPassport":"Passaporte","received":"Recebidos","sent":"Enviados","catpals":"CatPals","stampBook":"Álbum de selos","journal":"Diário","countries":"países","catsMet":"gatos conhecidos","stamps":"selos","away":"a {d}","palMeta":"{n} cartas · desde {since}","yetToMeet":"Ainda não conheceu","toPrefix":"Para {name}","fromPrefix":"De {name}","mailFrom":"De {name}","pfMeMeta":"É você! {n} Cat Mails enviados","pfPalMeta":"A {d} de Seul · CatPal desde {since}","korea":"Coreia","today":"Hoje","tags":["Dorminhoco","Tímido","Travesso","Comilão","Curioso","Carinhoso","Tagarela","Explorador"],"C":["Japão","Itália","Taiwan","Reino Unido","Indonésia","França","Tailândia","Austrália","EUA","Canadá","Singapura"],"starters":"Para começar a conversa","reply":"Responder","sendMail":"Enviar Cat Mail"},"th":{"introTitle":"เพื่อนทางจดหมาย สำหรับแมว","introSub":"แลกเปลี่ยนช่วงเวลาในแต่ละวัน\nกับแมวทั่วโลก","start":"เริ่มกันเลย!","homeQ":"แมวที่อยู่ไกลออกไป วันนี้กำลังทำอะไรอยู่นะ…","heroToSent":"ถึง {name}","heroToNone":"ถึง แมวสักตัวที่ไหนสักแห่ง 🌏","heroStatusSent":"✓ ส่งถึง {city} แล้ว","heroStatusNone":"ยังไม่ได้ส่ง","sendCatMail":"ส่ง Cat Mail วันนี้","newMail":"Cat Mail ใหม่","locked":"ส่งของคุณเพื่อเปิด","noMail":"ยังไม่มี Cat Mail ใหม่ — กำลังเดินทางมา ✈️","whoTo":"จะส่ง Cat Mail ถึงใคร?","lockHint":"ส่งหนึ่งฉบับก่อน เพื่อเปิด Cat Mail ใหม่","surprise":"🌍 พบ CatPal ใหม่","surpriseSub":"ส่งถึงแมวแบบสุ่มที่ไหนสักแห่งในโลก","yourPals":"CatPal ของคุณ","somewhere":"แมวสักตัวที่ไหนสักแห่ง 🌏","somewhereShort":"ที่ไหนสักแห่ง 🌏","toLinePal":"ถึง {name} ที่ {city}","toLineNone":"ถึง แมวสักตัวที่ไหนสักแห่ง 🌏","upload":"อัปโหลด\nแมวของวันนี้","sheetTitle":"รูปแมวของวันนี้","album":"อัลบั้ม","camera":"กล้อง","cancel":"ยกเลิก","camErr":"ใช้กล้องที่นี่ไม่ได้ เลือกรูปจากอัลบั้มแทนนะ","infoHint":"ครั้งเดียวเท่านั้น — แนะนำแมวของคุณ","name":"ชื่อ :","age":"อายุ :","personality":"นิสัย","tapToEdit":"แตะเพื่อแก้ไข","msgPh":"เขียนโน้ตสั้นๆ เกี่ยวกับช่วงเวลานี้…","guideTitle":"💡 ลองเริ่มด้วยมุก knock-knock","useKnock":"ใช้ “Knock, knock.”","guideNote":"ส่งแค่บรรทัดแรก — CatPal จะตอบกลับเพื่อเล่นมุกต่อ ✉️","pickStamp":"เลือกแสตมป์","send":"ส่ง","fromLine":"จากโซล เกาหลี 🇰🇷 · ","finding":"กำลังหา CatPal","flyingTo":"กำลังบินไปหา {name}","mapTitle":"แผนที่โลก","deliveryDone":"รูปแมวของคุณถึง {city} แล้ว!","deliveryGoing":"รูปแมวของคุณกำลังบินไป {city}…","tapContinue":"แตะเพื่อไปต่อ","arr1":"รูปของ {name} ถึง{country}แล้ววันนี้","newPal":"🎉 CatPal ใหม่: {name} จาก {city}","stampCollected":"+1 แสตมป์ในพาสปอร์ต","backHome":"กลับหน้าแรก","mailTitle":"{name} ส่งรูปมาให้คุณ!","replyPhoto":"ตอบกลับด้วยรูป","letters":"จดหมาย","lettersWith":"จดหมายกับ {name}","letterCount":"{n} ฉบับ","photoShort":"รูป","transitSending":"จดหมายของคุณกำลังไป {city}…","transitWriting":"{name} กำลังเขียนตอบ…","draftHint":"เขียนตอบ {name}…","composeWait":"รอการตอบกลับ ✉️","composeKeep":"เขียนจดหมายต่อกันไป","sendBack":"ส่งตอบกลับ","mailbox":"ตู้จดหมาย","mapSub":"แมวที่ {name} ได้พบ","legendSent":"Cat Mail ที่ส่ง","legendMet":"แมวที่ได้พบ","mapStats":"{c} ประเทศ · แมว {n} ตัว · เดินทาง {km} กม.","passportTitle":"พาสปอร์ตของ {name}","passportSub":"แมวหนึ่งตัว แสตมป์หนึ่งดวง","pfSend":"ส่ง Cat Mail ถึง {name}","pfStampNote":"แสตมป์ของ {name} อยู่ในพาสปอร์ตของคุณ — ได้มาจาก Cat Mail ฉบับแรก","navHome":"หน้าแรก","navMailbox":"ตู้จดหมาย","navMap":"แผนที่","navPassport":"พาสปอร์ต","received":"ได้รับ","sent":"ส่งแล้ว","catpals":"CatPal","stampBook":"สมุดแสตมป์","journal":"บันทึก","countries":"ประเทศ","catsMet":"แมวที่พบ","stamps":"แสตมป์","away":"ห่าง {d}","palMeta":"{n} ฉบับ · ตั้งแต่ {since}","yetToMeet":"ยังไม่ได้พบ","toPrefix":"ถึง {name}","fromPrefix":"จาก {name}","mailFrom":"จาก {name}","pfMeMeta":"นี่คือคุณ! ส่ง Cat Mail แล้ว {n} ฉบับ","pfPalMeta":"ห่างจากโซล {d} · CatPal ตั้งแต่ {since}","korea":"เกาหลี","today":"วันนี้","tags":["ขี้เซา","ขี้อาย","ซุกซน","นักกิน","ขี้สงสัย","ขี้อ้อน","ช่างคุย","นักสำรวจ"],"C":["ญี่ปุ่น","อิตาลี","ไต้หวัน","สหราชอาณาจักร","อินโดนีเซีย","ฝรั่งเศส","ไทย","ออสเตรเลีย","สหรัฐอเมริกา","แคนาดา","สิงคโปร์"],"starters":"เริ่มบทสนทนา","reply":"ตอบกลับ","sendMail":"ส่ง Cat Mail"},"id":{"introTitle":"Sahabat pena, tapi untuk kucing.","introSub":"Bertukar momen sehari-hari\ndengan kucing di seluruh dunia.","start":"Ayo mulai!","homeQ":"Kira-kira, kucing yang jauh di sana sedang apa hari ini…","heroToSent":"Untuk {name}","heroToNone":"Untuk kucing di suatu tempat 🌏","heroStatusSent":"✓ Terkirim ke {city}","heroStatusNone":"Belum dikirim","sendCatMail":"Kirim Cat Mail hari ini","newMail":"Cat Mail baru","locked":"Kirim punyamu untuk membuka","noMail":"Belum ada Cat Mail baru — sedang dalam perjalanan ✈️","whoTo":"Siapa yang akan menerima Cat Mail-mu?","lockHint":"Kirim satu dulu untuk membuka Cat Mail barumu","surprise":"🌍 Temui CatPal baru","surpriseSub":"Kirim ke kucing acak di suatu tempat di dunia","yourPals":"CatPal-mu","somewhere":"Kucing di suatu tempat 🌏","somewhereShort":"suatu tempat 🌏","toLinePal":"Untuk {name} di {city}","toLineNone":"Untuk kucing di suatu tempat 🌏","upload":"Unggah kucingmu\nhari ini","sheetTitle":"Foto kucingmu hari ini","album":"Album","camera":"Kamera","cancel":"Batal","camErr":"Kamera tidak tersedia di sini. Pilih foto dari albummu.","infoHint":"Sekali saja — perkenalkan kucingmu","name":"Nama :","age":"Umur :","personality":"Kepribadian","tapToEdit":"ketuk untuk ubah","msgPh":"Tambahkan catatan kecil tentang momen ini…","guideTitle":"💡 Coba mulai dengan lelucon tok-tok","useKnock":"Pakai “Knock, knock.”","guideNote":"Kirim baris pertama saja — CatPal-mu akan membalas agar leluconnya berlanjut ✉️","pickStamp":"Pilih perangko","send":"Kirim","fromLine":"Dari Seoul, Korea 🇰🇷 · ","finding":"Mencari CatPal","flyingTo":"Terbang menuju {name}","mapTitle":"Peta Dunia","deliveryDone":"Foto kucingmu sampai di {city}!","deliveryGoing":"Foto kucingmu terbang ke {city}…","tapContinue":"ketuk untuk lanjut","arr1":"{name} tiba di {country} hari ini","newPal":"🎉 CatPal baru: {name} di {city}","stampCollected":"+1 perangko di Paspormu","backHome":"Kembali ke Beranda","mailTitle":"{name} mengirimimu foto!","replyPhoto":"Balas dengan foto","letters":"Surat","lettersWith":"Surat dengan {name}","letterCount":"{n} surat","photoShort":"Foto","transitSending":"Suratmu sedang menuju {city}…","transitWriting":"{name} sedang membalas…","draftHint":"Balas untuk {name}…","composeWait":"tunggu balasannya ✉️","composeKeep":"terus berkirim surat","sendBack":"Balas","mailbox":"Kotak Surat","mapSub":"Kucing yang pernah ditemui {name}","legendSent":"Cat Mail terkirim","legendMet":"Kucing yang ditemui","mapStats":"{c} negara · {n} kucing · {km} km perjalanan","passportTitle":"Paspor {name}","passportSub":"Satu perangko untuk setiap kucing yang kamu temui","pfSend":"Kirim Cat Mail ke {name}","pfStampNote":"Perangko {name} ada di Paspormu — didapat dari Cat Mail pertamamu.","navHome":"Beranda","navMailbox":"Kotak Surat","navMap":"Peta","navPassport":"Paspor","received":"Diterima","sent":"Terkirim","catpals":"CatPal","stampBook":"Buku Perangko","journal":"Jurnal","countries":"negara","catsMet":"kucing ditemui","stamps":"perangko","away":"{d} jauhnya","palMeta":"{n} surat · sejak {since}","yetToMeet":"Belum bertemu","toPrefix":"Untuk {name}","fromPrefix":"Dari {name}","mailFrom":"Dari {name}","pfMeMeta":"Ini kamu! {n} Cat Mail terkirim","pfPalMeta":"{d} dari Seoul · CatPal sejak {since}","korea":"Korea","today":"Hari ini","tags":["Tukang Tidur","Pemalu","Usil","Doyan Makan","Penasaran","Manja","Cerewet","Penjelajah"],"C":["Jepang","Italia","Taiwan","Inggris","Indonesia","Prancis","Thailand","Australia","Amerika Serikat","Kanada","Singapura"],"starters":"Pembuka obrolan","reply":"Balas","sendMail":"Kirim Cat Mail"}};
+  componentDidMount() {
+    this.onMsg = (e) => {
+      const d = e.data; if (!d || d.type !== "catpal-city") return;
+      const id = d.city === "Seoul" ? "me" : this.cityToPal && this.cityToPal[d.city];
+      if (id) this.setState({ screen: "profile", profileId: id, prev: "map", sheet: null, langOpen: false });
+    };
+    window.addEventListener("message", this.onMsg);
+    this.syncCam(); }
+  componentDidUpdate() {
+    // Arrived screen moves on to Mailbox › Sent by itself after 3s (unless the user already left it).
+    const was = this.lastScreen; this.lastScreen = this.state.screen;
+    if (this.state.screen === "arrived" && was !== "arrived") {
+      clearTimeout(this.arrT);
+      this.arrT = setTimeout(() => { if (this.state.screen === "arrived") this.go("mailbox", { sheet: null, mbTab: "sent" }); }, 3000);
+    }
+    this.syncCam(); const el = this.threadRef && this.threadRef.current; if (el) el.scrollTop = el.scrollHeight; }
+  componentWillUnmount() { window.removeEventListener("message", this.onMsg); this.stopCam(); clearTimeout(this.arrT); this.timers.forEach(clearTimeout); }
+  stopCam() { if (this.stream) { this.stream.getTracks().forEach((t) => t.stop()); this.stream = null; } }
+  syncCam() {
+    if (this.cur !== "camera") { this.stopCam(); return; }
+    const v = this.videoRef && this.videoRef.current;
+    if (this.stream) { if (v && v.srcObject !== this.stream) { v.muted = true; v.srcObject = this.stream; v.play && v.play().catch(() => {}); } return; }
+    if (this.camStarting || this.state.camErr) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { this.setState({ camErr: true }); return; }
+    this.camStarting = true;
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false }).then((s) => {
+      this.camStarting = false; this.stream = s;
+      if (this.cur !== "camera") { this.stopCam(); return; }
+      const vv = this.videoRef.current; if (vv) { vv.muted = true; vv.srcObject = s; vv.play && vv.play().catch(() => {}); }
+    }).catch(() => { this.camStarting = false; this.setState({ camErr: true }); });
+  }
+  afterPhoto(url) {
+    // data: URLs contain ";" which breaks the inline background:url() style, so use a blob: URL instead.
+    if (url && url.startsWith("data:")) {
+      const [head, b64] = url.split(","); const bin = atob(b64); const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      url = URL.createObjectURL(new Blob([bytes], { type: head.slice(5).split(";")[0] }));
+    }
+    this.setState((p) => ({ myPhoto: url || p.myPhoto, sheet: null, screen: p.profileDone ? "message" : "info" })); }
+  snap() {
+    const v = this.videoRef && this.videoRef.current;
+    if (this.stream && v && v.videoWidth) {
+      const c = document.createElement("canvas"); c.width = v.videoWidth; c.height = v.videoHeight;
+      c.getContext("2d").drawImage(v, 0, 0); this.stopCam(); this.afterPhoto(c.toDataURL("image/jpeg", .85));
+    } else this.afterPhoto(null);
+  }
+  go(screen, extra) { this.setState((p) => ({ screen, prev: this.cur, langOpen: false, ...(extra || {}) })); }
+
+  renderVals() {
+    const st = this.state;
+    const LANGS = [["en", "English", "en-US"], ["ko", "한국어", "ko-KR"], ["ja", "日本語", "ja-JP"], ["zh", "中文", "zh-CN"], ["es", "Español", "es-ES"], ["fr", "Français", "fr-FR"], ["de", "Deutsch", "de-DE"], ["pt", "Português", "pt-BR"], ["th", "ไทย", "th-TH"], ["id", "Bahasa Indonesia", "id-ID"]];
+    const propLang = (LANGS.find((x) => x[1] === this.props.language) || LANGS[0])[0];
+    const L = st.lang ?? propLang;
+    const LOC = (LANGS.find((x) => x[0] === L) || LANGS[0])[2];
+    const D = this.I18N[L] || this.I18N.en, DE = this.I18N.en;
+    const tx = (k, v) => { let s = D[k] ?? DE[k] ?? k; if (v) for (const n in v) s = s.split("{" + n + "}").join(String(v[n])); return s; };
+    const SINCE = { momo: [5, 9], lumi: [7, 21], bao: [8, 31], frost: [9, 16] };
+    const sinceOf = (id) => SINCE[id] ? new Intl.DateTimeFormat(LOC, { month: "short", day: "numeric" }).format(new Date(2026, SINCE[id][0] - 1, SINCE[id][1])) : tx("today");
+    const CI = { Japan: 0, Italy: 1, Taiwan: 2, UK: 3, Indonesia: 4, France: 5, Thailand: 6, Australia: 7, USA: 8, Canada: 9, Singapore: 10 };
+    const cName = (p) => D.C[CI[p.country[0]]];
+    const startMap = { Intro: "intro", Home: "home", Mailbox: "mailbox", "World Map": "map", Passport: "passport", "Cat Profile": "profile" };
+    const cur = st.screen ?? startMap[this.props.startScreen] ?? "intro";
+    this.cur = cur;
+    const lockOn = this.props.sendToUnlock ?? true;
+    const fmt = (n) => n.toLocaleString("en-US");
+    const STAMPS = [1, 2, 3, 4, 5, 6, 7, 8].map((i) => "./assets/stamp-" + i + ".png");
+    const PALS = {
+      momo: { name: "Momo", age: 3, city: "Tokyo", country: ["Japan"], flag: "🇯🇵", km: 1158, tz: "Asia/Tokyo", stamp: 1, pm: "tokyo", tags: ["Sleepy", "Food Lover"], letters: 42 },
+      lumi: { name: "Lumi", age: 5, city: "Rome", country: ["Italy"], flag: "🇮🇹", km: 8950, tz: "Europe/Rome", stamp: 2, pm: "roma", tags: ["Mischievous", "Curious"], letters: 18 },
+      bao: { name: "Bao", age: 4, city: "Taipei", country: ["Taiwan"], flag: "🇹🇼", km: 1480, tz: "Asia/Taipei", stamp: 3, pm: "taipei", tags: ["Food Lover", "Chatty"], letters: 9 },
+      frost: { name: "Frost", age: 6, city: "London", country: ["UK"], flag: "🇬🇧", km: 8860, tz: "Europe/London", stamp: 4, pm: "london", tags: ["Shy", "Sleepy"], letters: 3 },
+      kopi: { name: "Kopi", age: 2, city: "Bali", country: ["Indonesia"], flag: "🇮🇩", km: 5250, tz: "Asia/Makassar", stamp: 5, pm: "bali", tags: ["Explorer", "Cuddly"], letters: 1 },
+      miko: { name: "Miko", age: 1, city: "Paris", country: ["France"], flag: "🇫🇷", km: 8960, tz: "Europe/Paris", stamp: 6, pm: "paris", tags: ["Mischievous", "Shy"], letters: 1 },
+      mango: { name: "Mango", age: 3, city: "Bangkok", country: ["Thailand"], flag: "🇹🇭", km: 3720, tz: "Asia/Bangkok", stamp: 7, pm: "bangkok", tags: ["Food Lover", "Cuddly"], letters: 1 },
+      pudding: { name: "Pudding", age: 2, city: "Sydney", country: ["Australia"], flag: "🇦🇺", km: 8320, tz: "Australia/Sydney", stamp: 1, pm: "sydney", tags: ["Sleepy", "Chatty"], letters: 1 },
+      bagel: { name: "Bagel", age: 4, city: "New York", country: ["USA"], flag: "🇺🇸", km: 11050, tz: "America/New_York", stamp: 2, pm: "newyork", tags: ["Curious", "Explorer"], letters: 1 },
+      maple: { name: "Maple", age: 5, city: "Vancouver", country: ["Canada"], flag: "🇨🇦", km: 8190, tz: "America/Vancouver", stamp: 3, pm: "vancouver", tags: ["Shy", "Explorer"], letters: 1 },
+      kaya: { name: "Kaya", age: 2, city: "Singapore", country: ["Singapore"], flag: "🇸🇬", km: 4630, tz: "Asia/Singapore", stamp: 4, pm: "singapore", tags: ["Mischievous", "Chatty"], letters: 1 },
+    };
+    this.cityToPal = Object.fromEntries(Object.keys(PALS).filter((k) => this.state.known.includes(k)).map((k) => [PALS[k].city, k]));
+    const NOTES = { kopi: "Hi from Bali! Kopi found the warmest tile in the house ☀️", miko: "Bonjour! Miko discovered the mirror cat again. Round 3 🪞", mango: "Sawasdee! Mango stole a mango. Of course. 🥭", pudding: "G’day! Pudding is sunbathing upside down ☀️", bagel: "Hey from NYC! Bagel watches the pigeons all day 🐦", maple: "Hi from Vancouver! Maple loves the first rain of fall 🍁", kaya: "Hello from Singapore! Kaya napped through a thunderstorm ⛈️" };
+    const TAGS = { Sleepy: "잠꾸러기", Shy: "수줍음", Mischievous: "장난꾸러기", "Food Lover": "먹보", Curious: "호기심", Cuddly: "애교쟁이", Chatty: "수다쟁이", Explorer: "탐험가" };
+    const tagLabel = (k) => D.tags[Object.keys(TAGS).indexOf(k)] || k;
+    const myName = st.name || "Tori";
+    const palSlot = (id) => "pal-" + id;
+    // Default photo for each pal's image slot (a dropped image still overrides it).
+    const palImg = (id) => "./assets/cats/cat-" + (Object.keys(PALS).indexOf(id) % 6 + 1) + ".jpg";
+    const dist = (p) => fmt(p.km) + " km";
+    const pmOf = (p) => "./assets/pm/" + p.pm + ".png";
+    const pPlace = (p) => p.city + ", " + cName(p) + " " + p.flag;
+    const known = st.known;
+    const lastSentTo = st.sentToday ? st.sent[0] : null;
+
+    const unread = st.inbox.filter((m) => m.unread);
+    const isLocked = (m) => lockOn && m.unread && !st.sentToday;
+    const openMail = (m) => () => {
+      if (isLocked(m)) { this.setState({ sheet: "to", lockHint: true, langOpen: false }); return; }
+      this.setState((p) => ({ inbox: p.inbox.map((x) => (x.id === m.id ? { ...x, unread: false } : x)), mailId: m.id, screen: "mail", prev: cur, reaction: null, reactN: 0, langOpen: false }));
+    };
+    const openProfile = (id) => () => this.go("profile", { profileId: id, sheet: null });
+    const seedThread = (id) => {
+      const firstMail = [...st.inbox].reverse().find((m) => m.pal === id);
+      return [{ from: "pal", text: firstMail ? firstMail.note : (NOTES[id] || "Hello! 💛") }];
+    };
+    const openLetters = (id) => () => this.go("letters", { lettersId: id, sheet: null, draft: "", draftPhoto: null, transit: null });
+    const startSend = (id) => this.setState({ to: id, sheet: null, lockHint: false, screen: "upload", prev: cur, msg: "", langOpen: false });
+
+    const palRows = known.map((id) => {
+      const p = PALS[id];
+      const lettersN = (st.threads[id] ? st.threads[id].length : 0) + p.letters;
+      return {
+        id, slot: palSlot(id), img: palImg(id), name: p.name, flag: p.flag, city: p.city, dist: dist(p),
+        meta: tx("palMeta", { n: lettersN, since: sinceOf(id) }),
+        open: openProfile(id), letters: (e) => { e && e.stopPropagation && e.stopPropagation(); openLetters(id)(); }, choose: () => startSend(id),
+      };
+    });
+
+    const palReply = (id, text, free) => {
+      const name = PALS[id].name, t = text.trim(), clean = t.replace(/[.!?…]+$/, "").slice(0, 32);
+      if (free === "p0" && /who/i.test(t)) return { reply: "Tuna.", free: "p1" };
+      if (free === "p1" && /who/i.test(t)) return { reply: "Tuna in tomorrow for another cat pic! 🐟😹", free: null };
+      if (free === "k1") return { reply: clean + " who?", free: "k2" };
+      if (free === "k2") return { reply: "😂😂 OK that got me. " + name + " is rolling on the floor!", free: null };
+      if (free === "d1") return { reply: "🙄😂 That’s terrible. I love it. Send another!", free: null };
+      if (/knock/i.test(t)) return { reply: "Who’s there?", free: "k1" };
+      if (/\?$/.test(t)) return { reply: "Hmm… I don’t know. What? 🤔", free: "d1" };
+      const g = ["Haha 😂 " + name + " says meow back! Got a joke for me?", "😹 Your turn — tell me a knock-knock!", "Hehe. Tomorrow’s cat pic better be this funny 🐾"];
+      return { reply: g[(t.length + name.length) % g.length], free: null };
+    };
+
+    const target = st.to ? PALS[st.to] : null;
+    const dest = st.dest ? PALS[st.dest] : PALS.lumi;
+    const mail = st.inbox.find((m) => m.id === st.mailId) || st.inbox[0];
+    const mPal = PALS[mail.pal];
+    const lp = PALS[st.lettersId] || PALS.momo;
+    const thread = st.threads[st.lettersId] || seedThread(st.lettersId);
+    const pid = st.profileId;
+    const isMe = pid === "me";
+    const pp = isMe ? null : PALS[pid];
+
+    const sendNow = () => {
+      const s = this.state;
+      let id = s.to;
+      if (!id) {
+        const forced = Object.keys(PALS).find((k) => PALS[k].city === this.props.surpriseCity);
+        const fresh = ["kopi", "miko", "mango", "pudding", "bagel", "maple", "kaya"].filter((k) => !s.known.includes(k));
+        id = forced || (fresh.length ? fresh[Math.floor(Math.random() * fresh.length)] : s.known[Math.floor(Math.random() * s.known.length)]);
+      }
+      const isNew = !s.known.includes(id);
+      this.setState({ dest: id, to: id, isNewPal: isNew, screen: "deliveryMap", phase: null, mapDone: false, sendCount: s.sendCount + 1, langOpen: false });
+      this.timers.push(
+        setTimeout(() => { if (this.state.screen === "deliveryMap") this.setState({ screen: "arrived", prev: "deliveryMap" }); }, 7600),
+        setTimeout(() => {
+          const p = this.state, m = p.msg.trim();
+          const base = p.threads[id] || seedThread(id);
+          const r = m ? palReply(id, m, p.tstate[id]) : null;
+          this.setState({
+            mapDone: true, sentToday: true,
+            known: p.known.includes(id) ? p.known : [...p.known, id],
+            sent: [{ pal: id, date: "26-09-23", stamp: p.stamp }, ...p.sent],
+            threads: m ? { ...p.threads, [id]: [...base, { from: "me", text: m, stamp: p.stamp }] } : p.threads,
+            tstate: r ? { ...p.tstate, [id]: r.free } : p.tstate,
+          });
+          this.timers.push(setTimeout(() => {
+            const q = this.state;
+            const note = r ? r.reply : (NOTES[id] && !q.inbox.some((x) => x.pal === id) ? NOTES[id] : "Here’s what " + PALS[id].name + " is up to today 🐾");
+            this.setState({
+              inbox: [{ id: "r" + Date.now(), pal: id, note, date: "26-09-23", unread: true }, ...q.inbox],
+              threads: r ? { ...q.threads, [id]: [...(q.threads[id] || []), { from: "pal", text: r.reply }] } : q.threads,
+            });
+          }, 3500));
+        }, 7000),
+      );
+    };
+
+    const sendLetter = () => {
+      const s = this.state, text = s.draft.trim(), id = s.lettersId, photo = s.draftPhoto || null;
+      if ((!text && !photo) || s.transit) return;
+      const base = s.threads[id] || seedThread(id);
+      const r = palReply(id, text || "📷", s.tstate[id]);
+      this.setState({ threads: { ...s.threads, [id]: [...base, { from: "me", text, photo, stamp: s.stamp }] }, draft: "", draftPhoto: null, transit: "sending" });
+      this.timers.push(
+        setTimeout(() => this.setState({ transit: "writing" }), 1100),
+        setTimeout(() => this.setState((p) => ({ transit: null, tstate: { ...p.tstate, [id]: r.free }, threads: { ...p.threads, [id]: [...(p.threads[id] || []), { from: "pal", text: r.reply }] } })), 2300),
+      );
+    };
+
+    const backMap = { upload: "home", camera: "upload", info: "upload", message: "upload", stamp: "message", send: "stamp", mail: st.prev && st.prev !== "mail" ? st.prev : "home", letters: st.prev && st.prev !== "letters" ? st.prev : "mailbox", profile: st.prev && st.prev !== "profile" ? st.prev : "home" };
+    const navActive = { home: "home", mailbox: "mailbox", map: "map", passport: "passport" }[cur];
+    const unreadOpen = unread.filter((m) => !isLocked(m)).length;
+    const navItems = [
+      { id: "home", label: tx("navHome"), icon: st.hmAnim ? (st.hmAnim % 2 ? "./assets/home.gif" : "./assets/home-b.gif") : "./assets/icon-home.png", iconH: st.hmAnim ? 62 : 44, iconMt: st.hmAnim ? -18 : 0 },
+      { id: "mailbox", label: tx("navMailbox"), icon: st.mbAnim ? (st.mbAnim % 2 ? "./assets/mailbox.gif" : "./assets/mailbox-b.gif") : "./assets/mailbox-still.png", count: unread.length },
+      { id: "map", label: tx("navMap"), icon: st.mpAnim ? (st.mpAnim % 2 ? "./assets/map.gif" : "./assets/map-b.gif") : "./assets/icon-map-160.png", iconH: st.mpAnim ? 54 : 44, iconMt: st.mpAnim ? -10 : 0 },
+      { id: "passport", label: tx("navPassport"), icon: st.ppAnim ? (st.ppAnim % 2 ? "./assets/passport.gif" : "./assets/passport-b.gif") : "./assets/passport-still.png", iconW: 56, iconH: 50, iconMt: -6 },
+    ].map((n) => ({ iconW: 44, iconH: 44, iconMt: 0, ...n, tap: () => {
+        if (n.id === "home") { const t = Date.now(); clearTimeout(this.hmT); this.hmT = setTimeout(() => this.setState({ hmAnim: null }), 3000); this.go(n.id, { sheet: null, hmAnim: t }); }
+        else if (n.id === "map") { const t = Date.now(); clearTimeout(this.mpT); this.mpT = setTimeout(() => this.setState({ mpAnim: null }), 3000); this.go(n.id, { sheet: null, mpAnim: t }); }
+        else if (n.id === "passport") { const t = Date.now(); clearTimeout(this.ppT); this.ppT = setTimeout(() => this.setState({ ppAnim: null }), 3000); this.go(n.id, { sheet: null, ppAnim: t }); }
+        else if (n.id === "mailbox") { const t = Date.now(); clearTimeout(this.mbT); this.mbT = setTimeout(() => this.setState({ mbAnim: null }), 3000); this.go(n.id, { sheet: null, mbAnim: t, mbTab: "received" }); }
+        else this.go(n.id, { sheet: null });
+      }, weight: navActive === n.id ? 700 : 500, color: navActive === n.id ? "#010002" : "#a89f8d", opacity: navActive === n.id || !navActive ? 1 : .55, badge: !!n.count }));
+
+    const countries = new Set(known.map((k) => PALS[k].country[0])).size;
+    const totalKm = st.sent.reduce((a, s) => a + PALS[s.pal].km, 0);
+    const stampBook = [
+      { img: "./assets/pm/seoul.png", label: myName, sub: "Seoul 🇰🇷", owned: true, open: openProfile("me") },
+      ...Object.keys(PALS).map((id) => ({ img: pmOf(PALS[id]), label: known.includes(id) ? PALS[id].name : "???", sub: known.includes(id) ? PALS[id].city + " " + PALS[id].flag : tx("yetToMeet"), owned: known.includes(id), open: known.includes(id) ? openProfile(id) : () => this.setState({ sheet: "to", lockHint: false }) })),
+          ].map((s, i) => ({ ...s, locked: !s.owned, opacity: s.owned ? .9 : .13, filter: s.owned ? "none" : "grayscale(1)", rot: [-9, 6, -4, 11, -7, 3, -12, 8, -5, 10, -2, 7][i % 12], dy: [0, 8, -4, 6, -6, 4, 2, -8, 6, -2, 8, -4][i % 12] }));
+
+    const calCells = [];
+    for (let i = 0; i < 2; i++) calCells.push({ n: "", sent: false, recv: false, weight: 500, color: "#746e63" });
+    const sentDays = new Set(st.sent.map((s) => Number(s.date.slice(6))));
+    const recvDays = new Set(st.inbox.filter((m) => !m.unread).map((m) => Number(m.date.slice(6))));
+    for (let d = 1; d <= 30; d++) calCells.push({ n: String(d), sent: sentDays.has(d), recv: recvDays.has(d), weight: d === 23 ? 800 : 500, color: d === 23 ? "#FF4800" : "#746e63" });
+    while (calCells.length < 35) calCells.push({ n: "", sent: false, recv: false, weight: 500, color: "#746e63" });
+
+    const mbCards = st.mbTab === "sent"
+      ? st.sent.map((s) => { const p = PALS[s.pal]; return { who: tx("toPrefix", { name: p.name }), place: p.flag + " " + p.city + " · " + dist(p), date: s.date, stamp: STAMPS[s.stamp], pm: "./assets/pm/seoul.png", isNew: false, locked: false, open: openLetters(s.pal) }; })
+      : st.inbox.map((m) => { const p = PALS[m.pal]; return { who: tx("fromPrefix", { name: p.name }), place: p.flag + " " + p.city, date: m.date, stamp: STAMPS[p.stamp], pm: pmOf(p), isNew: m.unread && !isLocked(m), locked: isLocked(m), open: openMail(m) }; });
+    const tabDef = (id, label, extra) => ({ label, bg: st.mbTab === id ? "#fff" : "transparent", color: st.mbTab === id ? "#010002" : "#a89f8d", shadow: st.mbTab === id ? "0 1px 3px rgba(0,0,0,.1)" : "none", tap: () => this.setState({ mbTab: id }), badge: false, count: 0, ...(extra || {}) });
+
+    const ph = st.phase;
+    const reallyNew = st.isNewPal;
+    const t = {
+      ...Object.fromEntries(["introTitle","introSub","start","reply","sendMail","homeQ","sendCatMail","newMail","locked","noMail","whoTo","lockHint","surprise","surpriseSub","yourPals","upload","sheetTitle","album","camera","cancel","camErr","infoHint","name","age","personality","tapToEdit","msgPh","guideTitle","useKnock","guideNote","starters","pickStamp","send","mapTitle","tapContinue","stampCollected","backHome","replyPhoto","letters","photoShort","sendBack","mailbox","legendSent","legendMet","passportSub"].map((k) => [k, tx(k)])),
+      newTag: "NEW",
+      homeDate: new Intl.DateTimeFormat(LOC, { weekday: "short", month: "short", day: "numeric" }).format(new Date(2026, 8, 23)) + " · Seoul 🇰🇷",
+      heroTo: lastSentTo ? tx("heroToSent", { name: PALS[lastSentTo.pal].name }) : tx("heroToNone"),
+      heroStatus: lastSentTo ? tx("heroStatusSent", { city: PALS[lastSentTo.pal].city + " " + PALS[lastSentTo.pal].flag }) : "",
+      toName: target ? target.name + " · " + target.city + " " + target.flag : tx("somewhere"),
+      toShort: target ? target.name : tx("somewhereShort"),
+      toLine: target ? tx("toLinePal", { name: target.name, city: target.city + " " + target.flag }) : tx("toLineNone"),
+      fromLine: tx("fromLine") + myName + ", " + (st.age || "4"),
+      finding: ph === "spin" ? tx("finding") : tx("flyingTo", { name: dest.name }),
+      deliveryCard: st.mapDone ? tx("deliveryDone", { city: dest.city }) : tx("deliveryGoing", { city: dest.city }),
+      arr1: tx("arr1", { name: myName, country: cName(dest) }) + " " + dest.flag,
+      newPalTitle: tx("newPal", { name: dest.name, city: dest.city }),
+      mailTitle: tx("mailTitle", { name: mPal.name }),
+      lettersWith: tx("lettersWith", { name: lp.name }),
+      letterCount: tx("letterCount", { n: thread.length }),
+      transit: st.transit === "sending" ? tx("transitSending", { city: lp.city }) : tx("transitWriting", { name: lp.name }),
+      toUpper: "TO " + lp.name.toUpperCase(),
+      draftHint: tx("draftHint", { name: lp.name }),
+      composeNote: st.transit ? tx("composeWait") : tx("composeKeep"),
+      mapSub: tx("mapSub", { name: myName }),
+      mapStats: tx("mapStats", { c: countries, n: known.length, km: fmt(totalKm) }),
+      passportTitle: tx("passportTitle", { name: myName }),
+      month: new Intl.DateTimeFormat(LOC, { year: "numeric", month: "long" }).format(new Date(2026, 8, 1)).toLocaleUpperCase(LOC),
+      pfSend: pp ? tx("pfSend", { name: pp.name }) : "",
+      pfStampNote: pp ? tx("pfStampNote", { name: pp.name }) : "",
+    };
+
+    return {
+      t, myName,
+      showLogo: cur !== "camera",
+      sIntro: cur === "intro", sHome: cur === "home", sUpload: cur === "upload", sCamera: cur === "camera", sInfo: cur === "info",
+      sMessage: cur === "message", sStamp: cur === "stamp", sSend: cur === "send", sDelivery: cur === "delivery", sDeliveryMap: cur === "deliveryMap",
+      sArrived: cur === "arrived", sMail: cur === "mail", sLetters: cur === "letters", sMailbox: cur === "mailbox", sMap: cur === "map",
+      sPassport: cur === "passport", sProfile: cur === "profile",
+      showNav: ["home", "mailbox", "map", "passport", "profile"].includes(cur),
+      showBack: ["upload", "info", "message", "stamp", "send", "mail", "letters", "profile"].includes(cur),
+      back: () => { this.stopCam(); this.go(backMap[cur] || "home"); },
+      navItems,
+      goHome: () => this.go("home", { sheet: null }),
+      openMe: openProfile("me"),
+      hasPhoto: !!st.myPhoto, noPhoto: !st.myPhoto, myPhoto: st.myPhoto || "",
+      heroStamp: STAMPS[lastSentTo ? lastSentTo.stamp : 0],
+      heroStatusColor: lastSentTo ? "#010002" : "#a89f8d",
+      openSendSheet: () => this.setState({ sheet: "to", lockHint: false, langOpen: false }),
+      newMailCards: unread.map((m) => { const p = PALS[m.pal]; return { pm: pmOf(p), title: tx("mailFrom", { name: p.name }), flag: p.flag, city: p.city, stamp: STAMPS[p.stamp], locked: isLocked(m), open: openMail(m) }; }),
+      hasNewMail: unread.length > 0, noNewMail: unread.length === 0, newMailCount: unread.length,
+      sheetTo: st.sheet === "to", sheetPhoto: st.sheet === "photo", lockHint: st.lockHint,
+      closeSheet: () => this.setState({ sheet: null, lockHint: false }),
+      chooseSurprise: () => startSend(null),
+      palRows,
+      openPhotoSheet: () => this.setState({ sheet: "photo" }),
+      videoRef: this.videoRef || (this.videoRef = React.createRef()),
+      albumRef: this.albumRef || (this.albumRef = React.createRef()),
+      threadRef: this.threadRef || (this.threadRef = React.createRef()),
+      pickAlbum: () => { this.setState({ sheet: null }); this.albumRef.current && this.albumRef.current.click(); },
+      pickCamera: () => this.setState({ sheet: null, camErr: false, screen: "camera", prev: cur }),
+      onAlbum: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return; this.stopCam(); const r = new FileReader(); r.onload = () => this.afterPhoto(r.result); r.readAsDataURL(f); },
+      camErr: !!st.camErr,
+      capture: () => this.snap(),
+      nameVal: st.name, ageVal: st.age,
+      setName: (e) => this.setState({ name: e.target.value }), setAge: (e) => this.setState({ age: e.target.value }),
+      myTagChips: Object.keys(TAGS).map((k) => { const on = st.myTags.includes(k); return { label: tagLabel(k), bg: on ? "#464646" : "#F6F6F6", color: on ? "#fff" : "#000", tap: () => this.setState((p) => ({ myTags: on ? p.myTags.filter((x) => x !== k) : [...p.myTags, k] })) }; }),
+      infoNext: () => this.go("message", { profileDone: true }),
+      msgVal: st.msg, setMsg: (e) => this.setState({ msg: e.target.value.slice(0, 120) }), msgCount: st.msg.length,
+      useKnock: () => this.setState({ msg: "Knock, knock." }),
+      guideLines: [["you", "Knock, knock."], ["pal", "Who’s there?"], ["you", "Lettuce."], ["pal", "Lettuce who?"], ["you", "Lettuce in, it’s cold out here! 🥶"]].map(([w, x]) => ({ you: w === "you", pal: w === "pal", text: x })),
+      msgNext: () => this.go("stamp"),
+      stampsGo: STAMPS.map((m, i) => ({ m, border: i === st.stamp ? "2px solid #010002" : "2px solid transparent", pick: () => this.go("send", { stamp: i }) })),
+      stamps: STAMPS.map((m, i) => ({ m, border: i === st.stamp ? "2px solid #010002" : "2px solid transparent", pick: () => this.setState({ stamp: i }) })),
+      stampMotif: STAMPS[st.stamp],
+      sendNow,
+      phFly: ph === "fly", phPin: ph === "pin",
+      globeDur: ph === "pin" ? "3.8s" : "1.4s",
+      globeDeliverySrc: "./globe.html?mode=delivery&to=" + encodeURIComponent(dest.city) + "&k=" + st.sendCount,
+      mapDone: st.mapDone, destKm: fmt(dest.km), destCity: dest.city,
+      tapDeliveryCard: () => { if (this.state.mapDone) this.go("arrived"); },
+      todayDate: "26-09-23",
+      isNewPal: reallyNew, destSlot: palSlot(st.dest || "lumi"), destImg: palImg(st.dest || "lumi"), destStamp: STAMPS[dest.stamp],
+      openDestProfile: openProfile(st.dest || "lumi"),
+      myPm: "./assets/pm/seoul.png", mPm: pmOf(mPal),
+      mSlot: palSlot(mail.pal), mImg: palImg(mail.pal), mStamp: STAMPS[mPal.stamp], mPlace: pPlace(mPal), mDist: tx("away", { d: dist(mPal) }), mNote: mail.note,
+      openMailProfile: openProfile(mail.pal),
+      reactions: ["💛", "😹", "🐾", "😴", "🎉"].map((e, i) => ({ e, bg: st.reaction === i ? "#fff" : "transparent",
+        anim: st.reaction === i && st.reactN ? "cp-rpop" + (st.reactN % 2 ? "a" : "b") + " .45s cubic-bezier(.34,1.56,.64,1)" : "none",
+        pick: () => { try { navigator.vibrate && navigator.vibrate(15); } catch (_) {} this.setState((p) => ({ reaction: i, reactN: (p.reactN || 0) + 1 })); } })),
+      // Burst of the picked emoji; centres match the 5 buttons spaced around the 265px bar at left:68px.
+      reactBurst: st.reaction != null && st.reactN ? Array.from({ length: 7 }, (_, j) => ({ e: ["💛", "😹", "🐾", "😴", "🎉"][st.reaction], left: 90 + 49 * st.reaction,
+        anim: "cp-b" + j + (st.reactN % 2 ? "a" : "b") + " 1.4s cubic-bezier(.2,.7,.3,1) " + j * 45 + "ms both" })) : [],
+      mWiggle: st.reactN ? "cp-wig" + (st.reactN % 2 ? "a" : "b") + " .7s ease .35s" : "none",
+      openMailLetters: openLetters(mail.pal),
+      lPal: { city: lp.city, flag: lp.flag, dist: dist(lp) },
+      thread: thread.map((l) => ({ text: l.text, photo: l.photo || "", hasPhoto: !!l.photo, them: l.from === "pal", you: l.from === "me", who: (l.from === "pal" ? "FROM " + lp.name : "FROM " + myName).toUpperCase(), stamp: l.from === "pal" ? STAMPS[lp.stamp] : STAMPS[l.stamp ?? 0] })),
+      draft: st.draft, setDraft: (e) => this.setState({ draft: e.target.value }),
+      inTransit: !!st.transit,
+      sendBg: (st.draft.trim() || st.draftPhoto) && !st.transit ? "#010002" : "#B9B2A4",
+      draftPhoto: st.draftPhoto || "", hasDraftPhoto: !!st.draftPhoto, noDraftPhoto: !st.draftPhoto,
+      replyPhotoRef: this.replyPhotoRef || (this.replyPhotoRef = React.createRef()),
+      pickReplyPhoto: () => { this.replyPhotoRef.current && this.replyPhotoRef.current.click(); },
+      onReplyPhoto: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) this.setState({ draftPhoto: URL.createObjectURL(f) }); },
+      clearReplyPhoto: () => this.setState({ draftPhoto: null }),
+      sendLetter,
+      mbTabs: [tabDef("received", tx("received"), { badge: unreadOpen > 0, count: unreadOpen }), tabDef("sent", tx("sent")), tabDef("pals", tx("catpals"))],
+      mbShowCards: st.mbTab !== "pals", mbShowPals: st.mbTab === "pals",
+      mbCards,
+      globeMapSrc: "./globe.html?mode=map&sent=" + encodeURIComponent([...new Set(st.sent.map((s) => PALS[s.pal].city))].join(",")) + "&recv=" + encodeURIComponent(known.map((k) => PALS[k].city).join(",")),
+      ppStats: [{ n: countries, l: tx("countries") }, { n: known.length, l: tx("catsMet") }, { n: known.length + 1, l: tx("stamps") }],
+      ppTabs: [["stamps", tx("stampBook")], ["journal", tx("journal")]].map(([id, label]) => ({ label, bg: st.ppTab === id ? "#fff" : "transparent", color: st.ppTab === id ? "#010002" : "#a89f8d", shadow: st.ppTab === id ? "0 1px 3px rgba(0,0,0,.1)" : "none", tap: () => this.setState({ ppTab: id }) })),
+      ppShowStamps: st.ppTab === "stamps", ppShowJournal: st.ppTab === "journal",
+      stampBook,
+      weekDays: [0, 1, 2, 3, 4, 5, 6].map((i) => new Intl.DateTimeFormat(LOC, { weekday: "narrow" }).format(new Date(2026, 8, 20 + i))),
+      calCells,
+      pf: isMe
+        ? { isMe: true, isPal: false, slot: "my-cat", img: "", name: myName, age: st.age || "4", flag: "🇰🇷", city: "Seoul", country: tx("korea"), meta: tx("pfMeMeta", { n: st.sent.length }), stamp: STAMPS[0] }
+        : { isMe: false, isPal: true, slot: palSlot(pid), img: palImg(pid), name: pp.name, age: pp.age, flag: pp.flag, city: pp.city, country: cName(pp), meta: tx("pfPalMeta", { d: dist(pp), since: sinceOf(pid) }), stamp: STAMPS[pp.stamp] },
+      pfMePhoto: isMe && !!st.myPhoto, pfSlotShow: !(isMe && st.myPhoto),
+      pfTags: isMe
+        ? Object.keys(TAGS).map((k) => { const on = st.myTags.includes(k); return { label: tagLabel(k), bg: on ? "#464646" : "#F6F6F6", color: on ? "#fff" : "#000", cursor: "pointer", tap: () => this.setState((p) => ({ myTags: on ? p.myTags.filter((x) => x !== k) : [...p.myTags, k] })) }; })
+        : pp.tags.map((k) => ({ label: tagLabel(k), bg: "#464646", color: "#fff", cursor: "default", tap: () => {} })),
+      pfSend: () => startSend(pid),
+      pfLetters: openLetters(pid),
+      langOpen: !!st.langOpen,
+      toggleLang: () => this.setState((p) => ({ langOpen: !p.langOpen })),
+      closeLang: () => this.setState({ langOpen: false }),
+      langCurrent: L.toUpperCase(),
+      langCaret: st.langOpen ? "rotate(135deg) translate(-1px,-1px)" : "rotate(-45deg) translate(1px,-1px)",
+      langOpts: LANGS.map(([id, label]) => ({ id, label })).map((o) => ({ ...o, bg: L === o.id ? "#F6F6F6" : "transparent", checkOpacity: L === o.id ? 1 : 0, pick: () => this.setState({ lang: o.id, langOpen: false }) })),
+    };
+  }
+}
+</script>
+</body>
+</html>

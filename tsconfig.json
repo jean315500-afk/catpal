@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+
+    // The ported prototype logic is untyped JavaScript; strict mode can be
+    // switched on file by file later.
+    "strict": false,
+    "noImplicitAny": false
+  },
+  "include": ["src", "vite.config.ts"]
+}

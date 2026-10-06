@@ -73,8 +73,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   step('intro'); await sleep(3000);
   step('start'); await tapText('Let’s Start!', 2600);
   step('home scroll'); await page.mouse.move(215, 600); await page.mouse.wheel({ deltaY: 300 }); await sleep(1400); await page.mouse.wheel({ deltaY: -300 }); await sleep(1000);
-  step('send cat mail'); await tapText('Send Cat Mail', 1600);
-  step('surprise'); await tapText('Surprise Me', 1800);
+  step('send cat mail'); await tapText('Send today’s Cat Mail', 1600);
+  step('surprise'); await tapText('🌍 Meet a New CatPal', 1800);
   step('upload'); await tap(await page.evaluateHandle(() => [...document.querySelectorAll('span')].find((s) => s.textContent.includes('Upload your')).parentElement).then((h) => h.asElement()), 1300);
   step('album');
   const [chooser] = await Promise.all([page.waitForFileChooser(), tapText('Album', 0)]);
@@ -83,15 +83,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   if (await page.$('[data-screen-label*="Info"], [data-screen-label*="info"]') || (await page.evaluate(() => document.body.innerText.includes('introduce your cat')))) {
     step('info'); await tapText('Curious', 900); await tapText('✓', 1800);
   }
-  step('starter'); await tapText('Knock, knock.', 1500);
-  step('check'); await tapText('✓', 1800);
+  step('send cat mail (note)'); await tapText('Send Cat Mail', 1800);
   step('stamp'); { const s = await page.$$('[aria-label=stamp]'); await tap(s[1], 2200); }
   step('send'); await tapText('Send', 1000);
   step('delivery'); await sleep(9500);
   step('arrived');
   if (await page.$('[data-screen-label="08 Delivery map"]')) { const c = await page.evaluateHandle(() => document.querySelector('[data-screen-label="08 Delivery map"] [style*="cursor:pointer"], [data-screen-label="08 Delivery map"] div[style*="cursor: pointer"]')); if (c.asElement()) await tap(c.asElement(), 0); }
   await sleep(3500);
-  step('back home'); await tapText('Back to Home', 2400);
+  step('auto to sent'); await sleep(3600);
   step('nav home'); await navTap('Home', 3200);
   step('mailbox'); await navTap('Mailbox', 3300);
   step('world map'); await navTap('World Map', 4200);
