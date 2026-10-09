@@ -14,7 +14,7 @@ export default function ArrivedScreen({ v }: { v: Vals }) {
               {I(v.t?.arr1)}
             </span>
             <span style={{ fontWeight: "700", fontSize: "17px", lineHeight: "26px" }}>
-              {"Seoul → "}{I(v.destCity)}
+              {I(v.arrFrom)}{" → "}{I(v.destCity)}
             </span>
             <span style={{ fontWeight: "500", fontSize: "13px", lineHeight: "22px", color: "#a89f8d" }}>
               {I(v.destKm)}{" km 🐾"}

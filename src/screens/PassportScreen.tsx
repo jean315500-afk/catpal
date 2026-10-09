@@ -89,6 +89,30 @@ export default function PassportScreen({ v }: { v: Vals }) {
                 </div>
               </>
             ) : null}
+            {v.ppShowMine ? (
+              <>
+                {v.noMine ? (
+                  <div style={{ marginTop: "20px", height: "124px", border: "2px dashed #E7E2D8", borderRadius: "14px", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: "10px", alignItems: "center", justifyContent: "center", padding: "0 20px" }}>
+                    <span style={{ fontWeight: "500", fontSize: "12px", lineHeight: "17px", color: "#a89f8d", textAlign: "center" }}>{I(v.t?.noMyMoments)}</span>
+                    <span onClick={v.openShare} role="button" style={{ fontWeight: "700", fontSize: "13px", textDecoration: "underline", textUnderlineOffset: "3px", cursor: "pointer" }}>{I(v.t?.shareMoment)}</span>
+                  </div>
+                ) : null}
+                <div style={{ marginTop: "20px", display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", columnGap: "16px", rowGap: "20px" }}>
+                  {each(v.mineCards, (c) => (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <div style={{ background: "#fff", padding: "5px", boxShadow: "0 2px 4px #cecece" }}>
+                        <img src={c?.photo} alt={c?.caption} loading="lazy" style={{ display: "block", width: "100%", aspectRatio: "4 / 5", objectFit: "cover" }} />
+                      </div>
+                      <span style={{ fontWeight: "500", fontSize: "12px", lineHeight: "17px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{I(c?.caption)}</span>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontWeight: "700", fontSize: "12px", color: "#010002" }}>{"♥ "}{I(c?.likes)}<span style={{ fontWeight: "500", color: "#a89f8d" }}>{" · "}{I(c?.date)}</span></span>
+                        <span onClick={c?.remove} role="button" style={{ fontWeight: "500", fontSize: "11px", color: "#a89f8d", textDecoration: "underline", textUnderlineOffset: "2px", cursor: "pointer" }}>{I(v.t?.deleteMoment)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : null}
             {v.ppShowJournal ? (
               <>
                 <span style={{ marginTop: "20px", fontFamily: "ui-monospace,Menlo,monospace", fontSize: "11px", color: "#a89f8d", letterSpacing: ".12em" }}>

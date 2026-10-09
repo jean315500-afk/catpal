@@ -19,6 +19,15 @@ export default function LettersScreen({ v }: { v: Vals }) {
             </div>
           </div>
           <div ref={v.threadRef} style={{ position: "absolute", left: "0", right: "0", top: "112px", bottom: "262px", overflowY: "auto", padding: "10px 25px 20px", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: "16px", scrollbarWidth: "none" }}>
+            {v.lMoment ? (
+              <div style={{ flex: "none", alignSelf: "center", display: "flex", alignItems: "center", gap: "12px", padding: "10px 14px 10px 10px", borderRadius: "14px", background: "#F6F6F6", maxWidth: "100%", boxSizing: "border-box" }}>
+                <div style={css(`flex:none;width:44px;height:52px;background:url(${R(v.lMoment.photo)}) center / cover no-repeat;box-shadow:0 0 0 3px #FEFEFE,0 1px 3px #cecece;transform:rotate(-3deg)`)} />
+                <div style={{ display: "flex", flexDirection: "column", minWidth: "0" }}>
+                  <span style={{ fontWeight: "700", fontSize: "9px", letterSpacing: ".1em", color: "#a89f8d" }}>{I(v.t?.aboutMoment?.toUpperCase())}</span>
+                  <span style={{ fontWeight: "500", fontSize: "13px", lineHeight: "19px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.lMoment.catName ? <>{"🐈 "}{I(v.lMoment.catName)}{" · "}</> : null}{I(v.lMoment.caption)}</span>
+                </div>
+              </div>
+            ) : null}
             {each(v.thread, (l) => (
               <>
                 {l?.them ? (
@@ -27,7 +36,11 @@ export default function LettersScreen({ v }: { v: Vals }) {
                       <span style={{ display: "block", fontWeight: "700", fontSize: "9px", letterSpacing: ".1em", color: "#a89f8d" }}>
                         {I(l?.who)}
                       </span>
-                      {" "}
+                      {l?.hasPhoto ? (
+                        <>
+                          <div style={css(`margin-top:8px;height:150px;background:#EFE9DD url(${R(l?.photo)}) center / cover no-repeat;box-shadow:0 0 0 4px #FEFEFE,0 1px 3px #cecece`)} />
+                        </>
+                      ) : null}
                       <span style={{ display: "block", marginTop: "6px", fontWeight: "500", fontSize: "16px", lineHeight: "23px", textWrap: "pretty" }}>
                         {I(l?.text)}
                       </span>
@@ -43,7 +56,7 @@ export default function LettersScreen({ v }: { v: Vals }) {
                       </span>
                       {l?.hasPhoto ? (
                         <>
-                          <div style={css(`margin-top:8px;height:150px;background:url(${R(l?.photo)}) center / cover no-repeat;box-shadow:0 0 0 4px #FEFEFE,0 1px 3px #cecece`)} />
+                          <div style={css(`margin-top:8px;height:150px;background:#EFE9DD url(${R(l?.photo)}) center / cover no-repeat;box-shadow:0 0 0 4px #FEFEFE,0 1px 3px #cecece`)} />
                         </>
                       ) : null}
                       <span style={{ display: "block", marginTop: "6px", fontWeight: "500", fontSize: "16px", lineHeight: "23px", textWrap: "pretty" }}>
@@ -69,10 +82,13 @@ export default function LettersScreen({ v }: { v: Vals }) {
             ) : null}
           </div>
           <div style={{ position: "absolute", left: "25px", right: "25px", bottom: "40px", height: "210px", background: "#F9F4EB", padding: "16px 18px", boxSizing: "border-box", boxShadow: "0 -2px 14px rgba(0,0,0,.06)", display: "flex", flexDirection: "column" }}>
-            <span style={{ fontWeight: "700", fontSize: "9px", letterSpacing: ".1em", color: "#a89f8d" }}>
-              {I(v.t?.toUpper)}
-            </span>
-            <textarea value={v.draft ?? ""} onChange={v.setDraft} placeholder={v.t?.draftHint} style={{ flex: "1", marginTop: "6px", border: "none", outline: "none", background: "transparent", resize: "none", fontWeight: "500", fontSize: "16px", lineHeight: "23px", color: "#010002", padding: "0" }} />
+            <div style={{ position: "relative", display: "flex", justifyContent: "space-between", alignItems: "flex-start", minHeight: "14px" }}>
+              <span style={{ fontWeight: "700", fontSize: "9px", letterSpacing: ".1em", color: "#a89f8d" }}>
+                {I(v.t?.toUpper)}
+              </span>
+              <div className="dc-hover-5" onClick={v.nextStamp} role="button" aria-label="stamp" title={v.t?.tapStamp} style={css(`position:absolute;right:-4px;top:-6px;width:30px;height:40px;background:url(${R(v.draftStamp)}) center / contain no-repeat;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18));cursor:pointer;transition:transform .15s ease`)} />
+            </div>
+            <textarea value={v.draft ?? ""} onChange={v.setDraft} placeholder={v.t?.draftHint} maxLength={500} style={{ flex: "1", marginTop: "6px", border: "none", outline: "none", background: "transparent", resize: "none", fontWeight: "500", fontSize: "16px", lineHeight: "23px", color: "#010002", padding: "0" }} />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
               {v.noDraftPhoto ? (
                 <>
@@ -96,6 +112,9 @@ export default function LettersScreen({ v }: { v: Vals }) {
                     </div>
                   </div>
                 </>
+              ) : null}
+              {v.sendErr ? (
+                <span style={{ flex: "1", minWidth: "0", fontWeight: "500", fontSize: "11px", lineHeight: "15px", color: "#FF4800" }}>{I(v.sendErr)}</span>
               ) : null}
               <div className="dc-hover-4" onClick={v.sendLetter} style={css(`flex:none;height:48px;padding:0 22px;border-radius:26px;background:${R(v.sendBg)};display:flex;align-items:center;gap:8px;cursor:pointer;transition:transform .15s ease,background .15s ease`)}>
                 <span style={{ fontFamily: "Inter,sans-serif", fontWeight: "700", fontSize: "14px", color: "#fff", whiteSpace: "nowrap" }}>

@@ -77,6 +77,13 @@ export default function MailboxScreen({ v }: { v: Vals }) {
                 </div>
               </>
             ) : null}
+            {v.mbEmpty ? (
+              <div style={{ marginTop: "20px", height: "124px", border: "2px dashed #E7E2D8", borderRadius: "14px", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 20px" }}>
+                <span style={{ fontWeight: "500", fontSize: "12px", lineHeight: "17px", color: "#a89f8d", textAlign: "center", whiteSpace: "pre-line" }}>
+                  {I(v.t?.noLetters)}
+                </span>
+              </div>
+            ) : null}
             {v.mbShowPals ? (
               <>
                 <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>

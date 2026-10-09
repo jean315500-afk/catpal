@@ -1,48 +1,72 @@
-// App state and behaviour, ported unchanged from the prototype's DCLogic class.
-// renderVals() returns the flat object every screen component renders from.
+// App state and behaviour (DCLogic port of the prototype), now backed by Supabase:
+// anonymous users with a nickname + country share cat moments, like them, and
+// write private Cat Letters. renderVals() returns the flat object every screen
+// component renders from. Nothing here is simulated: no seeded pals, letters,
+// replies or like counts.
 import React from 'react';
 import { DCLogic } from './dc/DCLogic';
 import { I18N } from './i18n';
-import { catStampFromLetter } from './solana/catStamp';
+import { COMMUNITY_STRINGS } from './community/strings';
+import { supabaseConfigured } from './community/supabase';
+import * as api from './community/api';
+import type { Letter, MomentCard, Profile, Thread } from './community/api';
+import { countryName, countryOptions, distanceKm, flagOf, globePoint, guessCountry, POSTMARK_FILES, postmarkOf } from './community/countries';
+import { dataUrlToBlob, toUploadJpeg } from './community/image';
+import type { CatStampInput } from './solana/catStamp';
+
+for (const l in COMMUNITY_STRINGS) I18N[l] = { ...(I18N[l] || {}), ...COMMUNITY_STRINGS[l] };
+
+const STAMPS = [1, 2, 3, 4, 5, 6, 7, 8].map((i) => "./assets/stamp-" + i + ".png");
+const pad = (n) => String(n).padStart(2, "0");
+/** "26-09-23", like the design's letter dates. */
+const ymd = (iso) => { const d = new Date(iso); return String(d.getFullYear()).slice(2) + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
+const optCache: Record<string, { cc: string; label: string }[]> = {};
 
 export default class CatPalLogic extends DCLogic {
   state: Record<string, any> = {
-    screen: null, prev: "home", lang: null, langOpen: false, sheet: null, lockHint: false, to: null,
-    myPhoto: null, profileDone: false, name: "Tori", age: "4", myTags: ["Sleepy", "Food Lover"], msg: "", stamp: 0, camErr: false,
-    dest: null, phase: null, mapDone: false, sendCount: 0, sentToday: false, isNewPal: false,
-    known: ["momo", "lumi", "bao", "frost"],
-    inbox: [
-      { id: "i0", pal: "momo", note: "Momo has three beds but still sleeps in a cardboard box 😭", date: "26-09-23", unread: true },
-      { id: "i1", pal: "lumi", note: "Lumi supervised my cooking today. Zero stars, apparently.", date: "26-09-20", unread: false },
-      { id: "i2", pal: "bao", note: "Knock, knock. 🐾", date: "26-09-14", unread: false },
-      { id: "i3", pal: "frost", note: "Rainy London again — Frost refuses to go outside ☔", date: "26-09-09", unread: false },
-    ],
-    sent: [
-      { pal: "lumi", date: "26-09-20", stamp: 2 }, { pal: "bao", date: "26-09-14", stamp: 3 },
-      { pal: "momo", date: "26-09-10", stamp: 0 }, { pal: "frost", date: "26-09-08", stamp: 4 },
-    ],
-    threads: {}, tstate: { bao: "p0" }, mailId: null, profileId: "me", lettersId: "momo",
-    draft: "", transit: null, mbTab: "received", ppTab: "stamps", reaction: null,
+    screen: null, prev: "home", lang: null, langOpen: false, sheet: null, camErr: false,
+    // auth
+    authReady: false, me: null, onbNick: "", onbCountry: guessCountry(), onbBusy: false, onbErr: "",
+    // feed
+    feed: [], feedState: "idle", feedErr: "", top: [], likeFx: null,
+    // share
+    photoFor: null, shareCat: "my_cat", shareCaption: "", shareCatName: "", shareCountry: "", sharePhoto: null, shareBusy: false, shareErr: "", sharedFx: false,
+    // letters
+    threads: [], letters: [], urls: {}, mailReady: false, threadId: null, pendingMoment: null,
+    draft: "", draftPhoto: null, stamp: 0, sending: false, sendErr: "", mbTab: "received",
+    // delivery animation after a first letter
+    dest: null, mapDone: false, sendCount: 0, isNewPal: false,
+    // passport
+    ppTab: "stamps", mine: [],
   };
   timers = [];
   I18N = I18N;
+
   componentDidMount() {
-    this.onMsg = (e) => {
-      const d = e.data; if (!d || d.type !== "catpal-city") return;
-      const id = d.city === "Seoul" ? "me" : this.cityToPal && this.cityToPal[d.city];
-      if (id) this.setState({ screen: "profile", profileId: id, prev: "map", sheet: null, langOpen: false });
-    };
-    window.addEventListener("message", this.onMsg);
-    this.syncCam(); }
+    this.boot();
+    // Mail refresh: every 5 s while a thread is open, otherwise every 20 s (only when the tab is visible).
+    this.poll = setInterval(() => {
+      if (!this.state.me || document.visibilityState !== "visible") return;
+      const every = this.cur === "letters" ? 5000 : 20000;
+      if (Date.now() - (this.lastMail || 0) >= every) this.refreshMail();
+    }, 2500);
+    this.syncCam();
+  }
   componentDidUpdate() {
-    // Arrived screen moves on to Mailbox › Sent by itself after 3s (unless the user already left it).
+    // Arrived screen moves on to the letter thread by itself after 3s (unless the user already left it).
     const was = this.lastScreen; this.lastScreen = this.state.screen;
     if (this.state.screen === "arrived" && was !== "arrived") {
       clearTimeout(this.arrT);
-      this.arrT = setTimeout(() => { if (this.state.screen === "arrived") this.go("mailbox", { sheet: null, mbTab: "sent" }); }, 3000);
+      this.arrT = setTimeout(() => { if (this.state.screen === "arrived") this.go("letters", { sheet: null }); }, 3000);
     }
-    this.syncCam(); const el = this.threadRef && this.threadRef.current; if (el) el.scrollTop = el.scrollHeight; }
-  componentWillUnmount() { window.removeEventListener("message", this.onMsg); this.stopCam(); clearTimeout(this.arrT); this.timers.forEach(clearTimeout); }
+    this.syncCam();
+    const el = this.threadRef && this.threadRef.current;
+    const n = this.state.letters.length + ":" + this.state.threadId;
+    if (el && this.scrolledFor !== n) { this.scrolledFor = n; el.scrollTop = el.scrollHeight; }
+  }
+  componentWillUnmount() { this.stopCam(); clearTimeout(this.arrT); clearInterval(this.poll); this.timers.forEach(clearTimeout); }
+
+  // ---------------------------------------------------------------- camera / photos (from the prototype)
   stopCam() { if (this.stream) { this.stream.getTracks().forEach((t) => t.stop()); this.stream = null; } }
   syncCam() {
     if (this.cur !== "camera") { this.stopCam(); return; }
@@ -57,326 +81,442 @@ export default class CatPalLogic extends DCLogic {
       const vv = this.videoRef.current; if (vv) { vv.muted = true; vv.srcObject = s; vv.play && vv.play().catch(() => {}); }
     }).catch(() => { this.camStarting = false; this.setState({ camErr: true }); });
   }
-  afterPhoto(url) {
-    // data: URLs contain ";" which breaks the inline background:url() style, so use a blob: URL instead.
-    if (url && url.startsWith("data:")) {
-      const [head, b64] = url.split(","); const bin = atob(b64); const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      url = URL.createObjectURL(new Blob([bytes], { type: head.slice(5).split(";")[0] }));
+  /** A photo was picked (album) or captured (camera). Blob URLs, since data: URLs break inline background:url(). */
+  afterPhoto(blob: Blob | null) {
+    if (!blob) { this.go(this.state.photoFor === "letter" ? "letters" : "share", { sheet: null }); return; }
+    const url = URL.createObjectURL(blob);
+    if (this.state.photoFor === "letter") {
+      this.draftBlob = blob;
+      this.setState({ draftPhoto: url, sheet: null, screen: "letters", sendErr: "" });
+    } else {
+      this.shareBlob = blob;
+      this.setState({ sharePhoto: url, sheet: null, screen: "share", shareErr: "" });
     }
-    this.setState((p) => ({ myPhoto: url || p.myPhoto, sheet: null, screen: p.profileDone ? "message" : "info" })); }
+  }
   snap() {
     const v = this.videoRef && this.videoRef.current;
     if (this.stream && v && v.videoWidth) {
       const c = document.createElement("canvas"); c.width = v.videoWidth; c.height = v.videoHeight;
-      c.getContext("2d").drawImage(v, 0, 0); this.stopCam(); this.afterPhoto(c.toDataURL("image/jpeg", .85));
+      c.getContext("2d").drawImage(v, 0, 0); this.stopCam(); this.afterPhoto(dataUrlToBlob(c.toDataURL("image/jpeg", .9)));
     } else this.afterPhoto(null);
   }
   go(screen, extra?) { this.setState((p) => ({ screen, prev: this.cur, langOpen: false, ...(extra || {}) })); }
+
+  // ---------------------------------------------------------------- auth
+  async boot() {
+    if (!supabaseConfigured) { this.setState({ authReady: true, onbErr: "CatPal is missing its Supabase settings." }); return; }
+    try {
+      const uid = await api.currentUserId();
+      const me = uid ? await api.getProfile(uid) : null;
+      this.setState({ authReady: true, me });
+      if (me) { if (!this.state.screen || this.state.screen === "intro") this.setState({ screen: "home" }); this.loadAll(); }
+    } catch (e) {
+      this.setState({ authReady: true, onbErr: api.errorText(e) });
+    }
+  }
+  async join() {
+    const s = this.state, nick = s.onbNick.trim(), cc = s.onbCountry;
+    if (s.onbBusy) return;
+    if (!nick) { this.setState({ onbErr: this.tx("onbNick") + " ?" }); return; }
+    if (!cc) { this.setState({ onbErr: this.tx("onbPick") }); return; }
+    this.setState({ onbBusy: true, onbErr: "" });
+    try {
+      const uid = (await api.currentUserId()) || (await api.signInAnonymously());
+      const me = await api.saveProfile(uid, nick.slice(0, 24), cc);
+      this.setState({ me, onbBusy: false, screen: "home", prev: "onboard" });
+      this.loadAll();
+    } catch (e) {
+      this.setState({ onbBusy: false, onbErr: api.errorText(e) });
+    }
+  }
+
+  // ---------------------------------------------------------------- feed & likes
+  loadAll() { this.loadFeed(); this.loadTop(); this.refreshMail(); this.loadMine(); }
+  async loadFeed() {
+    this.setState({ feedState: "loading", feedErr: "" });
+    try { const feed = await api.discoverFeed(30); this.setState({ feed, feedState: "ready" }); }
+    catch (e) { this.setState({ feedState: "error", feedErr: api.errorText(e) }); }
+  }
+  async loadTop() { try { this.setState({ top: await api.topThisWeek(6) }); } catch (_) { /* secondary: stay hidden */ } }
+  async loadMine() { const me = this.state.me; if (!me) return; try { this.setState({ mine: await api.myMoments(me.id) }); } catch (_) {} }
+  patchMoment(id, fn) {
+    const up = (list) => list.map((m) => (m.id === id ? fn(m) : m));
+    this.setState((p) => ({ feed: up(p.feed), top: up(p.top), mine: up(p.mine) }));
+  }
+  async toggleLike(m: MomentCard) {
+    const me = this.state.me; if (!me) return;
+    const on = !m.liked_by_me;
+    this.patchMoment(m.id, (x) => ({ ...x, liked_by_me: on, like_count: Math.max(0, x.like_count + (on ? 1 : -1)) }));
+    this.setState((p) => ({ likeFx: on ? { id: m.id, n: ((p.likeFx && p.likeFx.n) || 0) + 1 } : null }));
+    clearTimeout(this.likeT); this.likeT = setTimeout(() => this.setState((p) => ({ likeFx: p.likeFx ? { ...p.likeFx, id: null } : null })), 1500);
+    try { await api.setLike(m.id, me.id, on); }
+    catch (e) { this.patchMoment(m.id, (x) => ({ ...x, liked_by_me: !on, like_count: Math.max(0, x.like_count + (on ? -1 : 1)) })); }
+  }
+
+  // ---------------------------------------------------------------- share a moment
+  openShare() {
+    this.shareBlob = null;
+    this.go("share", { sheet: null, shareCat: "my_cat", shareCaption: "", shareCatName: "", shareCountry: this.state.me?.country || "", sharePhoto: null, shareErr: "", shareBusy: false, sharedFx: false, photoFor: "moment" });
+  }
+  async postMoment() {
+    const s = this.state, me = s.me, caption = s.shareCaption.trim(), catName = s.shareCatName.trim();
+    if (s.shareBusy || !me) return;
+    if (!this.shareBlob) { this.setState({ shareErr: this.tx("needPhoto") }); return; }
+    if (!caption) { this.setState({ shareErr: this.tx("needCaption") }); return; }
+    this.setState({ shareBusy: true, shareErr: "" });
+    try {
+      const photo = await toUploadJpeg(this.shareBlob);
+      await api.createMoment(me.id, { category: s.shareCat, caption: caption.slice(0, 200), cat_name: catName ? catName.slice(0, 30) : null, country: s.shareCountry || me.country }, photo);
+      this.shareBlob = null;
+      this.setState({ shareBusy: false, sharedFx: true });
+      this.loadMine();
+      this.timers.push(setTimeout(() => { if (this.state.screen === "share") this.go("home", { sharedFx: false }); else this.setState({ sharedFx: false }); }, 2100));
+    } catch (e) {
+      this.setState({ shareBusy: false, shareErr: api.errorText(e) });
+    }
+  }
+  async removeMine(m: MomentCard) {
+    if (!window.confirm(this.tx("confirmDelete"))) return;
+    try { await api.deleteMoment(m); this.setState((p) => ({ mine: p.mine.filter((x) => x.id !== m.id), feed: p.feed.filter((x) => x.id !== m.id), top: p.top.filter((x) => x.id !== m.id) })); }
+    catch (e) { window.alert(api.errorText(e)); }
+  }
+
+  // ---------------------------------------------------------------- letters
+  async refreshMail() {
+    if (!this.state.me || this.mailBusy) return;
+    this.mailBusy = true; this.lastMail = Date.now();
+    try {
+      const [threads, letters] = await Promise.all([api.listThreads(), api.listLetters()]);
+      // Signed URLs for letter photos (re-signed every 50 min).
+      const fresh = this.urlsAt && Date.now() - this.urlsAt < 50 * 60e3;
+      const urls = fresh ? this.state.urls : {};
+      const need = letters.map((l) => l.photo_path).filter((p) => p && !urls[p]);
+      const got = need.length ? await api.letterPhotoUrls(need) : {};
+      if (!fresh) this.urlsAt = Date.now();
+      this.setState({ threads, letters, urls: { ...urls, ...got }, mailReady: true });
+      this.markOpenThreadRead();
+    } catch (_) { /* keep what we have; the next tick retries */ }
+    finally { this.mailBusy = false; }
+  }
+  markOpenThreadRead() {
+    const s = this.state, id = s.threadId, me = s.me;
+    if (this.cur !== "letters" || !id || !me) return;
+    if (!s.letters.some((l) => l.thread_id === id && l.sender_id !== me.id && !l.read_at)) return;
+    const now = new Date().toISOString();
+    this.setState((p) => ({ letters: p.letters.map((l) => (l.thread_id === id && l.sender_id !== me.id && !l.read_at ? { ...l, read_at: now } : l)) }));
+    api.markThreadRead(id).catch(() => {});
+  }
+  openThread(id) {
+    this.draftBlob = null;
+    this.go("letters", { threadId: id, pendingMoment: null, draft: "", draftPhoto: null, sendErr: "", sheet: null, photoFor: "letter" });
+    this.timers.push(setTimeout(() => this.markOpenThreadRead(), 0));
+  }
+  /** "Send a Cat Letter" on a moment: continue our thread about it, or start a new one on first send. */
+  letterTo(m: MomentCard) {
+    const me = this.state.me; if (!me || m.user_id === me.id) return;
+    const t = this.state.threads.find((x) => x.moment_id === m.id && x.starter_id === me.id);
+    if (t) { this.openThread(t.id); return; }
+    this.draftBlob = null;
+    this.go("letters", { threadId: null, pendingMoment: m, draft: "", draftPhoto: null, sendErr: "", sheet: null, photoFor: "letter" });
+  }
+  async sendLetter() {
+    const s = this.state, me = s.me, text = s.draft.trim().slice(0, 500);
+    if (!me || s.sending || (!text && !this.draftBlob)) return;
+    this.setState({ sending: true, sendErr: "" });
+    try {
+      const photo = this.draftBlob ? await toUploadJpeg(this.draftBlob) : null;
+      const pm = s.pendingMoment;
+      const isNew = !s.threadId;
+      const threadId = s.threadId || (await api.openThread(me.id, pm));
+      const firstOfThread = isNew && !s.letters.some((l) => l.thread_id === threadId);
+      const letter = await api.sendLetter(me.id, threadId, text || null, photo, s.stamp);
+      const urls = letter.photo_path && s.draftPhoto ? { ...this.state.urls, [letter.photo_path]: s.draftPhoto } : this.state.urls;
+      this.draftBlob = null;
+      this.setState((p) => ({ letters: [...p.letters, letter], urls, draft: "", draftPhoto: null, sending: false, threadId, pendingMoment: null }));
+      await this.refreshMail();
+      if (firstOfThread && pm) this.playDelivery(pm);
+    } catch (e) {
+      this.setState({ sending: false, sendErr: api.errorText(e) });
+    }
+  }
+  /** The prototype's globe flight + "arrived" card, now for a real first letter. */
+  playDelivery(pm: MomentCard) {
+    const me = this.state.me, to = pm.author_country;
+    if (!globePoint(me.country) || !globePoint(to)) return; // no coordinates: just stay in the thread
+    const isNew = !this.state.threads.some((t) => t.id !== this.state.threadId && this.otherOf(t).id === pm.user_id);
+    this.setState({ dest: { cc: to, name: pm.nickname, uid: pm.user_id, photo: api.momentPhotoUrl(pm.photo_path) }, isNewPal: isNew, screen: "deliveryMap", prev: "letters", mapDone: false, sendCount: this.state.sendCount + 1, langOpen: false });
+    this.timers.push(
+      setTimeout(() => { if (this.state.screen === "deliveryMap") this.setState({ mapDone: true }); }, 7000),
+      setTimeout(() => { if (this.state.screen === "deliveryMap") this.setState({ screen: "arrived", prev: "deliveryMap" }); }, 7600),
+    );
+  }
+  otherOf(t: Thread): Profile { const me = this.state.me; return t.starter_id === me.id ? t.owner : t.starter; }
+
+  tx(k, v?) {
+    const L = this.L || "en", D = this.I18N[L] || this.I18N.en, DE = this.I18N.en;
+    let s = D[k] ?? DE[k] ?? k; if (v) for (const n in v) s = s.split("{" + n + "}").join(String(v[n])); return s;
+  }
 
   renderVals() {
     const st = this.state;
     const LANGS = [["en", "English", "en-US"], ["ko", "한국어", "ko-KR"], ["ja", "日本語", "ja-JP"], ["zh", "中文", "zh-CN"], ["es", "Español", "es-ES"], ["fr", "Français", "fr-FR"], ["de", "Deutsch", "de-DE"], ["pt", "Português", "pt-BR"], ["th", "ไทย", "th-TH"], ["id", "Bahasa Indonesia", "id-ID"]];
     const propLang = (LANGS.find((x) => x[1] === this.props.language) || LANGS[0])[0];
     const L = st.lang ?? propLang;
+    this.L = L;
     const LOC = (LANGS.find((x) => x[0] === L) || LANGS[0])[2];
-    const D = this.I18N[L] || this.I18N.en, DE = this.I18N.en;
-    const tx = (k, v?) => { let s = D[k] ?? DE[k] ?? k; if (v) for (const n in v) s = s.split("{" + n + "}").join(String(v[n])); return s; };
-    const SINCE = { momo: [5, 9], lumi: [7, 21], bao: [8, 31], frost: [9, 16] };
-    const sinceOf = (id) => SINCE[id] ? new Intl.DateTimeFormat(LOC, { month: "short", day: "numeric" }).format(new Date(2026, SINCE[id][0] - 1, SINCE[id][1])) : tx("today");
-    const CI = { Japan: 0, Italy: 1, Taiwan: 2, UK: 3, Indonesia: 4, France: 5, Thailand: 6, Australia: 7, USA: 8, Canada: 9, Singapore: 10 };
-    const cName = (p) => D.C[CI[p.country[0]]];
-    const startMap = { Intro: "intro", Home: "home", Mailbox: "mailbox", "World Map": "map", Passport: "passport", "Cat Profile": "profile" };
-    const cur = st.screen ?? startMap[this.props.startScreen] ?? "intro";
-    this.cur = cur;
-    const lockOn = this.props.sendToUnlock ?? true;
+    const tx = (k, v?) => this.tx(k, v);
+    const cName = (cc) => countryName(cc, LOC);
     const fmt = (n) => n.toLocaleString("en-US");
-    const STAMPS = [1, 2, 3, 4, 5, 6, 7, 8].map((i) => "./assets/stamp-" + i + ".png");
-    const PALS = {
-      momo: { name: "Momo", age: 3, city: "Tokyo", country: ["Japan"], flag: "🇯🇵", km: 1158, tz: "Asia/Tokyo", stamp: 1, pm: "tokyo", tags: ["Sleepy", "Food Lover"], letters: 42 },
-      lumi: { name: "Lumi", age: 5, city: "Rome", country: ["Italy"], flag: "🇮🇹", km: 8950, tz: "Europe/Rome", stamp: 2, pm: "roma", tags: ["Mischievous", "Curious"], letters: 18 },
-      bao: { name: "Bao", age: 4, city: "Taipei", country: ["Taiwan"], flag: "🇹🇼", km: 1480, tz: "Asia/Taipei", stamp: 3, pm: "taipei", tags: ["Food Lover", "Chatty"], letters: 9 },
-      frost: { name: "Frost", age: 6, city: "London", country: ["UK"], flag: "🇬🇧", km: 8860, tz: "Europe/London", stamp: 4, pm: "london", tags: ["Shy", "Sleepy"], letters: 3 },
-      kopi: { name: "Kopi", age: 2, city: "Bali", country: ["Indonesia"], flag: "🇮🇩", km: 5250, tz: "Asia/Makassar", stamp: 5, pm: "bali", tags: ["Explorer", "Cuddly"], letters: 1 },
-      miko: { name: "Miko", age: 1, city: "Paris", country: ["France"], flag: "🇫🇷", km: 8960, tz: "Europe/Paris", stamp: 6, pm: "paris", tags: ["Mischievous", "Shy"], letters: 1 },
-      mango: { name: "Mango", age: 3, city: "Bangkok", country: ["Thailand"], flag: "🇹🇭", km: 3720, tz: "Asia/Bangkok", stamp: 7, pm: "bangkok", tags: ["Food Lover", "Cuddly"], letters: 1 },
-      pudding: { name: "Pudding", age: 2, city: "Sydney", country: ["Australia"], flag: "🇦🇺", km: 8320, tz: "Australia/Sydney", stamp: 1, pm: "sydney", tags: ["Sleepy", "Chatty"], letters: 1 },
-      bagel: { name: "Bagel", age: 4, city: "New York", country: ["USA"], flag: "🇺🇸", km: 11050, tz: "America/New_York", stamp: 2, pm: "newyork", tags: ["Curious", "Explorer"], letters: 1 },
-      maple: { name: "Maple", age: 5, city: "Vancouver", country: ["Canada"], flag: "🇨🇦", km: 8190, tz: "America/Vancouver", stamp: 3, pm: "vancouver", tags: ["Shy", "Explorer"], letters: 1 },
-      kaya: { name: "Kaya", age: 2, city: "Singapore", country: ["Singapore"], flag: "🇸🇬", km: 4630, tz: "Asia/Singapore", stamp: 4, pm: "singapore", tags: ["Mischievous", "Chatty"], letters: 1 },
-    };
-    this.cityToPal = Object.fromEntries(Object.keys(PALS).filter((k) => this.state.known.includes(k)).map((k) => [PALS[k].city, k]));
-    const NOTES = { kopi: "Hi from Bali! Kopi found the warmest tile in the house ☀️", miko: "Bonjour! Miko discovered the mirror cat again. Round 3 🪞", mango: "Sawasdee! Mango stole a mango. Of course. 🥭", pudding: "G’day! Pudding is sunbathing upside down ☀️", bagel: "Hey from NYC! Bagel watches the pigeons all day 🐦", maple: "Hi from Vancouver! Maple loves the first rain of fall 🍁", kaya: "Hello from Singapore! Kaya napped through a thunderstorm ⛈️" };
-    const TAGS = { Sleepy: "잠꾸러기", Shy: "수줍음", Mischievous: "장난꾸러기", "Food Lover": "먹보", Curious: "호기심", Cuddly: "애교쟁이", Chatty: "수다쟁이", Explorer: "탐험가" };
-    const tagLabel = (k) => D.tags[Object.keys(TAGS).indexOf(k)] || k;
-    const myName = st.name || "Tori";
-    const palSlot = (id) => "pal-" + id;
-    // Default photo for each pal's image slot (a dropped image still overrides it).
-    const palImg = (id) => "./assets/cats/cat-" + (Object.keys(PALS).indexOf(id) % 6 + 1) + ".jpg";
-    const dist = (p) => fmt(p.km) + " km";
-    const pmOf = (p) => "./assets/pm/" + p.pm + ".png";
-    const pPlace = (p) => p.city + ", " + cName(p) + " " + p.flag;
-    const known = st.known;
-    const lastSentTo = st.sentToday ? st.sent[0] : null;
+    const km = (a, b) => { const d = distanceKm(a, b); return d == null ? "" : fmt(d) + " km"; };
+    const cur = st.screen ?? (st.me ? "home" : "intro");
+    this.cur = cur;
+    const me: Profile | null = st.me;
+    const myName = me ? me.nickname : "";
+    const myCC = me ? me.country : "";
+    const photoOf = (m) => (m && m.photo_path ? api.momentPhotoUrl(m.photo_path) : "");
 
-    const unread = st.inbox.filter((m) => m.unread);
-    const isLocked = (m) => lockOn && m.unread && !st.sentToday;
-    const openMail = (m) => () => {
-      if (isLocked(m)) { this.setState({ sheet: "to", lockHint: true, langOpen: false }); return; }
-      this.setState((p) => ({ inbox: p.inbox.map((x) => (x.id === m.id ? { ...x, unread: false } : x)), mailId: m.id, screen: "mail", prev: cur, reaction: null, reactN: 0, langOpen: false }));
-    };
-    const openProfile = (id) => () => this.go("profile", { profileId: id, sheet: null });
-    const seedThread = (id) => {
-      const firstMail = [...st.inbox].reverse().find((m) => m.pal === id);
-      return [{ from: "pal", text: firstMail ? firstMail.note : (NOTES[id] || "Hello! 💛") }];
-    };
-    const openLetters = (id) => () => this.go("letters", { lettersId: id, sheet: null, draft: "", draftPhoto: null, transit: null });
-    const startSend = (id) => this.setState({ to: id, sheet: null, lockHint: false, screen: "upload", prev: cur, msg: "", langOpen: false });
+    // ---- letters, derived
+    const letters: Letter[] = st.letters;
+    const byThread: Record<string, Letter[]> = {};
+    for (const l of letters) (byThread[l.thread_id] = byThread[l.thread_id] || []).push(l);
+    const threads: Thread[] = me ? st.threads.filter((t) => byThread[t.id] || t.id === st.threadId) : [];
+    const otherOf = (t) => (t.starter_id === me.id ? t.owner : t.starter);
+    const unreadOf = (t) => (byThread[t.id] || []).filter((l) => l.sender_id !== me.id && !l.read_at).length;
+    const unread = me ? letters.filter((l) => l.sender_id !== me.id && !l.read_at) : [];
+    const threadById = Object.fromEntries(threads.map((t) => [t.id, t]));
+    // People I've exchanged letters with, newest activity first.
+    const pals: { p: Profile; threads: Thread[]; last: string; first: string; wroteMe: Letter | null; iWrote: boolean; n: number; photo: string }[] = [];
+    for (const t of threads) {
+      const o = otherOf(t), ls = byThread[t.id] || [];
+      if (!ls.length) continue;
+      let e = pals.find((x) => x.p.id === o.id);
+      if (!e) pals.push((e = { p: o, threads: [], last: "", first: ls[0].created_at, wroteMe: null, iWrote: false, n: 0, photo: "" }));
+      e.threads.push(t); e.n += ls.length;
+      if (ls[ls.length - 1].created_at > e.last) e.last = ls[ls.length - 1].created_at;
+      if (ls[0].created_at < e.first) e.first = ls[0].created_at;
+      if (ls.some((l) => l.sender_id === me.id)) e.iWrote = true;
+      for (const l of ls) if (l.sender_id !== me.id && l.read_at && (!e.wroteMe || l.created_at < e.wroteMe.created_at)) e.wroteMe = l;
+      if (!e.photo && t.moment && t.moment.photo_path && t.owner_id === o.id) e.photo = photoOf(t.moment);
+    }
+    pals.sort((a, b) => (a.last < b.last ? 1 : -1));
+    const latestThreadWith = (uid) => { const e = pals.find((x) => x.p.id === uid); if (!e) return null; return e.threads.slice().sort((a, b) => { const la = (byThread[a.id] || []).slice(-1)[0], lb = (byThread[b.id] || []).slice(-1)[0]; return (la?.created_at || "") < (lb?.created_at || "") ? 1 : -1; })[0]; };
+    const palRows = pals.map((e) => ({
+      id: e.p.id, slot: "pal-" + e.p.id, img: e.photo, name: e.p.nickname, flag: flagOf(e.p.country), city: cName(e.p.country), dist: km(myCC, e.p.country),
+      meta: tx("palMeta", { n: e.n, since: new Intl.DateTimeFormat(LOC, { month: "short", day: "numeric" }).format(new Date(e.first)) }),
+      open: () => { const t = latestThreadWith(e.p.id); t && this.openThread(t.id); },
+      letters: (ev) => { ev && ev.stopPropagation && ev.stopPropagation(); const t = latestThreadWith(e.p.id); t && this.openThread(t.id); },
+    }));
 
-    const palRows = known.map((id) => {
-      const p = PALS[id];
-      const lettersN = (st.threads[id] ? st.threads[id].length : 0) + p.letters;
+    // ---- current thread
+    const thr = st.threadId ? threadById[st.threadId] || st.threads.find((t) => t.id === st.threadId) : null;
+    const pending: MomentCard | null = st.pendingMoment;
+    const lOther: Profile | null = thr && me ? otherOf(thr) : pending ? { id: pending.user_id, nickname: pending.nickname, country: pending.author_country } : null;
+    const lMoment = thr ? thr.moment : pending;
+    const lLetters = thr ? byThread[thr.id] || [] : [];
+
+    // ---- feed cards
+    const catLabel = (c) => (c === "met_cat" ? tx("metCat") : tx("myCat"));
+    const card = (m: MomentCard, i: number) => {
+      const own = !!me && m.user_id === me.id;
+      const fx = st.likeFx && st.likeFx.id === m.id ? st.likeFx.n : 0;
       return {
-        id, slot: palSlot(id), img: palImg(id), name: p.name, flag: p.flag, city: p.city, dist: dist(p),
-        meta: tx("palMeta", { n: lettersN, since: sinceOf(id) }),
-        open: openProfile(id), letters: (e) => { e && e.stopPropagation && e.stopPropagation(); openLetters(id)(); }, choose: () => startSend(id),
+        id: m.id, photo: photoOf(m), caption: m.caption, catName: m.cat_name || "", hasCatName: !!m.cat_name, cat: catLabel(m.category),
+        who: m.nickname, whoFlag: flagOf(m.author_country), whoCountry: cName(m.author_country),
+        where: m.country !== m.author_country ? flagOf(m.country) + " " + cName(m.country) : "", hasWhere: m.country !== m.author_country,
+        pm: postmarkOf(m.author_country), stamp: STAMPS[(m.id.charCodeAt(0) + m.id.charCodeAt(1)) % 8],
+        likes: m.like_count, liked: m.liked_by_me, likeLabel: tx("like"),
+        heartAnim: fx ? "cp-rpop" + (fx % 2 ? "a" : "b") + " .45s cubic-bezier(.34,1.56,.64,1)" : "none",
+        burst: fx && m.liked_by_me ? Array.from({ length: 5 }, (_, j) => ({ key: fx + "-" + j, anim: "cp-b" + j + (fx % 2 ? "a" : "b") + " 1.2s cubic-bezier(.2,.7,.3,1) " + j * 45 + "ms both" })) : [],
+        like: () => this.toggleLike(m), canLetter: !!me && !own, letter: () => this.letterTo(m), own,
+        rot: [-1.2, 0.8, -0.6, 1.1, -0.9, 0.5][i % 6], date: ymd(m.created_at),
       };
-    });
-
-    const palReply = (id, text, free) => {
-      const name = PALS[id].name, t = text.trim(), clean = t.replace(/[.!?…]+$/, "").slice(0, 32);
-      if (free === "p0" && /who/i.test(t)) return { reply: "Tuna.", free: "p1" };
-      if (free === "p1" && /who/i.test(t)) return { reply: "Tuna in tomorrow for another cat pic! 🐟😹", free: null };
-      if (free === "k1") return { reply: clean + " who?", free: "k2" };
-      if (free === "k2") return { reply: "😂😂 OK that got me. " + name + " is rolling on the floor!", free: null };
-      if (free === "d1") return { reply: "🙄😂 That’s terrible. I love it. Send another!", free: null };
-      if (/knock/i.test(t)) return { reply: "Who’s there?", free: "k1" };
-      if (/\?$/.test(t)) return { reply: "Hmm… I don’t know. What? 🤔", free: "d1" };
-      const g = ["Haha 😂 " + name + " says meow back! Got a joke for me?", "😹 Your turn — tell me a knock-knock!", "Hehe. Tomorrow’s cat pic better be this funny 🐾"];
-      return { reply: g[(t.length + name.length) % g.length], free: null };
     };
 
-    const target = st.to ? PALS[st.to] : null;
-    const dest = st.dest ? PALS[st.dest] : PALS.lumi;
-    const mail = st.inbox.find((m) => m.id === st.mailId) || st.inbox[0];
-    const mPal = PALS[mail.pal];
-    const lp = PALS[st.lettersId] || PALS.momo;
-    const thread = st.threads[st.lettersId] || seedThread(st.lettersId);
-    const pid = st.profileId;
-    const isMe = pid === "me";
-    const pp = isMe ? null : PALS[pid];
-
-    const sendNow = () => {
-      const s = this.state;
-      let id = s.to;
-      if (!id) {
-        const forced = Object.keys(PALS).find((k) => PALS[k].city === this.props.surpriseCity);
-        const fresh = ["kopi", "miko", "mango", "pudding", "bagel", "maple", "kaya"].filter((k) => !s.known.includes(k));
-        id = forced || (fresh.length ? fresh[Math.floor(Math.random() * fresh.length)] : s.known[Math.floor(Math.random() * s.known.length)]);
-      }
-      const isNew = !s.known.includes(id);
-      this.setState({ dest: id, to: id, isNewPal: isNew, screen: "deliveryMap", phase: null, mapDone: false, sendCount: s.sendCount + 1, langOpen: false });
-      this.timers.push(
-        setTimeout(() => { if (this.state.screen === "deliveryMap") this.setState({ screen: "arrived", prev: "deliveryMap" }); }, 7600),
-        setTimeout(() => {
-          const p = this.state, m = p.msg.trim();
-          const base = p.threads[id] || seedThread(id);
-          const r = m ? palReply(id, m, p.tstate[id]) : null;
-          this.setState({
-            mapDone: true, sentToday: true,
-            known: p.known.includes(id) ? p.known : [...p.known, id],
-            sent: [{ pal: id, date: "26-09-23", stamp: p.stamp }, ...p.sent],
-            threads: m ? { ...p.threads, [id]: [...base, { from: "me", text: m, stamp: p.stamp }] } : p.threads,
-            tstate: r ? { ...p.tstate, [id]: r.free } : p.tstate,
-          });
-          this.timers.push(setTimeout(() => {
-            const q = this.state;
-            const note = r ? r.reply : (NOTES[id] && !q.inbox.some((x) => x.pal === id) ? NOTES[id] : "Here’s what " + PALS[id].name + " is up to today 🐾");
-            this.setState({
-              inbox: [{ id: "r" + Date.now(), pal: id, note, date: "26-09-23", unread: true }, ...q.inbox],
-              threads: r ? { ...q.threads, [id]: [...(q.threads[id] || []), { from: "pal", text: r.reply }] } : q.threads,
-            });
-          }, 3500));
-        }, 7000),
-      );
-    };
-
-    const sendLetter = () => {
-      const s = this.state, text = s.draft.trim(), id = s.lettersId, photo = s.draftPhoto || null;
-      if ((!text && !photo) || s.transit) return;
-      const base = s.threads[id] || seedThread(id);
-      const r = palReply(id, text || "📷", s.tstate[id]);
-      this.setState({ threads: { ...s.threads, [id]: [...base, { from: "me", text, photo, stamp: s.stamp }] }, draft: "", draftPhoto: null, transit: "sending" });
-      this.timers.push(
-        setTimeout(() => this.setState({ transit: "writing" }), 1100),
-        setTimeout(() => this.setState((p) => ({ transit: null, tstate: { ...p.tstate, [id]: r.free }, threads: { ...p.threads, [id]: [...(p.threads[id] || []), { from: "pal", text: r.reply }] } })), 2300),
-      );
-    };
-
-    const backMap = { upload: "home", camera: "upload", info: "upload", message: "upload", stamp: "message", send: "stamp", mail: st.prev && st.prev !== "mail" ? st.prev : "home", letters: st.prev && st.prev !== "letters" ? st.prev : "mailbox", profile: st.prev && st.prev !== "profile" ? st.prev : "home" };
+    // ---- nav
+    const backMap = { onboard: "intro", share: "home", camera: st.photoFor === "letter" ? "letters" : "share", letters: st.prev && !["letters", "camera", "arrived", "deliveryMap"].includes(st.prev) ? st.prev : "mailbox" };
     const navActive = { home: "home", mailbox: "mailbox", map: "map", passport: "passport" }[cur];
-    const unreadOpen = unread.filter((m) => !isLocked(m)).length;
     const navItems = [
       { id: "home", label: tx("navHome"), icon: st.hmAnim ? (st.hmAnim % 2 ? "./assets/home.gif" : "./assets/home-b.gif") : "./assets/icon-home.png", iconH: st.hmAnim ? 62 : 44, iconMt: st.hmAnim ? -18 : 0 },
       { id: "mailbox", label: tx("navMailbox"), icon: st.mbAnim ? (st.mbAnim % 2 ? "./assets/mailbox.gif" : "./assets/mailbox-b.gif") : "./assets/mailbox-still.png", count: unread.length },
       { id: "map", label: tx("navMap"), icon: st.mpAnim ? (st.mpAnim % 2 ? "./assets/map.gif" : "./assets/map-b.gif") : "./assets/icon-map-160.png", iconH: st.mpAnim ? 54 : 44, iconMt: st.mpAnim ? -10 : 0 },
       { id: "passport", label: tx("navPassport"), icon: st.ppAnim ? (st.ppAnim % 2 ? "./assets/passport.gif" : "./assets/passport-b.gif") : "./assets/passport-still.png", iconW: 56, iconH: 50, iconMt: -6 },
     ].map((n) => ({ iconW: 44, iconH: 44, iconMt: 0, ...n, tap: () => {
-        if (n.id === "home") { const t = Date.now(); clearTimeout(this.hmT); this.hmT = setTimeout(() => this.setState({ hmAnim: null }), 3000); this.go(n.id, { sheet: null, hmAnim: t }); }
-        else if (n.id === "map") { const t = Date.now(); clearTimeout(this.mpT); this.mpT = setTimeout(() => this.setState({ mpAnim: null }), 3000); this.go(n.id, { sheet: null, mpAnim: t }); }
-        else if (n.id === "passport") { const t = Date.now(); clearTimeout(this.ppT); this.ppT = setTimeout(() => this.setState({ ppAnim: null }), 3000); this.go(n.id, { sheet: null, ppAnim: t }); }
-        else if (n.id === "mailbox") { const t = Date.now(); clearTimeout(this.mbT); this.mbT = setTimeout(() => this.setState({ mbAnim: null }), 3000); this.go(n.id, { sheet: null, mbAnim: t, mbTab: "received" }); }
-        else this.go(n.id, { sheet: null });
+        const t = Date.now();
+        if (n.id === "home") { clearTimeout(this.hmT); this.hmT = setTimeout(() => this.setState({ hmAnim: null }), 3000); this.go(n.id, { sheet: null, hmAnim: t }); if (cur === "home") this.loadFeed(); }
+        else if (n.id === "map") { clearTimeout(this.mpT); this.mpT = setTimeout(() => this.setState({ mpAnim: null }), 3000); this.go(n.id, { sheet: null, mpAnim: t }); }
+        else if (n.id === "passport") { clearTimeout(this.ppT); this.ppT = setTimeout(() => this.setState({ ppAnim: null }), 3000); this.go(n.id, { sheet: null, ppAnim: t }); this.loadMine(); }
+        else if (n.id === "mailbox") { clearTimeout(this.mbT); this.mbT = setTimeout(() => this.setState({ mbAnim: null }), 3000); this.go(n.id, { sheet: null, mbAnim: t, mbTab: "received" }); this.refreshMail(); }
       }, weight: navActive === n.id ? 700 : 500, color: navActive === n.id ? "#010002" : "#a89f8d", opacity: navActive === n.id || !navActive ? 1 : .55, badge: !!n.count }));
 
-    const countries = new Set(known.map((k) => PALS[k].country[0])).size;
-    const totalKm = st.sent.reduce((a, s) => a + PALS[s.pal].km, 0);
-    // The Cat Stamp behind a pal's Passport stamp: their first letter the user has opened (collected).
-    const collectedStamp = (id) => {
-      const opened = st.inbox.filter((m) => m.pal === id && !m.unread).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-      return opened.length ? catStampFromLetter(opened[0], PALS[id].country[0]) : null;
-    };
-    const stampBook = [
-      { img: "./assets/pm/seoul.png", label: myName, sub: "Seoul 🇰🇷", owned: true, open: openProfile("me") },
-      ...Object.keys(PALS).map((id) => ({ catStamp: known.includes(id) ? collectedStamp(id) : null, img: pmOf(PALS[id]), label: known.includes(id) ? PALS[id].name : "???", sub: known.includes(id) ? PALS[id].city + " " + PALS[id].flag : tx("yetToMeet"), owned: known.includes(id), open: known.includes(id) ? openProfile(id) : () => this.setState({ sheet: "to", lockHint: false }) })),
-          ].map((s, i) => ({ ...s, locked: !s.owned, opacity: s.owned ? .9 : .13, filter: s.owned ? "none" : "grayscale(1)", rot: [-9, 6, -4, 11, -7, 3, -12, 8, -5, 10, -2, 7][i % 12], dy: [0, 8, -4, 6, -6, 4, 2, -8, 6, -2, 8, -4][i % 12] }));
-
-    const calCells = [];
-    for (let i = 0; i < 2; i++) calCells.push({ n: "", sent: false, recv: false, weight: 500, color: "#746e63" });
-    const sentDays = new Set(st.sent.map((s) => Number(s.date.slice(6))));
-    const recvDays = new Set(st.inbox.filter((m) => !m.unread).map((m) => Number(m.date.slice(6))));
-    for (let d = 1; d <= 30; d++) calCells.push({ n: String(d), sent: sentDays.has(d), recv: recvDays.has(d), weight: d === 23 ? 800 : 500, color: d === 23 ? "#FF4800" : "#746e63" });
-    while (calCells.length < 35) calCells.push({ n: "", sent: false, recv: false, weight: 500, color: "#746e63" });
-
-    const mbCards = st.mbTab === "sent"
-      ? st.sent.map((s) => { const p = PALS[s.pal]; return { who: tx("toPrefix", { name: p.name }), place: p.flag + " " + p.city + " · " + dist(p), date: s.date, stamp: STAMPS[s.stamp], pm: "./assets/pm/seoul.png", isNew: false, locked: false, open: openLetters(s.pal) }; })
-      : st.inbox.map((m) => { const p = PALS[m.pal]; return { who: tx("fromPrefix", { name: p.name }), place: p.flag + " " + p.city, date: m.date, stamp: STAMPS[p.stamp], pm: pmOf(p), isNew: m.unread && !isLocked(m), locked: isLocked(m), open: openMail(m) }; });
+    // ---- mailbox cards
+    const received = me ? letters.filter((l) => l.sender_id !== me.id).slice().reverse() : [];
+    const sentL = me ? letters.filter((l) => l.sender_id === me.id).slice().reverse() : [];
+    const mbCards = !me ? [] : (st.mbTab === "sent" ? sentL : received).filter((l) => threadById[l.thread_id]).map((l) => {
+      const o = otherOf(threadById[l.thread_id]);
+      return st.mbTab === "sent"
+        ? { who: tx("toPrefix", { name: o.nickname }), place: flagOf(o.country) + " " + cName(o.country) + (km(myCC, o.country) ? " · " + km(myCC, o.country) : ""), date: ymd(l.created_at), stamp: STAMPS[l.stamp] || STAMPS[0], pm: postmarkOf(myCC), isNew: false, locked: false, open: () => this.openThread(l.thread_id) }
+        : { who: tx("fromPrefix", { name: o.nickname }), place: flagOf(o.country) + " " + cName(o.country), date: ymd(l.created_at), stamp: STAMPS[l.stamp] || STAMPS[0], pm: postmarkOf(o.country), isNew: !l.read_at, locked: false, open: () => this.openThread(l.thread_id) };
+    });
+    const unreadThreads = threads.filter((t) => unreadOf(t) > 0).length;
     const tabDef = (id, label, extra?) => ({ label, bg: st.mbTab === id ? "#fff" : "transparent", color: st.mbTab === id ? "#010002" : "#a89f8d", shadow: st.mbTab === id ? "0 1px 3px rgba(0,0,0,.1)" : "none", tap: () => this.setState({ mbTab: id }), badge: false, count: 0, ...(extra || {}) });
 
-    const ph = st.phase;
-    const reallyNew = st.isNewPal;
+    // ---- passport: one stamp per CatPal who has written to me (their first letter I opened)
+    const stampPals = pals.filter((e) => e.wroteMe);
+    const usedPm = new Set([postmarkOf(myCC), ...stampPals.map((e) => postmarkOf(e.p.country))]);
+    const placeholders = POSTMARK_FILES.filter((f) => !usedPm.has(f)).slice(0, Math.max(0, 11 - stampPals.length));
+    const stampBook = [
+      { img: postmarkOf(myCC), label: myName, sub: cName(myCC) + " " + flagOf(myCC), owned: true, open: () => this.go("passport", { ppTab: "mine" }), catStamp: null },
+      ...stampPals.map((e) => ({
+        img: postmarkOf(e.p.country), label: e.p.nickname, sub: cName(e.p.country) + " " + flagOf(e.p.country), owned: true, open: () => { const t = latestThreadWith(e.p.id); t && this.openThread(t.id); },
+        catStamp: { stampId: "catpal-letter-" + e.wroteMe.id, fromCountry: e.p.country, toCountry: myCC, date: e.wroteMe.created_at.slice(0, 10) } as CatStampInput,
+      })),
+      ...placeholders.map((img) => ({ img, label: "???", sub: tx("yetToMeet"), owned: false, open: () => this.go("home", { sheet: null }), catStamp: null })),
+    ].map((s, i) => ({ ...s, locked: !s.owned, opacity: s.owned ? .9 : .13, filter: s.owned ? "none" : "grayscale(1)", rot: [-9, 6, -4, 11, -7, 3, -12, 8, -5, 10, -2, 7][i % 12], dy: [0, 8, -4, 6, -6, 4, 2, -8, 6, -2, 8, -4][i % 12] }));
+    const palCountries = new Set(pals.map((e) => e.p.country)).size;
+
+    // ---- journal: this month, real days
+    const now = new Date(), Y = now.getFullYear(), M = now.getMonth();
+    const inMonth = (iso) => { const d = new Date(iso); return d.getFullYear() === Y && d.getMonth() === M ? d.getDate() : 0; };
+    const sentDays = new Set(sentL.map((l) => inMonth(l.created_at)));
+    const recvDays = new Set(received.map((l) => inMonth(l.created_at)));
+    const lead = new Date(Y, M, 1).getDay(), days = new Date(Y, M + 1, 0).getDate(), today = now.getDate();
+    const calCells = [];
+    for (let i = 0; i < lead; i++) calCells.push({ n: "", sent: false, recv: false, weight: 500, color: "#746e63" });
+    for (let d = 1; d <= days; d++) calCells.push({ n: String(d), sent: sentDays.has(d), recv: recvDays.has(d), weight: d === today ? 800 : 500, color: d === today ? "#FF4800" : "#746e63" });
+    while (calCells.length % 7) calCells.push({ n: "", sent: false, recv: false, weight: 500, color: "#746e63" });
+
+    // ---- delivery
+    const dest = st.dest;
+    const destKm = dest && me ? distanceKm(myCC, dest.cc) : null;
+    const sharePhoto = st.sharePhoto;
+    const opts = optCache[LOC] || (optCache[LOC] = countryOptions(LOC));
+
     const t = {
-      ...Object.fromEntries(["introTitle","introSub","start","reply","sendMail","homeQ","sendCatMail","newMail","locked","noMail","whoTo","lockHint","surprise","surpriseSub","yourPals","upload","sheetTitle","album","camera","cancel","camErr","infoHint","name","age","personality","tapToEdit","msgPh","guideTitle","useKnock","guideNote","starters","pickStamp","send","mapTitle","tapContinue","stampCollected","backHome","replyPhoto","letters","photoShort","sendBack","mailbox","legendSent","legendMet","passportSub"].map((k) => [k, tx(k)])),
+      ...Object.fromEntries(["start", "album", "camera", "cancel", "camErr", "mapTitle", "tapContinue", "letters", "photoShort", "mailbox", "navHome", "received", "sent", "catpals", "stampBook", "journal", "countries", "stamps",
+        "onbTitle", "onbSub", "onbNick", "onbNickPh", "onbCountry", "onbPick", "feedTitle", "shareMoment", "topCats", "aroundWorld", "moreCats", "findingCats", "noMoments", "myCat", "metCat", "shareTitle", "addPhoto", "changePhoto",
+        "feedOnlyMine", "caption", "captionPh", "catName", "catNamePh", "where", "aboutMoment", "tapStamp", "noLetters", "myMoments", "noMyMoments", "deleteMoment", "retry", "sheetTitle"].map((k) => [k, tx(k)])),
+      introTitle: tx("cIntroTitle"), introSub: tx("cIntroSub"),
       newTag: "NEW",
-      homeDate: new Intl.DateTimeFormat(LOC, { weekday: "short", month: "short", day: "numeric" }).format(new Date(2026, 8, 23)) + " · Seoul 🇰🇷",
-      heroTo: lastSentTo ? tx("heroToSent", { name: PALS[lastSentTo.pal].name }) : tx("heroToNone"),
-      heroStatus: lastSentTo ? tx("heroStatusSent", { city: PALS[lastSentTo.pal].city + " " + PALS[lastSentTo.pal].flag }) : "",
-      toName: target ? target.name + " · " + target.city + " " + target.flag : tx("somewhere"),
-      toShort: target ? target.name : tx("somewhereShort"),
-      toLine: target ? tx("toLinePal", { name: target.name, city: target.city + " " + target.flag }) : tx("toLineNone"),
-      fromLine: tx("fromLine") + myName + ", " + (st.age || "4"),
-      finding: ph === "spin" ? tx("finding") : tx("flyingTo", { name: dest.name }),
-      deliveryCard: st.mapDone ? tx("deliveryDone", { city: dest.city }) : tx("deliveryGoing", { city: dest.city }),
-      arr1: tx("arr1", { name: myName, country: cName(dest) }) + " " + dest.flag,
-      newPalTitle: tx("newPal", { name: dest.name, city: dest.city }),
-      mailTitle: tx("mailTitle", { name: mPal.name }),
-      lettersWith: tx("lettersWith", { name: lp.name }),
-      letterCount: tx("letterCount", { n: thread.length }),
-      transit: st.transit === "sending" ? tx("transitSending", { city: lp.city }) : tx("transitWriting", { name: lp.name }),
-      toUpper: "TO " + lp.name.toUpperCase(),
-      draftHint: tx("draftHint", { name: lp.name }),
-      composeNote: st.transit ? tx("composeWait") : tx("composeKeep"),
-      mapSub: tx("mapSub", { name: myName }),
-      mapStats: tx("mapStats", { c: countries, n: known.length, km: fmt(totalKm) }),
-      passportTitle: tx("passportTitle", { name: myName }),
-      month: new Intl.DateTimeFormat(LOC, { year: "numeric", month: "long" }).format(new Date(2026, 8, 1)).toLocaleUpperCase(LOC),
-      pfSend: pp ? tx("pfSend", { name: pp.name }) : "",
-      pfStampNote: pp ? tx("pfStampNote", { name: pp.name }) : "",
+      onbGo: st.onbBusy ? tx("onbBusy") : tx("onbGo"),
+      post: st.shareBusy ? tx("posting") : tx("post"), shared: tx("shared"),
+      lettersWith: lOther ? tx("lettersWith", { name: lOther.nickname }) : "",
+      letterCount: tx("letterCount", { n: lLetters.length, w: tx(lLetters.length === 1 ? "wLetter" : "wLetters") }),
+      transit: lOther ? tx("transitSending", { city: cName(lOther.country) }) : "",
+      toUpper: lOther ? "TO " + lOther.nickname.toUpperCase() : "",
+      draftHint: lOther ? tx("draftHint", { name: lOther.nickname }) : "",
+      reply: lLetters.length ? tx("reply") : tx("sendL"),
+      sendLetter: tx("sendLetter"),
+      mapSub: tx("cMapSub", { name: myName }), legendSent: tx("cLegendSent"), legendMet: tx("cLegendMet"),
+      mapStats: tx("cMapStats", { c: palCountries, n: pals.length, l: letters.length, cw: tx(palCountries === 1 ? "wCountry" : "wCountries"), nw: tx(pals.length === 1 ? "wPal" : "wPals"), lw: tx(letters.length === 1 ? "wLetter" : "wLetters") }),
+      passportTitle: tx("passportTitle", { name: myName }), passportSub: tx("cPassportSub"),
+      month: new Intl.DateTimeFormat(LOC, { year: "numeric", month: "long" }).format(new Date(Y, M, 1)).toLocaleUpperCase(LOC),
+      deliveryCard: dest ? (st.mapDone ? tx("cDelDone", { city: cName(dest.cc) }) : tx("cDelGoing", { city: cName(dest.cc) })) : "",
+      toShort: dest ? dest.name : "",
+      arr1: dest ? tx("cArr1", { name: myName, country: cName(dest.cc) }) + " " + flagOf(dest.cc) : "",
+      newPalTitle: dest ? tx("newPal", { name: dest.name, city: cName(dest.cc) }) : "",
+      stampCollected: tx("cStampNote"),
+      fromLine: me ? cName(myCC) + " " + flagOf(myCC) + " · " + myName : "",
     };
 
+    const myLatest = st.mine[0];
     return {
       t, myName,
       showLogo: cur !== "camera",
-      sIntro: cur === "intro", sHome: cur === "home", sUpload: cur === "upload", sCamera: cur === "camera", sInfo: cur === "info",
-      sMessage: cur === "message", sStamp: cur === "stamp", sSend: cur === "send", sDelivery: cur === "delivery", sDeliveryMap: cur === "deliveryMap",
-      sArrived: cur === "arrived", sMail: cur === "mail", sLetters: cur === "letters", sMailbox: cur === "mailbox", sMap: cur === "map",
-      sPassport: cur === "passport", sProfile: cur === "profile",
-      showNav: ["home", "mailbox", "map", "passport", "profile"].includes(cur),
-      showBack: ["upload", "info", "message", "stamp", "send", "mail", "letters", "profile"].includes(cur),
-      back: () => { this.stopCam(); this.go(backMap[cur] || "home"); },
+      sIntro: cur === "intro", sOnboard: cur === "onboard", sFeed: cur === "home", sShare: cur === "share", sCamera: cur === "camera",
+      sDeliveryMap: cur === "deliveryMap", sArrived: cur === "arrived", sLetters: cur === "letters", sMailbox: cur === "mailbox", sMap: cur === "map", sPassport: cur === "passport",
+      showNav: ["home", "mailbox", "map", "passport"].includes(cur),
+      showBack: ["onboard", "share", "letters"].includes(cur),
+      back: () => { this.stopCam(); this.go(backMap[cur] || "home", { sheet: null }); },
       navItems,
-      goHome: () => this.go("home", { sheet: null }),
-      openMe: openProfile("me"),
-      hasPhoto: !!st.myPhoto, noPhoto: !st.myPhoto, myPhoto: st.myPhoto || "",
-      heroStamp: STAMPS[lastSentTo ? lastSentTo.stamp : 0],
-      heroStatusColor: lastSentTo ? "#010002" : "#a89f8d",
-      openSendSheet: () => this.setState({ sheet: "to", lockHint: false, langOpen: false }),
-      newMailCards: unread.map((m) => { const p = PALS[m.pal]; return { pm: pmOf(p), title: tx("mailFrom", { name: p.name }), flag: p.flag, city: p.city, stamp: STAMPS[p.stamp], locked: isLocked(m), open: openMail(m) }; }),
-      hasNewMail: unread.length > 0, noNewMail: unread.length === 0, newMailCount: unread.length,
-      sheetTo: st.sheet === "to", sheetPhoto: st.sheet === "photo", lockHint: st.lockHint,
-      closeSheet: () => this.setState({ sheet: null, lockHint: false }),
-      chooseSurprise: () => startSend(null),
-      palRows,
-      openPhotoSheet: () => this.setState({ sheet: "photo" }),
+      goHome: () => this.go(me ? "home" : "onboard", { sheet: null }),
+      authReady: st.authReady,
+
+      // onboarding
+      onbNick: st.onbNick, setOnbNick: (e) => this.setState({ onbNick: e.target.value.slice(0, 24), onbErr: "" }),
+      onbCountry: st.onbCountry, setOnbCountry: (e) => this.setState({ onbCountry: e.target.value, onbErr: "" }),
+      onbFlag: st.onbCountry ? flagOf(st.onbCountry) : "🌏", onbPm: st.onbCountry ? postmarkOf(st.onbCountry) : "./assets/pm/seoul.png",
+      onbBusy: st.onbBusy, onbErr: st.onbErr, join: () => this.join(), countryOpts: opts,
+      onbReady: !!st.onbNick.trim() && !!st.onbCountry && !st.onbBusy,
+
+      // feed
+      feedCards: st.feed.map(card), topCards: st.top.map(card), hasTop: st.top.length > 0,
+      feedLoading: st.feedState === "loading" && !st.feed.length, feedError: st.feedState === "error" ? st.feedErr : "",
+      feedEmpty: st.feedState === "ready" && !st.feed.length, feedEmptyText: st.mine.length ? tx("feedOnlyMine") : tx("noMoments"), moreCats: () => { this.loadFeed(); this.loadTop(); },
+      openShare: () => this.openShare(),
+
+      // share
+      shareCats: [["my_cat", tx("myCat")], ["met_cat", tx("metCat")]].map(([id, label]) => ({ label, bg: st.shareCat === id ? "#fff" : "transparent", color: st.shareCat === id ? "#010002" : "#a89f8d", shadow: st.shareCat === id ? "0 1px 3px rgba(0,0,0,.1)" : "none", tap: () => this.setState({ shareCat: id }) })),
+      sharePhoto: sharePhoto || "", hasSharePhoto: !!sharePhoto,
+      shareCaption: st.shareCaption, setShareCaption: (e) => this.setState({ shareCaption: e.target.value.slice(0, 200), shareErr: "" }), captionCount: st.shareCaption.length,
+      shareCatName: st.shareCatName, setShareCatName: (e) => this.setState({ shareCatName: e.target.value.slice(0, 30) }),
+      shareCountry: st.shareCountry || myCC, setShareCountry: (e) => this.setState({ shareCountry: e.target.value }),
+      shareErr: st.shareErr, shareBusy: st.shareBusy, sharedFx: st.sharedFx, postMoment: () => this.postMoment(),
+      shareReady: !!sharePhoto && !!st.shareCaption.trim() && !st.shareBusy,
+
+      // photo sheet + camera (prototype)
+      sheetPhoto: st.sheet === "photo",
+      closeSheet: () => this.setState({ sheet: null }),
+      openPhotoSheet: () => this.setState({ sheet: "photo", photoFor: "moment" }),
       videoRef: this.videoRef || (this.videoRef = React.createRef()),
       albumRef: this.albumRef || (this.albumRef = React.createRef()),
       threadRef: this.threadRef || (this.threadRef = React.createRef()),
       pickAlbum: () => { this.setState({ sheet: null }); this.albumRef.current && this.albumRef.current.click(); },
       pickCamera: () => this.setState({ sheet: null, camErr: false, screen: "camera", prev: cur }),
-      onAlbum: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return; this.stopCam(); const r = new FileReader(); r.onload = () => this.afterPhoto(r.result); r.readAsDataURL(f); },
+      onAlbum: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return; this.stopCam(); this.afterPhoto(f); },
       camErr: !!st.camErr,
       capture: () => this.snap(),
-      nameVal: st.name, ageVal: st.age,
-      setName: (e) => this.setState({ name: e.target.value }), setAge: (e) => this.setState({ age: e.target.value }),
-      myTagChips: Object.keys(TAGS).map((k) => { const on = st.myTags.includes(k); return { label: tagLabel(k), bg: on ? "#464646" : "#F6F6F6", color: on ? "#fff" : "#000", tap: () => this.setState((p) => ({ myTags: on ? p.myTags.filter((x) => x !== k) : [...p.myTags, k] })) }; }),
-      infoNext: () => this.go("message", { profileDone: true }),
-      msgVal: st.msg, setMsg: (e) => this.setState({ msg: e.target.value.slice(0, 120) }), msgCount: st.msg.length,
-      useKnock: () => this.setState({ msg: "Knock, knock." }),
-      guideLines: [["you", "Knock, knock."], ["pal", "Who’s there?"], ["you", "Lettuce."], ["pal", "Lettuce who?"], ["you", "Lettuce in, it’s cold out here! 🥶"]].map(([w, x]) => ({ you: w === "you", pal: w === "pal", text: x })),
-      msgNext: () => this.go("stamp"),
-      stampsGo: STAMPS.map((m, i) => ({ m, border: i === st.stamp ? "2px solid #010002" : "2px solid transparent", pick: () => this.go("send", { stamp: i }) })),
-      stamps: STAMPS.map((m, i) => ({ m, border: i === st.stamp ? "2px solid #010002" : "2px solid transparent", pick: () => this.setState({ stamp: i }) })),
-      stampMotif: STAMPS[st.stamp],
-      sendNow,
-      phFly: ph === "fly", phPin: ph === "pin",
-      globeDur: ph === "pin" ? "3.8s" : "1.4s",
-      globeDeliverySrc: "./globe.html?mode=delivery&to=" + encodeURIComponent(dest.city) + "&k=" + st.sendCount,
-      mapDone: st.mapDone, destKm: fmt(dest.km), destCity: dest.city,
-      tapDeliveryCard: () => { if (this.state.mapDone) this.go("arrived"); },
-      todayDate: "26-09-23",
-      isNewPal: reallyNew, destSlot: palSlot(st.dest || "lumi"), destImg: palImg(st.dest || "lumi"), destStamp: STAMPS[dest.stamp],
-      openDestProfile: openProfile(st.dest || "lumi"),
-      myPm: "./assets/pm/seoul.png", mPm: pmOf(mPal),
-      mSlot: palSlot(mail.pal), mImg: palImg(mail.pal), mStamp: STAMPS[mPal.stamp], mPlace: pPlace(mPal), mDist: tx("away", { d: dist(mPal) }), mNote: mail.note,
-      openMailProfile: openProfile(mail.pal),
-      reactions: ["💛", "😹", "🐾", "😴", "🎉"].map((e, i) => ({ e, bg: st.reaction === i ? "#fff" : "transparent",
-        anim: st.reaction === i && st.reactN ? "cp-rpop" + (st.reactN % 2 ? "a" : "b") + " .45s cubic-bezier(.34,1.56,.64,1)" : "none",
-        pick: () => { try { navigator.vibrate && navigator.vibrate(15); } catch (_) {} this.setState((p) => ({ reaction: i, reactN: (p.reactN || 0) + 1 })); } })),
-      // Burst of the picked emoji; centres match the 5 buttons spaced around the 265px bar at left:68px.
-      reactBurst: st.reaction != null && st.reactN ? Array.from({ length: 7 }, (_, j) => ({ e: ["💛", "😹", "🐾", "😴", "🎉"][st.reaction], left: 90 + 49 * st.reaction,
-        anim: "cp-b" + j + (st.reactN % 2 ? "a" : "b") + " 1.4s cubic-bezier(.2,.7,.3,1) " + j * 45 + "ms both" })) : [],
-      mWiggle: st.reactN ? "cp-wig" + (st.reactN % 2 ? "a" : "b") + " .7s ease .35s" : "none",
-      openMailLetters: openLetters(mail.pal),
-      lPal: { city: lp.city, flag: lp.flag, dist: dist(lp) },
-      thread: thread.map((l) => ({ text: l.text, photo: l.photo || "", hasPhoto: !!l.photo, them: l.from === "pal", you: l.from === "me", who: (l.from === "pal" ? "FROM " + lp.name : "FROM " + myName).toUpperCase(), stamp: l.from === "pal" ? STAMPS[lp.stamp] : STAMPS[l.stamp ?? 0] })),
-      draft: st.draft, setDraft: (e) => this.setState({ draft: e.target.value }),
-      inTransit: !!st.transit,
-      sendBg: (st.draft.trim() || st.draftPhoto) && !st.transit ? "#010002" : "#B9B2A4",
+
+      // letters (thread)
+      lPal: lOther ? { city: cName(lOther.country), flag: flagOf(lOther.country), dist: km(myCC, lOther.country) || "—" } : {},
+      lMoment: lMoment ? { photo: photoOf(lMoment), caption: lMoment.caption, catName: lMoment.cat_name || "", mine: !!thr && !!me && thr.owner_id === me.id } : null,
+      thread: lLetters.map((l) => {
+        const you = !!me && l.sender_id === me.id, photo = l.photo_path ? st.urls[l.photo_path] || "" : "";
+        return { key: l.id, text: l.body || "", photo, hasPhoto: !!l.photo_path, them: !you, you, who: ((you ? "FROM " + myName : "FROM " + (lOther ? lOther.nickname : "")) + " · " + ymd(l.created_at)).toUpperCase(), stamp: STAMPS[l.stamp] || STAMPS[0] };
+      }),
+      draft: st.draft, setDraft: (e) => this.setState({ draft: e.target.value.slice(0, 500), sendErr: "" }), draftCount: st.draft.length,
+      inTransit: st.sending, sendErr: st.sendErr,
+      sendBg: (st.draft.trim() || st.draftPhoto) && !st.sending ? "#010002" : "#B9B2A4",
       draftPhoto: st.draftPhoto || "", hasDraftPhoto: !!st.draftPhoto, noDraftPhoto: !st.draftPhoto,
       replyPhotoRef: this.replyPhotoRef || (this.replyPhotoRef = React.createRef()),
-      pickReplyPhoto: () => { this.replyPhotoRef.current && this.replyPhotoRef.current.click(); },
-      onReplyPhoto: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) this.setState({ draftPhoto: URL.createObjectURL(f) }); },
-      clearReplyPhoto: () => this.setState({ draftPhoto: null }),
-      sendLetter,
-      mbTabs: [tabDef("received", tx("received"), { badge: unreadOpen > 0, count: unreadOpen }), tabDef("sent", tx("sent")), tabDef("pals", tx("catpals"))],
+      pickReplyPhoto: () => { this.setState({ photoFor: "letter" }); this.replyPhotoRef.current && this.replyPhotoRef.current.click(); },
+      onReplyPhoto: (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) { this.setState({ photoFor: "letter" }); this.afterPhoto(f); } },
+      clearReplyPhoto: () => { this.draftBlob = null; this.setState({ draftPhoto: null }); },
+      sendLetter: () => this.sendLetter(),
+      draftStamp: STAMPS[st.stamp], nextStamp: () => this.setState((p) => ({ stamp: (p.stamp + 1) % STAMPS.length })),
+
+      // mailbox
+      mbTabs: [tabDef("received", tx("received"), { badge: unreadThreads > 0, count: unread.length }), tabDef("sent", tx("sent")), tabDef("pals", tx("catpals"))],
       mbShowCards: st.mbTab !== "pals", mbShowPals: st.mbTab === "pals",
-      mbCards,
-      globeMapSrc: "./globe.html?mode=map&sent=" + encodeURIComponent([...new Set(st.sent.map((s) => PALS[s.pal].city))].join(",")) + "&recv=" + encodeURIComponent(known.map((k) => PALS[k].city).join(",")),
-      ppStats: [{ n: countries, l: tx("countries") }, { n: known.length, l: tx("catsMet") }, { n: known.length + 1, l: tx("stamps") }],
-      ppTabs: [["stamps", tx("stampBook")], ["journal", tx("journal")]].map(([id, label]) => ({ label, bg: st.ppTab === id ? "#fff" : "transparent", color: st.ppTab === id ? "#010002" : "#a89f8d", shadow: st.ppTab === id ? "0 1px 3px rgba(0,0,0,.1)" : "none", tap: () => this.setState({ ppTab: id }) })),
-      ppShowStamps: st.ppTab === "stamps", ppShowJournal: st.ppTab === "journal",
+      mbCards, palRows,
+      mbEmpty: st.mailReady && (st.mbTab === "pals" ? !palRows.length : !mbCards.length),
+
+      // delivery + arrived (prototype animations)
+      globeDeliverySrc: dest && me ? "./globe.html?mode=delivery&from=" + globePoint(myCC) + "&to=" + globePoint(dest.cc) + "&k=" + st.sendCount : "",
+      mapDone: st.mapDone, destKm: destKm == null ? "" : fmt(destKm), destCity: dest ? cName(dest.cc) : "", arrFrom: cName(myCC),
+      tapDeliveryCard: () => { if (this.state.mapDone) this.go("arrived"); },
+      todayDate: ymd(new Date().toISOString()),
+      isNewPal: st.isNewPal, destSlot: dest ? "pal-" + dest.uid : "", destImg: dest ? dest.photo : "", destStamp: STAMPS[st.stamp],
+      openDestProfile: () => this.go("letters"),
+      myPm: postmarkOf(myCC), stampMotif: STAMPS[st.stamp],
+
+      // map
+      globeMapSrc: "./globe.html?mode=map&from=" + globePoint(myCC || "KR")
+        + "&sent=" + encodeURIComponent([...new Set(pals.filter((e) => e.iWrote).map((e) => globePoint(e.p.country)).filter(Boolean))].join(","))
+        + "&recv=" + encodeURIComponent([...new Set(stampPals.map((e) => globePoint(e.p.country)).filter(Boolean))].join(",")),
+
+      // passport
+      openMe: () => this.go("passport", { ppTab: "mine" }),
+      hasPhoto: !!myLatest, noPhoto: !myLatest, myPhoto: photoOf(myLatest),
+      ppStats: [{ n: palCountries, l: tx("countries") }, { n: pals.length, l: tx("cCatsMet") }, { n: stampPals.length + 1, l: tx("stamps") }],
+      ppTabs: [["stamps", tx("stampBook")], ["journal", tx("journal")], ["mine", tx("myMoments")]].map(([id, label]) => ({ label, bg: st.ppTab === id ? "#fff" : "transparent", color: st.ppTab === id ? "#010002" : "#a89f8d", shadow: st.ppTab === id ? "0 1px 3px rgba(0,0,0,.1)" : "none", tap: () => this.setState({ ppTab: id }) })),
+      ppShowStamps: st.ppTab === "stamps", ppShowJournal: st.ppTab === "journal", ppShowMine: st.ppTab === "mine",
       stampBook,
-      weekDays: [0, 1, 2, 3, 4, 5, 6].map((i) => new Intl.DateTimeFormat(LOC, { weekday: "narrow" }).format(new Date(2026, 8, 20 + i))),
+      weekDays: [0, 1, 2, 3, 4, 5, 6].map((i) => new Intl.DateTimeFormat(LOC, { weekday: "narrow" }).format(new Date(2023, 0, 1 + i))),
       calCells,
-      pf: isMe
-        ? { isMe: true, isPal: false, slot: "my-cat", img: "", name: myName, age: st.age || "4", flag: "🇰🇷", city: "Seoul", country: tx("korea"), meta: tx("pfMeMeta", { n: st.sent.length }), stamp: STAMPS[0] }
-        : { isMe: false, isPal: true, slot: palSlot(pid), img: palImg(pid), name: pp.name, age: pp.age, flag: pp.flag, city: pp.city, country: cName(pp), meta: tx("pfPalMeta", { d: dist(pp), since: sinceOf(pid) }), stamp: STAMPS[pp.stamp] },
-      pfMePhoto: isMe && !!st.myPhoto, pfSlotShow: !(isMe && st.myPhoto),
-      pfTags: isMe
-        ? Object.keys(TAGS).map((k) => { const on = st.myTags.includes(k); return { label: tagLabel(k), bg: on ? "#464646" : "#F6F6F6", color: on ? "#fff" : "#000", cursor: "pointer", tap: () => this.setState((p) => ({ myTags: on ? p.myTags.filter((x) => x !== k) : [...p.myTags, k] })) }; })
-        : pp.tags.map((k) => ({ label: tagLabel(k), bg: "#464646", color: "#fff", cursor: "default", tap: () => {} })),
-      pfSend: () => startSend(pid),
-      pfLetters: openLetters(pid),
+      mineCards: st.mine.map((m) => ({ ...card(m, 0), remove: () => this.removeMine(m), likesText: tx("likes", { n: m.like_count }) })),
+      noMine: !st.mine.length,
+
+      // language (prototype)
       langOpen: !!st.langOpen,
       toggleLang: () => this.setState((p) => ({ langOpen: !p.langOpen })),
       closeLang: () => this.setState({ langOpen: false }),

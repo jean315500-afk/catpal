@@ -9,9 +9,12 @@
 const Q = new URLSearchParams(location.search);
 const MODE = Q.get('mode') || 'map';
 const CITIES = { Seoul:[126.98,37.57], Tokyo:[139.69,35.68], Rome:[12.5,41.9], Taipei:[121.56,25.03], London:[-0.13,51.5], Bali:[115.19,-8.65], Paris:[2.35,48.86], Bangkok:[100.5,13.75], Sydney:[151.2,-33.87], 'New York':[-74,40.71], Vancouver:[-123.12,49.28], Singapore:[103.82,1.35] };
-const HOME = CITIES.Seoul;
-const DEST = CITIES[Q.get('to')] || CITIES.Rome;
-const list = (k, d) => (Q.get(k) ?? d).split(',').map(s => CITIES[s]).filter(Boolean);
+// A point is a city name above or "lon:lat" (CatPal sends country capitals); same token -> same array.
+const PTS = {};
+const pt = (s) => CITIES[s] || (/^-?\d+(\.\d+)?:-?\d+(\.\d+)?$/.test(s || '') ? (PTS[s] = PTS[s] || s.split(':').map(Number)) : null);
+const HOME = pt(Q.get('from')) || CITIES.Seoul;
+const DEST = pt(Q.get('to')) || CITIES.Rome;
+const list = (k, d) => (Q.get(k) ?? d).split(',').map(pt).filter(Boolean);
 const SENT = list('sent', 'Rome,Taipei,Tokyo,London');
 const RECV = list('recv', 'Rome,Taipei,Tokyo,London');
 const OCEAN = '#E2ECFB', LAND = '#6E9BE0', LAND_CORE = '#3F6FB5', INK = '63,111,181';
@@ -126,7 +129,7 @@ if (MODE === 'delivery') {
     .on('drag', (ev) => { const k = 75 / proj.scale(); rot = [rot[0] + ev.dx * k, Math.max(-60, Math.min(60, rot[1] - ev.dy * k))]; })
     .on('end', () => dragging = false));
   const NAMES = Object.keys(CITIES);
-  const hitList = () => [['Seoul', HOME], ...NAMES.filter(n => n !== 'Seoul' && (SENT.includes(CITIES[n]) || RECV.includes(CITIES[n]))).map(n => [n, CITIES[n]])];
+  const hitList = () => [...(HOME === CITIES.Seoul ? [['Seoul', HOME]] : []), ...NAMES.filter(n => n !== 'Seoul' && (SENT.includes(CITIES[n]) || RECV.includes(CITIES[n]))).map(n => [n, CITIES[n]])];
   const hit = (ev) => {
     const r = cv.getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top;
     let best = null, bd = 22;

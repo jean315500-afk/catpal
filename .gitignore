@@ -3,3 +3,7 @@ dist
 video/frames
 video/frames.txt
 .DS_Store
+
+# local env (Supabase URL + publishable key)
+.env.local
+.env.*.local
