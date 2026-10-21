@@ -10,7 +10,7 @@ export default function TopBar({ v }: { v: Vals }) {
         <div onClick={v.closeLang} style={{ position: "absolute", inset: "0", zIndex: "59" }} />
       </>
     ) : null}
-    <div style={{ position: "absolute", right: "16px", top: "12px", zIndex: "60", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
+    <div className="cp-arr-top" style={{ position: "absolute", right: "16px", top: "12px", zIndex: "60", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
       {/* the language: the same button on every tab */}
       <div className="dc-hover-12" onClick={v.toggleLang} style={{ display: "flex", height: "30px", padding: "0 10px 0 9px", borderRadius: "15px", background: "#fff", boxShadow: "0 1px 4px rgba(0,0,0,.14)", alignItems: "center", gap: "6px", cursor: "pointer", transition: "background .15s ease" }}>
         <span style={{ fontSize: "var(--fs-caption-sm)", lineHeight: "1" }}>

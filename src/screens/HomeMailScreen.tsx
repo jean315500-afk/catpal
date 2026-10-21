@@ -30,6 +30,9 @@ export default function HomeMailScreen({ v }: { v: Vals }) {
   const [opening, setOpening] = useState(false);
   const timers = useRef<number[]>([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  // arriving from the onboarding (App's EnterFromOnboarding): its build-up is over once you leave Home (cleared then,
+  // while none of it is on screen, so nothing plays twice)
+  useEffect(() => { if (!v.sFeed) document.documentElement.classList.remove('cp-arrive'); }, [v.sFeed]);
   if (!v.sFeed) return null;
   const send = () => {
     if (opening) return;
@@ -48,7 +51,7 @@ export default function HomeMailScreen({ v }: { v: Vals }) {
         <div aria-hidden="true" style={{ height: "42px" }} />
 
         {/* the red mailbox, small: new letters → Mailbox */}
-        <div className="dc-hover-8" onClick={v.goLetters} role="button" aria-label={v.mbTitle} style={{ alignSelf: "center", marginTop: "14px", maxWidth: "100%", boxSizing: "border-box", borderRadius: "40px", background: "rgba(251,245,234,.92)", padding: "8px 16px 8px 10px", display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", transition: "transform .15s ease", boxShadow: "0 4px 14px rgba(80,60,30,.08)", animation: "cp-rise2 .45s cubic-bezier(.2,.8,.2,1) both" }}>
+        <div className="dc-hover-8 cp-arr-pill" onClick={v.goLetters} role="button" aria-label={v.mbTitle} style={{ alignSelf: "center", marginTop: "14px", maxWidth: "100%", boxSizing: "border-box", borderRadius: "40px", background: "rgba(251,245,234,.92)", padding: "8px 16px 8px 10px", display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", transition: "transform .15s ease", boxShadow: "0 4px 14px rgba(80,60,30,.08)", animation: "cp-rise2 .45s cubic-bezier(.2,.8,.2,1) both" }}>
           <div style={{ position: "relative", flex: "none", width: "50px", height: "60px", marginTop: "-18px", marginLeft: "2px" }}>
             {/* the red country mailbox on its wooden post (three frames side by side: shut → its door swinging down →
                 open on the letters inside, one over the other). Letters have come: it rattles, then the door swings
@@ -86,9 +89,9 @@ export default function HomeMailScreen({ v }: { v: Vals }) {
             </div>
           </div>
 
-          <h1 className="cp-h1" style={{ margin: "26px 0 0", color: INK, textAlign: "center", textWrap: "balance", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) .12s both" } as any}>{I(v.hmHead)}</h1>
-          <p style={{ margin: "8px 0 0", fontWeight: 400, fontSize: "var(--fs-body)", lineHeight: "var(--lh-body)", color: "#5E6A80", textAlign: "center", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) .16s both" }}>{I(v.hmSub)}</p>
-          <div className="dc-hover-8" onClick={send} role="button" style={{ ...ctaBtn, alignSelf: "stretch", maxWidth: "340px", width: "100%", margin: "22px auto 0", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) .2s both" }}>
+          <h1 className="cp-h1 cp-arr-head" style={{ margin: "26px 0 0", color: INK, textAlign: "center", textWrap: "balance", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) .12s both" } as any}>{I(v.hmHead)}</h1>
+          <p className="cp-arr-sub" style={{ margin: "8px 0 0", fontWeight: 400, fontSize: "var(--fs-body)", lineHeight: "var(--lh-body)", color: "#5E6A80", textAlign: "center", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) .16s both" }}>{I(v.hmSub)}</p>
+          <div className="dc-hover-8 cp-arr-cta" onClick={send} role="button" style={{ ...ctaBtn, alignSelf: "stretch", maxWidth: "340px", width: "100%", margin: "22px auto 0", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) .2s both" }}>
             <span style={btnText}>{I(v.hmCta)}</span>
           </div>
         </div>

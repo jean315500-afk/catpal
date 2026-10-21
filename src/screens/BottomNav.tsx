@@ -38,7 +38,7 @@ const TILT: Record<string, number> = { home: -2, world: 1.5, mailbox: -1.5, myca
 export default function BottomNav({ v }: { v: Vals }) {
   if (!v.showNav) return null;
   return (
-    <nav aria-label="CatPal" style={{ position: "absolute", left: "50%", bottom: "18px", transform: "translateX(-50%)", zIndex: 40, display: "flex", alignItems: "center", gap: "4px", padding: "6px", borderRadius: "32px", background: "rgba(255,255,255,.97)", boxShadow: "0 10px 30px rgba(30,25,20,.14), 0 1px 3px rgba(30,25,20,.08)" }}>
+    <nav aria-label="CatPal" className="cp-arr-nav" style={{ position: "absolute", left: "50%", bottom: "18px", transform: "translateX(-50%)", zIndex: 40, display: "flex", alignItems: "center", gap: "4px", padding: "6px", borderRadius: "32px", background: "rgba(255,255,255,.97)", boxShadow: "0 10px 30px rgba(30,25,20,.14), 0 1px 3px rgba(30,25,20,.08)" }}>
       {each(v.tabs, (n: any) => (
         <div className="dc-hover-4" onClick={n.tap} role="button" aria-label={n.label} aria-current={n.on ? "page" : undefined}
           style={{ position: "relative", height: "52px", minWidth: "54px", padding: n.on ? "0 18px 0 14px" : "0 12px", borderRadius: "26px", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", cursor: "pointer", background: n.on ? "#22304A" : "transparent", transition: "background .2s ease, padding .2s ease, transform .15s ease" }}>

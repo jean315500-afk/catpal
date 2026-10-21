@@ -57,12 +57,17 @@ function PhoneFrame({ children }: { children: ReactNode }) {
   );
 }
 
-/** Coming from the onboarding's end (its globe has zoomed out and gone): the home fades in on the same sky. */
+/** Coming from the onboarding's end (its globe has sunk away below the screen): on the same sky, Home builds itself
+ *  up — the red envelope rising from where the globe went, the mailbox dropping in, the words and the button, the
+ *  nav sliding up (`cp-arrive` on the page, see styles.css) — and the address loses its "?start=home". */
 function EnterFromOnboarding() {
   const [on, setOn] = useState(() => { try { return !!sessionStorage.getItem('cp-enter'); } catch { return false; } });
   useEffect(() => {
     if (!on) return;
     try { sessionStorage.removeItem('cp-enter'); } catch { /* private mode */ }
+    const root = document.documentElement; root.classList.add('cp-arrive');
+    try { const u = new URL(location.href); if (u.searchParams.get('start') === 'home') { u.searchParams.delete('start'); history.replaceState(history.state, '', u.pathname + u.search + u.hash); } } catch { /* leave the address */ }
+    // (`cp-arrive` stays until you leave Home — see HomeMailScreen — so the build-up never replays as it's taken off)
     const t = setTimeout(() => setOn(false), 900);
     return () => clearTimeout(t);
   }, [on]);
