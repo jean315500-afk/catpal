@@ -1,161 +1,132 @@
-// PASSPORT — converted from the Claude Design prototype (Cat Pal v6.dc.html).
-import { css, each, I, R } from '../dc/runtime';
+// PASSPORT — your cat's papers: a file folder on top, its passport's stamp page below.
+//   the folder:   an index divider of oat card stock (its tab in brick-red ink, a blue sheet tucked behind), holding your
+//                 cat's photo (clipped on), its name and country, and three numbers — countries, CatPals, stamps
+//   the passport: its visa page (an image) — under ENTRIES / DEPARTURES, that country's postmark (the app's own
+//                 stamp images) stamped on for each country a CatPal has written to you from, with the date and their
+//                 name; under OFFICIAL VISAS, the countries still to come, faint in dashed rings
+// "?ppSample=1" (or the Map's / Mailbox's sample) shows sample stamps, labelled as such.
+import { each, I } from '../dc/runtime';
 import type { Vals } from '../dc/runtime';
-import WalletSection from '../solana/WalletSection';
-import CatStampSave from '../solana/CatStampSave';
 
-export default function PassportScreen({ v }: { v: Vals }) {
+const INK = "#22304A";
+/** the folder's card stock (the Mailbox's oat) and the sheet behind it (its blue) */
+const FOLDER = "#E4D8BF", BACK = "#B9C5CB";
+
+const pad = (n: number) => String(n).padStart(2, "0");
+/** a little scatter, the same every time: [dx, dy] */
+const jitter = (cc: string, i: number) => [((cc.charCodeAt(0) * 13 + i * 7) % 15) - 7, ((cc.charCodeAt(1) * 11 + i * 5) % 13) - 6];
+/** "20.10.26 · LÉA": under a stamp, when and from whom */
+const note = (s: any) => { const d = new Date(s.iso); return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)}` + (s.from ? " · " + s.from.toUpperCase() : ""); };
+
+function Folder({ v }: { v: Vals }) {
+  const c = v.ppCat || {}, T = v.ppT || {};
   return (
-    <>
-    {v.sPassport ? (
-      <>
-        <div data-screen-label="Passport" style={{ position: "absolute", inset: "0", background: "#fff", animation: "cp-fade .25s ease", overflowY: "auto", scrollbarWidth: "none" }}>
-          <div style={{ padding: "58px 25px 120px", display: "flex", flexDirection: "column" }}>
-            <span style={{ fontWeight: "700", fontSize: "21px", lineHeight: "30px" }}>
-              {I(v.t?.passportTitle)}
-            </span>
-            <span style={{ fontWeight: "500", fontSize: "12px", lineHeight: "18px", color: "#a89f8d" }}>
-              {I(v.t?.passportSub)}
-            </span>
-            <div style={{ marginTop: "16px", background: "#F9F4EB", padding: "18px", display: "flex", gap: "16px", alignItems: "center" }}>
-              <div onClick={v.openMe} style={{ flex: "none", width: "64px", height: "76px", boxShadow: "0 0 0 4px #FEFEFE,0 2px 4px #cecece", overflow: "hidden", transform: "rotate(-3deg)", cursor: "pointer" }}>
-                {v.hasPhoto ? (
-                  <>
-                    <div style={css(`width:100%;height:100%;background:url(${R(v.myPhoto)}) center / cover no-repeat`)} />
-                  </>
-                ) : null}
-                {v.noPhoto ? (
-                  <>
-                    <image-slot id="my-cat" shape="rect" placeholder="🐈" />
-                  </>
-                ) : null}
-              </div>
-              <div style={{ flex: "1", display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: "6px" }}>
-                {each(v.ppStats, (s) => (
-                  <>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
-                      <span style={{ fontWeight: "700", fontSize: "22px", lineHeight: "28px" }}>
-                        {I(s?.n)}
-                      </span>
-                      <span style={{ fontWeight: "500", fontSize: "11px", lineHeight: "15px", color: "#746e63", textAlign: "center" }}>
-                        {I(s?.l)}
-                      </span>
-                    </div>
-                  </>
-                ))}
-              </div>
+    <div style={{ position: "relative", marginTop: "18px" }}>
+      {/* a sheet tucked in behind, its own tab peeking out */}
+      <div aria-hidden="true" className="cp-pp-back" style={{ ["--paper" as string]: BACK }}><i /></div>
+      <div className="cp-mb-tabs">
+        <div className="cp-mb-tab on" style={{ ["--paper" as string]: FOLDER, flex: "none", padding: "0 26px", cursor: "default" }}>{I(T.ppFile)}</div>
+      </div>
+      <div className="cp-mb-panel" style={{ ["--paper" as string]: FOLDER, minHeight: "0", padding: "18px 16px 16px" }}>
+        <div style={{ display: "flex", gap: "16px", alignItems: "flex-start" }}>
+          {/* the photo, clipped on */}
+          <div className="cp-pp-photo">
+            <svg className="cp-pp-clip" viewBox="0 0 20 48" width="16" height="40" aria-hidden="true"><path d="M7 32 V9 a4.5 4.5 0 0 1 9 0 V35 a7 7 0 0 1 -14 0 V13" fill="none" stroke="#8D96A1" strokeWidth="2.2" strokeLinecap="round" /></svg>
+            {c.photo ? <img src={c.photo} alt="" draggable={false} /> : <span style={{ fontSize: "34px" }}>🐈</span>}
+          </div>
+          <div style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "10px", paddingTop: "2px" }}>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span className="cp-pp-label">{I(T.ppName)}</span>
+              <span className="cp-pp-value" style={{ fontSize: "20px", lineHeight: "24px" }}>{I(c.name)}</span>
             </div>
-            <WalletSection />
-            <div style={{ marginTop: "18px", display: "flex", gap: "6px", padding: "4px", borderRadius: "22px", background: "#F6F6F6" }}>
-              {each(v.ppTabs, (b) => (
-                <>
-                  <div onClick={b?.tap} style={css(`flex:1;height:36px;border-radius:18px;background:${R(b?.bg)};display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s ease;box-shadow:${R(b?.shadow)}`)}>
-                    <span style={css(`font-weight:700;font-size:13px;color:${R(b?.color)}`)}>
-                      {I(b?.label)}
-                    </span>
-                  </div>
-                </>
-              ))}
-            </div>
-            {v.ppShowStamps ? (
-              <>
-                <div style={{ marginTop: "20px", padding: "22px 16px 26px", background: "#F9F4EB", boxShadow: "inset 0 0 0 1px #EFE7D6", display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", columnGap: "6px", rowGap: "18px" }}>
-                  {each(v.stampBook, (s) => (
-                    <>
-                      <div className="dc-hover-11" onClick={s?.open} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", cursor: "pointer", transition: "transform .15s ease" }}>
-                        <div style={css(`position:relative;width:100%;height:76px;transform:translateY(${R(s?.dy)}px)`)}>
-                          <div style={css(`position:absolute;inset:0;background:url(${R(s?.img)}) center / contain no-repeat;mix-blend-mode:multiply;opacity:${R(s?.opacity)};filter:${R(s?.filter)};transform:rotate(${R(s?.rot)}deg)`)} />
-                          {s?.locked ? (
-                            <>
-                              <div style={{ position: "absolute", inset: "0", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                <span style={{ fontWeight: "700", fontSize: "22px", color: "#a89f8d" }}>
-                                  ?
-                                </span>
-                              </div>
-                            </>
-                          ) : null}
-                        </div>
-                        <span style={{ fontWeight: "700", fontSize: "11px", lineHeight: "15px", textAlign: "center" }}>
-                          {I(s?.label)}
-                        </span>
-                        <span style={{ marginTop: "-6px", fontWeight: "500", fontSize: "10px", lineHeight: "14px", color: "#a89f8d", textAlign: "center" }}>
-                          {I(s?.sub)}
-                        </span>
-                        {/* Cat Stamp from the first opened letter of this pal: "Save on Solana" (Devnet) */}
-                        {s?.catStamp ? <CatStampSave stamp={s.catStamp} /> : null}
-                      </div>
-                    </>
-                  ))}
-                </div>
-              </>
-            ) : null}
-            {v.ppShowMine ? (
-              <>
-                {v.noMine ? (
-                  <div style={{ marginTop: "20px", height: "124px", border: "2px dashed #E7E2D8", borderRadius: "14px", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: "10px", alignItems: "center", justifyContent: "center", padding: "0 20px" }}>
-                    <span style={{ fontWeight: "500", fontSize: "12px", lineHeight: "17px", color: "#a89f8d", textAlign: "center" }}>{I(v.t?.noMyMoments)}</span>
-                    <span onClick={v.openShare} role="button" style={{ fontWeight: "700", fontSize: "13px", textDecoration: "underline", textUnderlineOffset: "3px", cursor: "pointer" }}>{I(v.t?.shareMoment)}</span>
-                  </div>
-                ) : null}
-                <div style={{ marginTop: "20px", display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", columnGap: "16px", rowGap: "20px" }}>
-                  {each(v.mineCards, (c) => (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <div style={{ background: "#fff", padding: "5px", boxShadow: "0 2px 4px #cecece" }}>
-                        <img src={c?.photo} alt={c?.caption} loading="lazy" style={{ display: "block", width: "100%", aspectRatio: "4 / 5", objectFit: "cover" }} />
-                      </div>
-                      <span style={{ fontWeight: "500", fontSize: "12px", lineHeight: "17px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{I(c?.caption)}</span>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontWeight: "700", fontSize: "12px", color: "#010002" }}>{"♥ "}{I(c?.likes)}<span style={{ fontWeight: "500", color: "#a89f8d" }}>{" · "}{I(c?.date)}</span></span>
-                        <span onClick={c?.remove} role="button" style={{ fontWeight: "500", fontSize: "11px", color: "#a89f8d", textDecoration: "underline", textUnderlineOffset: "2px", cursor: "pointer" }}>{I(v.t?.deleteMoment)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : null}
-            {v.ppShowJournal ? (
-              <>
-                <span style={{ marginTop: "20px", fontFamily: "ui-monospace,Menlo,monospace", fontSize: "11px", color: "#a89f8d", letterSpacing: ".12em" }}>
-                  {I(v.t?.month)}
-                </span>
-                <div style={{ marginTop: "10px", display: "grid", gridTemplateColumns: "repeat(7,minmax(0,1fr))" }}>
-                  {each(v.weekDays, (w) => (
-                    <>
-                      <span style={{ textAlign: "center", fontWeight: "500", fontSize: "10px", color: "#a89f8d", lineHeight: "20px" }}>
-                        {I(w)}
-                      </span>
-                    </>
-                  ))}
-                  {each(v.calCells, (d) => (
-                    <>
-                      <div style={{ position: "relative", height: "74px", borderTop: "1px solid #E7E2D8", boxSizing: "border-box" }}>
-                        <span style={css(`position:absolute;left:4px;top:2px;font-weight:${R(d?.weight)};font-size:11px;color:${R(d?.color)}`)}>
-                          {I(d?.n)}
-                        </span>
-                        {d?.sent ? (
-                          <>
-                            <div style={{ position: "absolute", left: "5px", top: "20px", width: "28px", height: "36px", boxShadow: "0 0 0 2.5px #FEFEFE,0 1px 2.3px #cecece", background: "repeating-linear-gradient(45deg,#efe9dd 0 4px,#e3dccb 4px 8px)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", transform: "rotate(-3deg)" }}>
-                              🐈
-                            </div>
-                          </>
-                        ) : null}
-                        {d?.recv ? (
-                          <>
-                            <div style={{ position: "absolute", left: "12px", top: "26px", width: "28px", height: "36px", border: "2.5px solid #fff", boxSizing: "border-box", boxShadow: "0 2px 3.6px #cecece", background: "repeating-linear-gradient(45deg,#e9e0cd 0 4px,#dbd0b6 4px 8px)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", transform: "rotate(3deg)" }}>
-                              🐱
-                            </div>
-                          </>
-                        ) : null}
-                      </div>
-                    </>
-                  ))}
-                </div>
-              </>
+            {c.country ? (
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                <span className="cp-pp-label">{I(T.ppIssued)}</span>
+                <span className="cp-pp-value">{I(c.flag)}{" "}{I(c.country)}</span>
+              </div>
             ) : null}
           </div>
         </div>
-      </>
-    ) : null}
-    </>
+        <div className="cp-pp-stats">
+          {each(v.ppCounts, (s: any) => (
+            <div>
+              <b className="cp-pp-num">{I(s?.n)}</b>
+              <span className="cp-pp-lab">{I(s?.l)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** the header's emblem: a paw in a fine double ring, like the little mark printed on a passport */
+const EMBLEM = (
+  <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true" style={{ flex: "none" }}>
+    <circle cx="10" cy="10" r="9" fill="none" stroke="currentColor" strokeWidth="1" />
+    <circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" strokeWidth=".6" strokeDasharray="1 1.2" />
+    <g fill="currentColor"><ellipse cx="10" cy="11.9" rx="2.3" ry="1.9" /><circle cx="7.3" cy="9" r=".95" /><circle cx="9" cy="7.6" r=".95" /><circle cx="11" cy="7.6" r=".95" /><circle cx="12.7" cy="9" r=".95" /></g>
+  </svg>
+);
+
+/** the passport's visa page (an image: the binding, the iridescent security print, "VISAS", the two sections
+ *  "ENTRIES / DEPARTURES" and "OFFICIAL VISAS" up the side); where things go on it, as fractions of it */
+const VISA = { src: "./assets/passport-visa.webp", ratio: "900 / 1060", x0: 0.2, x1: 0.93, entries: [0.13, 0.5], visas: [0.555, 0.8] };
+
+function PassportPage({ v }: { v: Vals }) {
+  const T = v.ppT || {}, stamps: any[] = v.ppStamps || [];
+  const got = stamps.filter((s) => s.got), rest = stamps.filter((s) => !s.got);
+  // the more there are, the smaller each goes, so they all fit their section
+  const sw = got.length <= 2 ? 38 : got.length <= 4 ? 31 : got.length <= 6 ? 27 : got.length <= 9 ? 23 : 20;
+  const cols = rest.length <= 4 ? rest.length : rest.length <= 8 ? Math.ceil(rest.length / 2) : Math.ceil(rest.length / 3);
+  const gw = Math.min(19, 86 / Math.max(1, cols));
+  const area = (y: number[]) => ({ position: "absolute", left: VISA.x0 * 100 + "%", right: (1 - VISA.x1) * 100 + "%", top: y[0] * 100 + "%", bottom: (1 - y[1]) * 100 + "%",
+    display: "flex", flexWrap: "wrap", alignItems: "center", alignContent: "center", justifyContent: "center" } as const);
+  return (
+    <div className="cp-visa" style={{ aspectRatio: VISA.ratio, backgroundImage: `url(${VISA.src})` }}>
+      <span className="cp-visa-count" style={{ left: VISA.x0 * 100 + "%", right: (1 - VISA.x1) * 100 + "%" }}>{I(v.ppCollected)}</span>
+      {/* entries: the stamps collected, stamped on a little askew */}
+      <div style={{ ...area(VISA.entries), gap: "4px 12px" }}>
+        {got.length ? got.map((s, i) => {
+          const [dx, dy] = jitter(s.cc, i);
+          return (
+            <div key={s.cc} className={"cp-ppb-stamp" + (s.open ? " dc-hover-2" : "")} onClick={s.open || undefined} role={s.open ? "button" : undefined}
+              aria-label={s.name + " · " + s.from} style={{ width: sw + "%", ["--r" as string]: s.rot + "deg", ["--d" as string]: i * 90 + "ms", margin: `${dy / 2}px ${dx / 2}px` }}>
+              <img src={s.img} alt="" draggable={false} className="cp-ppb-ink" />
+              <span className="cp-ppb-note">{note(s)}</span>
+            </div>
+          );
+        }) : <span className="cp-visa-empty">{I(T.ppEmptyPage)}</span>}
+      </div>
+      {/* official visas: the countries still to come, faint */}
+      <div style={{ ...area(VISA.visas), gap: "6px" }}>
+        {rest.map((s) => (
+          <div key={s.cc} className="cp-ppb-ghost" aria-label={s.name + ", " + T.ppNotYet} style={{ width: gw + "%" }}>
+            <img src={s.img} alt="" draggable={false} />
+            <span>{s.en}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function PassportScreen({ v }: { v: Vals }) {
+  if (!v.sPassport) return null;
+  const T = v.ppT || {};
+  return (
+    <div data-screen-label="Passport" style={{ position: "absolute", inset: "0", background: "transparent", animation: "cp-fade .25s ease", overflowY: "auto", scrollbarWidth: "none" }}>
+      <div style={{ maxWidth: "460px", margin: "0 auto", padding: "52px 18px 120px", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
+        {/* the header, as printed in a passport: a small emblem, the title, the passport number */}
+        <div style={{ paddingLeft: "4px", display: "flex", flexDirection: "column" }}>
+          <span className="cp-pph-emblem">{EMBLEM}{I(T.ppEmblem)}</span>
+          <span style={{ marginTop: "10px", fontWeight: 700, fontSize: "var(--fs-h2)", lineHeight: "30px", fontFamily: "var(--font-heading)", letterSpacing: "var(--ls-heading)", color: INK }}>{I(T.ppTitle)}</span>
+          {/* the number: the profile's own, once it has one; until then not issued (dots); the sample's is marked */}
+          <span className="cp-pph-no">{I(T.ppNoLabel)}{" "}<b>{v.ppNo ? I(v.ppNo) : "CP—····"}</b>{v.ppSample ? " · SAMPLE" : ""}</span>
+        </div>
+        <Folder v={v} />
+        <div style={{ marginTop: "26px" }}><PassportPage v={v} /></div>
+      </div>
+    </div>
   );
 }

@@ -9,7 +9,7 @@ export default function DeliveryScreen({ v }: { v: Vals }) {
       <>
         <div data-screen-label="07 Delivery" style={{ position: "absolute", inset: "0", background: "#F9F4EB", animation: "cp-fade .35s ease", overflow: "hidden" }}>
           <div style={{ position: "absolute", left: "0", right: "0", top: "172px", display: "flex", justifyContent: "center", alignItems: "baseline", gap: "2px" }}>
-            <span style={{ fontWeight: "700", fontSize: "20px", lineHeight: "30px" }}>
+            <span style={{ fontWeight: 700, fontSize: "var(--fs-h2)", lineHeight: "30px", fontFamily: "var(--font-heading)", letterSpacing: "var(--ls-heading)" }}>
               {I(v.t?.finding)}
             </span>
             <span style={{ fontWeight: "700", fontSize: "20px", animation: "cp-pulse 1s ease infinite" }}>
@@ -23,7 +23,7 @@ export default function DeliveryScreen({ v }: { v: Vals }) {
             </span>
           </div>
           <div style={{ position: "absolute", left: "71px", top: "280px", width: "260px", height: "260px" }}>
-            <div style={{ position: "absolute", inset: "0", borderRadius: "50%", background: "#fff", border: "2px solid #010002", overflow: "hidden" }}>
+            <div style={{ position: "absolute", inset: "0", borderRadius: "50%", background: "#fff", border: "2px solid #22304A", overflow: "hidden" }}>
               <div style={css(`position:absolute;left:0;top:0;width:1040px;height:260px;animation:cp-drift ${R(v.globeDur)} linear infinite`)}>
                 <div style={{ position: "absolute", left: "30px", top: "52px", width: "96px", height: "64px", background: "#E7E2D8", borderRadius: "58% 42% 55% 45% / 55% 60% 40% 45%" }} />
                 <div style={{ position: "absolute", left: "150px", top: "140px", width: "70px", height: "88px", background: "#E7E2D8", borderRadius: "45% 55% 48% 52% / 60% 40% 58% 42%" }} />
@@ -44,7 +44,7 @@ export default function DeliveryScreen({ v }: { v: Vals }) {
             </div>
             {v.phFly ? (
               <>
-                <div style={{ position: "absolute", left: "98px", top: "112px", width: "64px", height: "44px", background: "#F9F4EB", border: "1.5px solid #010002", borderRadius: "4px", animation: "cp-fly 1.4s ease-in-out forwards", boxShadow: "0 3px 8px rgba(0,0,0,.15)" }}>
+                <div style={{ position: "absolute", left: "98px", top: "112px", width: "64px", height: "44px", background: "#F9F4EB", border: "1.5px solid #22304A", borderRadius: "4px", animation: "cp-fly 1.4s ease-in-out forwards", boxShadow: "0 3px 8px rgba(0,0,0,.15)" }}>
                   <div style={{ position: "absolute", right: "5px", top: "5px", width: "11px", height: "12px", background: "repeating-linear-gradient(45deg,#efe9dd 0 3px,#dcd2ba 3px 6px)" }} />
                   <div style={{ position: "absolute", left: "6px", top: "18px", width: "26px", height: "2px", background: "#D9D9D9" }} />
                   <div style={{ position: "absolute", left: "6px", top: "25px", width: "34px", height: "2px", background: "#D9D9D9" }} />

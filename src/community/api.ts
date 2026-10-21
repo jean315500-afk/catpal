@@ -2,7 +2,7 @@
 // Row Level Security does the access control; these helpers just shape the data.
 import { supabase } from './supabase';
 
-export type Profile = { id: string; nickname: string; country: string };
+export type Profile = { id: string; nickname: string; country: string; show_as_recipient?: boolean; /** not in the database yet: the passport number, once issued */ passport_no?: string | null };
 export type Category = 'my_cat' | 'met_cat';
 export type MomentCard = {
   id: string; user_id: string; category: Category; photo_path: string; caption: string;
@@ -23,7 +23,7 @@ export type Letter = {
 export function errorText(e: any): string {
   const m = String(e?.message || e || '');
   if (/anonymous sign-ins are disabled/i.test(m)) return 'Sign-in is not enabled for CatPal yet (anonymous sign-ins are off).';
-  if (/schema cache|PGRST20/i.test(m)) return 'CatPal’s database is not set up yet.';
+  if (/schema cache|PGRST20/i.test(m) || e?.code === 'PGRST202') return 'CatPal’s database is not set up yet.';
   if (/Failed to fetch|NetworkError|network/i.test(m)) return 'No connection. Check your internet and try again.';
   if (/rate limit|too many/i.test(m)) return 'Too many tries. Please wait a moment and try again.';
   if (/payload too large|exceeded the maximum/i.test(m)) return 'That photo is too large.';
@@ -74,6 +74,11 @@ export async function topThisWeek(n = 6): Promise<MomentCard[]> {
   if (!ids.length) return [];
   const rows: MomentCard[] = must(await supabase.from('moment_cards').select('*').in('id', ids)) || [];
   return rows.map((r) => ({ ...r, week_likes: count[r.id] })).sort((a: any, b: any) => b.week_likes - a.week_likes);
+}
+
+/** Recent moments from everyone (incl. you) for the Cat Map, newest first. Country level only. */
+export async function mapMoments(limit = 300): Promise<MomentCard[]> {
+  return must(await supabase.from('moment_cards').select('*').order('created_at', { ascending: false }).limit(limit)) || [];
 }
 
 export async function myMoments(uid: string): Promise<MomentCard[]> {
@@ -152,4 +157,57 @@ export async function letterPhotoUrls(paths: string[]): Promise<Record<string, s
   const out: Record<string, string> = {};
   for (const r of rows as any[]) if (r.signedUrl && r.path) out[r.path] = r.signedUrl;
   return out;
+}
+
+// ---------------------------------------------------------------- explore (public feed)
+// Served only by the explore_feed() function: no letter/thread/recipient ids ever reach the client,
+// and the recipient is named only if they opted in (profiles.show_as_recipient).
+
+export type FeedItem = {
+  kind: 'moment' | 'letter'; id: string; bucket: 'moments' | 'posts'; photo_path: string; message: string | null; cat_name: string | null; created_at: string;
+  author_id: string; author_nickname: string; author_country: string; recipient_nickname: string | null; recipient_country: string | null;
+  like_count: number; week_likes: number; liked_by_me: boolean;
+};
+export type FeedSort = 'recent' | 'popular' | 'ranking';
+
+/** true when the Explore migration hasn't been applied yet (function missing). */
+export const isMissingFeature = (e: any) => e?.code === 'PGRST202' || /Could not find the function/i.test(String(e?.message || ''));
+
+export async function exploreFeed(sort: FeedSort, limit = 50, mine = false): Promise<FeedItem[]> {
+  return must(await supabase.rpc('explore_feed', { p_sort: sort, p_limit: limit, p_mine: mine })) || [];
+}
+
+export const feedPhotoUrl = (it: { bucket: string; photo_path: string }) => supabase.storage.from(it.bucket).getPublicUrl(it.photo_path).data.publicUrl;
+
+/** Share one of my letters to Explore: a public photo COPY + the letter text (copied server-side). */
+export async function publishLetter(uid: string, letterId: string, photo: Blob) {
+  const path = `${uid}/${crypto.randomUUID()}.jpg`;
+  must(await supabase.storage.from('posts').upload(path, photo, { contentType: 'image/jpeg', upsert: false }));
+  const { data, error } = await supabase.rpc('publish_letter', { p_letter: letterId, p_photo_path: path });
+  if (error) { await supabase.storage.from('posts').remove([path]); throw error; }
+  return data as string;
+}
+
+export async function unpublishPost(post: { id: string; photo_path: string }) {
+  must(await supabase.from('letter_posts').delete().eq('id', post.id));
+  await supabase.storage.from('posts').remove([post.photo_path]);
+}
+
+export async function setPostLike(postId: string, uid: string, on: boolean) {
+  if (on) {
+    const { error } = await supabase.from('post_likes').insert({ post_id: postId, user_id: uid });
+    if (error && error.code !== '23505') throw error;
+  } else {
+    must(await supabase.from('post_likes').delete().eq('post_id', postId).eq('user_id', uid));
+  }
+}
+
+/** Recipient-name consent (Explore migration). null when the column doesn't exist yet — never blocks sign-up. */
+export async function getShowAsRecipient(uid: string): Promise<boolean | null> {
+  const { data, error } = await supabase.from('profiles').select('show_as_recipient').eq('id', uid).maybeSingle();
+  return error || !data ? null : !!(data as any).show_as_recipient;
+}
+
+export async function setShowAsRecipient(uid: string, on: boolean) {
+  must(await supabase.from('profiles').update({ show_as_recipient: on }).eq('id', uid));
 }

@@ -7,12 +7,12 @@ export default function UploadScreen({ v }: { v: Vals }) {
     <>
     {v.sUpload ? (
       <>
-        <div data-screen-label="02 Upload" style={{ position: "absolute", inset: "0", background: "#fff", animation: "cp-fadeup .3s ease" }}>
+        <div data-screen-label="02 Upload" style={{ position: "absolute", inset: "0", background: "transparent", animation: "cp-fadeup .3s ease" }}>
           <div style={{ position: "absolute", left: "0", right: "0", top: "150px", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
-            <span style={{ fontFamily: "Inter,sans-serif", fontSize: "12px", color: "#746e63" }}>
+            <span style={{ fontFamily: "var(--font-body)", fontSize: "12px", color: "#746e63" }}>
               To.
             </span>
-            <span style={{ fontWeight: "700", fontSize: "18px", lineHeight: "27px" }}>
+            <span style={{ fontWeight: 700, fontSize: "var(--fs-title)", lineHeight: "27px", fontFamily: "var(--font-heading)", letterSpacing: "var(--ls-heading)" }}>
               {I(v.t?.toName)}
             </span>
           </div>
@@ -21,7 +21,7 @@ export default function UploadScreen({ v }: { v: Vals }) {
             <span style={{ fontWeight: "500", fontSize: "36px", lineHeight: "1" }}>
               +
             </span>
-            <span style={{ fontWeight: "500", fontSize: "13px", lineHeight: "22px", textAlign: "center", whiteSpace: "pre-line" }}>
+            <span style={{ fontWeight: "500", fontSize: "var(--fs-caption-sm)", lineHeight: "22px", textAlign: "center", whiteSpace: "pre-line" }}>
               {I(v.t?.upload)}
             </span>
           </div>

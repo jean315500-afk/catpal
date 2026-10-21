@@ -7,10 +7,10 @@ export default function WorldMapScreen({ v }: { v: Vals }) {
     <>
     {v.sMap ? (
       <>
-        <div data-screen-label="World Map" style={{ position: "absolute", inset: "0", background: "#fff", animation: "cp-fade .3s ease", overflow: "hidden" }}>
+        <div data-screen-label="World Map" style={{ position: "absolute", inset: "0", background: "transparent", animation: "cp-fade .3s ease", overflow: "hidden" }}>
           <iframe src={v.globeMapSrc} title="globe" style={{ position: "absolute", inset: "0", width: "100%", height: "100%", border: "0" }} />
           <div style={{ position: "absolute", left: "0", right: "0", top: "54px", display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", pointerEvents: "none" }}>
-            <span style={{ fontWeight: "700", fontSize: "16px", color: "#010002" }}>
+            <span style={{ fontWeight: 700, fontSize: "16px", color: "#22304A", fontFamily: "var(--font-heading)", letterSpacing: "var(--ls-heading)", lineHeight: "var(--lh-heading)" }}>
               {I(v.t?.mapTitle)}
             </span>
             <span style={{ fontWeight: "500", fontSize: "12px", color: "#746e63" }}>
@@ -20,19 +20,19 @@ export default function WorldMapScreen({ v }: { v: Vals }) {
           <div style={{ position: "absolute", right: "18px", top: "110px", display: "flex", flexDirection: "column", gap: "2px", pointerEvents: "none" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#FF4B3E", boxShadow: "0 0 0 2px #fff" }} />
-              <span style={{ fontWeight: "700", fontSize: "12px", lineHeight: "22px", color: "#010002" }}>
+              <span style={{ fontWeight: "700", fontSize: "12px", lineHeight: "22px", color: "#22304A" }}>
                 {I(v.t?.legendSent)}
               </span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <img src="./assets/icon-map-160.png" alt="" style={{ width: "14px", height: "14px", objectFit: "contain" }} />
-              <span style={{ fontWeight: "700", fontSize: "12px", lineHeight: "22px", color: "#010002" }}>
+              <span style={{ fontWeight: "700", fontSize: "12px", lineHeight: "22px", color: "#22304A" }}>
                 {I(v.t?.legendMet)}
               </span>
             </div>
           </div>
           <div style={{ position: "absolute", left: "0", right: "0", bottom: "104px", display: "flex", flexDirection: "column", gap: "10px" }}>
-            <span style={{ padding: "0 25px", fontWeight: "700", fontSize: "13px", color: "#010002" }}>
+            <span style={{ padding: "0 25px", fontWeight: "700", fontSize: "var(--fs-caption-sm)", color: "#22304A" }}>
               {I(v.t?.mapStats)}
             </span>
             <div style={{ display: "flex", gap: "10px", overflowX: "auto", padding: "0 25px 4px", scrollbarWidth: "none" }}>
@@ -43,7 +43,7 @@ export default function WorldMapScreen({ v }: { v: Vals }) {
                       <image-slot id={p?.slot} src={p?.img} shape="rect" placeholder="🐱" />
                     </div>
                     <div style={{ display: "flex", flexDirection: "column" }}>
-                      <span style={{ fontWeight: "700", fontSize: "13px", lineHeight: "18px", whiteSpace: "nowrap" }}>
+                      <span style={{ fontWeight: "700", fontSize: "var(--fs-caption-sm)", lineHeight: "18px", whiteSpace: "nowrap" }}>
                         {I(p?.flag)}{" "}{I(p?.name)}
                       </span>
                       <span style={{ fontWeight: "500", fontSize: "11px", lineHeight: "16px", color: "#746e63", whiteSpace: "nowrap" }}>

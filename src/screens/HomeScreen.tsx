@@ -7,10 +7,10 @@ export default function HomeScreen({ v }: { v: Vals }) {
     <>
     {v.sHome ? (
       <>
-        <div data-screen-label="Home" style={{ position: "absolute", inset: "0", background: "#fff", animation: "cp-fade .25s ease", overflowY: "auto", overflowX: "hidden", scrollbarWidth: "none" }}>
+        <div data-screen-label="Home" style={{ position: "absolute", inset: "0", background: "transparent", animation: "cp-fade .25s ease", overflowY: "auto", overflowX: "hidden", scrollbarWidth: "none" }}>
           <div style={{ padding: "58px 25px 120px", display: "flex", flexDirection: "column" }}>
             {/* SEND */}
-            <span style={{ fontWeight: "700", fontSize: "21px", lineHeight: "29px", textWrap: "pretty" }}>
+            <span style={{ fontWeight: 700, fontSize: "var(--fs-h2)", lineHeight: "29px", textWrap: "pretty", fontFamily: "var(--font-heading)", letterSpacing: "var(--ls-heading)" }}>
               {I(v.t?.homeQ)}
             </span>
             <div style={{ position: "relative", marginTop: "16px", height: "232px", borderRadius: "6px", background: "#F9F4EB", boxShadow: "0 3px 12px rgba(0,0,0,.08)", overflow: "hidden" }}>
@@ -31,7 +31,7 @@ export default function HomeScreen({ v }: { v: Vals }) {
                 ) : null}
               </div>
               <div style={{ position: "absolute", left: "24px", right: "20px", bottom: "20px", display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "10px" }}>
-                <span style={{ fontFamily: "Inter,sans-serif", fontWeight: "700", fontSize: "15px", lineHeight: "21px", whiteSpace: "nowrap" }}>
+                <span style={{ fontFamily: "var(--font-body)", fontWeight: "700", fontSize: "var(--fs-body)", lineHeight: "21px", whiteSpace: "nowrap" }}>
                   {I(v.t?.heroTo)}
                 </span>
                 <span style={css(`text-align:right;font-weight:500;font-size:12px;line-height:18px;color:${R(v.heroStatusColor)}`)}>
@@ -39,14 +39,14 @@ export default function HomeScreen({ v }: { v: Vals }) {
                 </span>
               </div>
             </div>
-            <div className="dc-hover-0" onClick={v.openSendSheet} style={{ marginTop: "12px", height: "56px", borderRadius: "15px", background: "#010002", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "transform .15s ease" }}>
-              <span style={{ fontFamily: "Inter,sans-serif", fontWeight: "700", fontSize: "15px", color: "#fff" }}>
+            <div className="dc-hover-0" onClick={v.openSendSheet} style={{ marginTop: "12px", height: "56px", borderRadius: "15px", background: "#22304A", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "transform .15s ease" }}>
+              <span style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "var(--fs-button)", color: "#fff" }}>
                 {I(v.t?.sendCatMail)}
               </span>
             </div>
             {/* RECEIVE */}
             <div style={{ marginTop: "28px", display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontWeight: "700", fontSize: "16px", lineHeight: "24px" }}>
+              <span style={{ fontWeight: 700, fontSize: "16px", lineHeight: "24px", fontFamily: "var(--font-heading)", letterSpacing: "var(--ls-heading)" }}>
                 {I(v.t?.newMail)}
               </span>
               {v.hasNewMail ? (
@@ -72,7 +72,7 @@ export default function HomeScreen({ v }: { v: Vals }) {
                       </span>
                     </div>
                     <div style={{ position: "absolute", left: "12px", right: "10px", bottom: "10px", display: "flex", flexDirection: "column", gap: "1px" }}>
-                      <span style={{ fontWeight: "700", fontSize: "14px", lineHeight: "19px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      <span style={{ fontWeight: "700", fontSize: "var(--fs-caption)", lineHeight: "19px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {I(m?.title)}
                       </span>
                       <span style={{ fontWeight: "500", fontSize: "11px", lineHeight: "16px", color: "#746e63", whiteSpace: "nowrap" }}>
@@ -80,7 +80,7 @@ export default function HomeScreen({ v }: { v: Vals }) {
                       </span>
                       {m?.locked ? (
                         <>
-                          <span style={{ marginTop: "3px", fontWeight: "600", fontSize: "10.5px", lineHeight: "15px", color: "#010002", whiteSpace: "nowrap" }}>
+                          <span style={{ marginTop: "3px", fontWeight: 500, fontSize: "10.5px", lineHeight: "15px", color: "#22304A", whiteSpace: "nowrap" }}>
                             {"🔒 "}{I(v.t?.locked)}
                           </span>
                         </>

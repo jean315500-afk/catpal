@@ -1,0 +1,33 @@
+/* Cat Pal type: Bricolage Grotesque for headings, DM Sans for everything else, Instrument Serif for the letters
+   themselves; Korean (and any glyph they don't have) falls back to Pretendard (Gowun Batang in letters). Fonts are
+   loaded in each page's <head> (only the weights used: Bricolage 700, DM Sans 400 / 500 / 700, Instrument Serif
+   regular and italic). The app's column and the onboarding's stage are scaled to the screen as a whole,
+   so these sizes shrink with them on small phones. */
+:root {
+  --font-heading: "Bricolage Grotesque", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body: "DM Sans", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* the letters themselves: a fine, slightly condensed serif with italic accents (Korean in Gowun Batang) */
+  --font-letter: "Instrument Serif", "Gowun Batang", Georgia, serif;
+
+  --fw-heading: 700;
+  --ls-heading: -0.02em;
+  --lh-heading: 1.15;
+  --lh-body: 1.5;
+
+  --fs-h1: 32px;          /* main heading: onboarding titles, key headlines */
+  --fs-h2: 24px;          /* section heading: screen titles */
+  --fs-title: 18px;       /* card titles, names on cards */
+  --fs-body: 16px;        /* descriptions */
+  --fs-body-lg: 17px;
+  --fs-button: 16px;      /* main buttons, 700 */
+  --fs-caption: 14px;     /* captions, chips, nav (500) */
+  --fs-caption-sm: 13px;
+}
+
+.cp-letter { font-family: var(--font-letter); font-weight: 400; letter-spacing: -0.005em; }
+.cp-letter-i { font-family: var(--font-letter); font-style: italic; font-weight: 400; }
+
+.cp-h1, .cp-h2, .cp-title { font-family: var(--font-heading); font-weight: var(--fw-heading); letter-spacing: var(--ls-heading); line-height: var(--lh-heading); }
+.cp-h1 { font-size: var(--fs-h1); }
+.cp-h2 { font-size: var(--fs-h2); }
+.cp-title { font-size: var(--fs-title); }

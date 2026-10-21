@@ -9,7 +9,7 @@ import { SOLANA_CHAIN, shortAddress } from './config';
 import { explorerTxUrl, memoErrorText, sendMemo, type MemoStage } from './memo';
 import { buildCatStampPayload, catStampMemo, getSavedStamp, saveStampSignature, type CatStampInput } from './catStamp';
 
-const text = { fontWeight: 600, fontSize: '10px', lineHeight: '14px', textAlign: 'center' } as const;
+const text = { fontWeight: 500, fontSize: '10px', lineHeight: '14px', textAlign: 'center' } as const;
 const STAGE: Record<MemoStage, string> = { preparing: 'Preparing…', approve: 'Approve in wallet…', confirming: 'Confirming…' };
 
 export default function CatStampSave({ stamp }: { stamp: CatStampInput }) {
@@ -27,7 +27,7 @@ function SavedLink({ signature }: { signature: string }) {
   return (
     <a href={explorerTxUrl(signature)} target="_blank" rel="noreferrer" onClick={stop} title={signature} style={{ ...text, color: '#010002', textDecoration: 'none' }}>
       Saved on Solana ✓<br />
-      <span style={{ fontFamily: 'Inter,sans-serif', fontWeight: 500, color: '#746e63', textDecoration: 'underline', textUnderlineOffset: '2px', textDecorationColor: '#D9D9D9' }}>{shortAddress(signature)}</span>
+      <span style={{ fontFamily: "var(--font-body)", fontWeight: 500, color: '#746e63', textDecoration: 'underline', textUnderlineOffset: '2px', textDecorationColor: '#D9D9D9' }}>{shortAddress(signature)}</span>
     </a>
   );
 }

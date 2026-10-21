@@ -1,0 +1,108 @@
+/* Cat Pal onboarding — a soft pastel sky (sky.webp: blue and lemon washes with a pencil grain);
+   the stage is a fixed design canvas scaled to the screen. */
+:root { color-scheme: light; --bg: #BFE2E6; --ink: #22304A; --muted: #4B5873; --faint: #7A86A0; --line: rgba(34, 48, 74, .16); --dot: rgba(34, 48, 74, .22); --dot-on: #22304A;
+  --accent: #F29C7A;   /* peach, warm against the sky: route ends, pulses */
+  /* images keep deep, dark shadows */
+  --shadow: 0 22px 44px rgba(10, 14, 30, .55); --shadow-sm: 0 4px 10px rgba(10, 14, 30, .5); }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: var(--font-body); line-height: var(--lh-body); -webkit-font-smoothing: antialiased; overflow: hidden; }
+.ob-page { position: relative; width: 100vw; height: 100vh; height: 100svh; display: flex; align-items: center; justify-content: center; }
+.ob-frame { position: relative; }   /* nothing is clipped: the globe can grow past the stage's edges at the end */
+.ob-stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.ob-stage img { display: block; user-select: none; -webkit-user-drag: none; }
+
+/* each scene's title and line (stacked; one shows at a time) and the progress dots */
+.ob-steps { position: absolute; transform: translateX(-50%); pointer-events: none; }
+.ob-step { position: absolute; left: 0; right: 0; top: 0; text-align: center; }
+.ob-step-title { margin: 0; font-family: var(--font-heading); font-weight: var(--fw-heading); font-size: var(--fs-h1); line-height: var(--lh-heading); letter-spacing: var(--ls-heading); color: var(--ink); text-wrap: balance; }
+.ob-step-line { margin: 10px 0 0; font-weight: 400; font-size: var(--fs-body-lg); line-height: var(--lh-body); color: var(--muted); text-wrap: balance; }
+.ob-m .ob-step-title { font-size: 26px; }
+.ob-m .ob-step-line { font-size: 15px; margin-top: 8px; }
+/* the last words, over the globe's horizon */
+.ob-outro { position: absolute; z-index: 45; transform: translateX(-50%); text-align: center; pointer-events: none; opacity: 0; }
+.ob-outro p { margin: 0; color: var(--ink); font-family: var(--font-heading); font-weight: var(--fw-heading); letter-spacing: var(--ls-heading); }
+.ob-outro-lead { font-size: var(--fs-h2); line-height: var(--lh-heading); color: var(--muted) !important; }
+.ob-outro-brand { margin-top: 6px !important; font-size: 56px; line-height: 1.05; }   /* the finale: a display size, beyond the scale */
+.ob-m .ob-outro-lead { font-size: 20px; }
+.ob-m .ob-outro-brand { font-size: 40px; }
+.ob-dots { position: absolute; display: flex; gap: 6px; transform: translateX(-50%); }
+.ob-dot { display: block; flex: none; width: 6px; height: 6px; border-radius: 3px; background: var(--dot); }
+
+/* scene 1: the camera (camera.png) — the live view sits on its screen; focus corners, the OK press, a white blink */
+.ob-cam { position: absolute; z-index: 15; filter: drop-shadow(0 18px 30px rgba(20, 30, 50, .25)); }
+.ob-cam-body { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ob-cam-screen { position: absolute; overflow: hidden; border-radius: 2px; }
+.ob-cam-view { position: absolute; inset: 0; background: #111; }
+.ob-cam-view img { width: 100%; height: 100%; object-fit: cover; }
+.ob-cam-corners { position: absolute; inset: 9%; }
+.ob-cam-corners i { position: absolute; width: 14%; aspect-ratio: 1; border: 0 solid #fff; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .35)); }
+.ob-cam-corners i:nth-child(1) { left: 0; top: 0; border-left-width: 2px; border-top-width: 2px; border-top-left-radius: 5px; }
+.ob-cam-corners i:nth-child(2) { right: 0; top: 0; border-right-width: 2px; border-top-width: 2px; border-top-right-radius: 5px; }
+.ob-cam-corners i:nth-child(3) { left: 0; bottom: 0; border-left-width: 2px; border-bottom-width: 2px; border-bottom-left-radius: 5px; }
+.ob-cam-corners i:nth-child(4) { right: 0; bottom: 0; border-right-width: 2px; border-bottom-width: 2px; border-bottom-right-radius: 5px; }
+.ob-cam-focus { position: absolute; left: 50%; top: 50%; width: 22%; aspect-ratio: 1; translate: -50% -50%; border: 1.5px solid #F5C629; border-radius: 8px; }
+.ob-cam-blink { position: absolute; inset: 0; background: #fff; }
+.ob-cam-ok { position: absolute; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; background: rgba(20, 20, 30, .28); box-shadow: inset 0 2px 5px rgba(0, 0, 0, .35); }
+.ob-flash { position: absolute; inset: -10%; z-index: 50; background: #fff; pointer-events: none; }
+
+/* scene 1: your photo's tag */
+.ob-tag { position: absolute; white-space: nowrap; padding: 6px 11px; border-radius: 999px; background: rgba(255, 255, 255, .86);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .9), 0 4px 12px rgba(34, 48, 74, .14); font: 500 var(--fs-caption-sm)/1 var(--font-body); color: var(--ink); }
+.ob-m .ob-tag { font-size: 11px; padding: 5px 9px; }
+.ob-you-tag { z-index: 25; background: var(--ink); color: #fff; box-shadow: 0 6px 16px rgba(34, 48, 74, .25); }
+
+/* scenes 2–3: friends on the globe (their cat in a little circle, their name) and the links between them */
+.ob-friend-pin { position: absolute; z-index: 7; width: 0; height: 0; pointer-events: none; opacity: var(--seen, 1); }
+.ob-friend { position: absolute; left: 0; top: 0; translate: -50% -100%; display: flex; flex-direction: column; align-items: center; gap: 5px; padding-bottom: 6px; }
+.ob-friend img { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; background: #EEE; box-shadow: 0 4px 12px rgba(30, 40, 70, .25); }
+.ob-friend span { white-space: nowrap; padding: 4px 8px; border-radius: 999px; background: rgba(255, 255, 255, .9); box-shadow: 0 2px 8px rgba(34, 48, 74, .14); font: 500 11.5px/1 var(--font-body); color: var(--ink); }
+.ob-friend-6 img { border-color: var(--accent); }
+.ob-links { position: absolute; left: 0; top: 0; z-index: 6; overflow: visible; pointer-events: none; }
+.ob-link { fill: none; stroke: #fff; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 0.1 11; opacity: calc(var(--on, 0) * var(--seen, 1));
+  filter: drop-shadow(0 0 1px rgba(20, 30, 55, .9)) drop-shadow(0 1px 2px rgba(20, 30, 55, .45)); }   /* a dotted line of friendship: white dots with a dark edge, clear on the black globe and on the sky */
+
+/* the envelope rig */
+.ob-env { position: absolute; z-index: 20; will-change: transform; filter: drop-shadow(0 10px 18px rgba(60, 45, 25, .12)); }
+.ob-env > * { position: absolute; }
+.ob-fill { left: 0; top: 0; width: 100%; height: 100%; }
+.ob-env-front { left: 0; width: 100%; }
+.ob-photo { top: 0; }
+/* scene 1: the note card (drawn here — there is no blank letter-paper asset); sizes follow its width --nw */
+.ob-note { top: 0; padding: calc(var(--nw) * .075) calc(var(--nw) * .09); border-radius: 4px; background: #F7F2E8; box-shadow: 0 0 0 1px rgba(120, 105, 85, .10), 0 2px 4px rgba(30, 40, 70, .12), 0 12px 28px rgba(30, 40, 70, .26);
+  font-family: Caveat, 'Bradley Hand', cursive; font-weight: 600; color: #D9739E; }
+.ob-note p { margin: 0; }
+.ob-note-to { font-size: calc(var(--nw) * .078); line-height: 1.4; color: #B85F84; }
+.ob-note-body { margin-top: calc(var(--nw) * .02) !important; font-size: calc(var(--nw) * .088); line-height: calc(var(--nw) * .128);
+  background: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--nw) * .128 - 1px), rgba(120, 105, 85, .22) calc(var(--nw) * .128 - 1px), rgba(120, 105, 85, .22) calc(var(--nw) * .128)); }
+.ob-word { display: inline-block; white-space: pre; }
+.ob-note-from { margin-top: calc(var(--nw) * .03) !important; text-align: right; font-size: calc(var(--nw) * .072); color: #B85F84; }
+/* scene 2 */
+.ob-globe { position: absolute; z-index: 2; height: auto; }
+.ob-bird { position: absolute; left: 0; top: 0; z-index: 30; will-change: transform; pointer-events: none; }
+.ob-bird-frame { position: absolute; inset: 0; background-repeat: no-repeat; background-size: 1200% 100%; animation: ob-flap 1.5s steps(12, jump-none) infinite alternate; }   /* 12 poses, there and back */
+@keyframes ob-flap { from { background-position: 0% 0; } to { background-position: 100% 0; } }
+@media (prefers-reduced-motion: reduce) { .ob-bird-frame { animation: none; } }
+
+/* the end */
+.ob-final { position: absolute; z-index: 40; }
+.ob-final-center { text-align: center; }
+.ob-final-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.ob-final-center .ob-final-actions { justify-content: center; }
+.ob-btn { display: inline-flex; align-items: center; justify-content: center; height: 46px; padding: 0 22px; border-radius: 23px; border: 1px solid rgba(255, 255, 255, .7); background: rgba(255, 255, 255, .45); color: var(--ink); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); font: 700 var(--fs-button)/1 var(--font-body); text-decoration: none; cursor: pointer; transition: transform .2s cubic-bezier(.34,1.56,.64,1); }
+.ob-btn:hover { transform: translateY(-2px); }
+.ob-btn-ink { background: var(--ink); border-color: var(--ink); color: #fff; box-shadow: 0 8px 22px rgba(34, 48, 74, .28); }
+.ob-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.ob-topbar { position: fixed; right: 18px; top: 16px; z-index: 60; display: flex; align-items: center; gap: 12px; }
+.ob-btn-small { height: 34px; padding: 0 14px; font-size: var(--fs-caption); font-weight: 500; }
+.ob-note-link { font: 500 var(--fs-caption-sm)/1 var(--font-body); color: var(--muted); text-decoration: none; }
+
+/* scene 2: the two ends of the route, labelled on the globe (white pills) */
+.ob-label-pin { position: absolute; z-index: 6; width: 0; height: 0; pointer-events: none; opacity: var(--seen, 1); }   /* fades at the globe's rim */
+.ob-label { position: absolute; left: 0; top: 0; transform: translate(-50%, calc(-100% - 12px)); white-space: nowrap; padding: 6px 11px; border-radius: 999px;
+  background: rgba(255, 255, 255, .72); box-shadow: 0 0 0 1px rgba(255, 255, 255, .8), 0 4px 14px rgba(34, 48, 74, .14); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); font: 500 12px/1 var(--font-body); letter-spacing: 0; color: #3A4560; }
+.ob-label-key { transform: translate(14px, -50%); font-weight: 700; color: var(--ink); box-shadow: 0 0 0 1.5px var(--accent), 0 4px 16px rgba(242, 156, 122, .3); }   /* beside its point, on the right: the bird comes in from the left and above */
+.ob-pulse { position: absolute; z-index: 5; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; border: 2px solid var(--accent); pointer-events: none; }
+
+/* the sky, pinned to the screen (a fixed layer, since iOS ignores fixed backgrounds) */
+body::before { content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(rgba(255, 255, 255, .5), rgba(255, 255, 255, .5)), url('/assets/onboarding-preview/sky.webp') center / cover no-repeat; }   /* washed lighter so the paper stands out */
+#root { position: relative; z-index: 1; }

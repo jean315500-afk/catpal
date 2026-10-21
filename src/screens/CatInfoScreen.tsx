@@ -7,7 +7,7 @@ export default function CatInfoScreen({ v }: { v: Vals }) {
     <>
     {v.sInfo ? (
       <>
-        <div data-screen-label="04 Cat info" style={{ position: "absolute", inset: "0", background: "#fff", animation: "cp-fadeup .3s ease" }}>
+        <div data-screen-label="04 Cat info" style={{ position: "absolute", inset: "0", background: "transparent", animation: "cp-fadeup .3s ease" }}>
           <div style={{ position: "absolute", left: "134px", top: "120px", width: "134px", height: "166px", boxShadow: "0 0 0 7px #FEFEFE,0 2px 6px #cecece", overflow: "hidden" }}>
             {v.hasPhoto ? (
               <>
@@ -24,20 +24,20 @@ export default function CatInfoScreen({ v }: { v: Vals }) {
             {I(v.t?.infoHint)}
           </span>
           <div style={{ position: "absolute", left: "82px", top: "350px", width: "237px", height: "93px" }}>
-            <span style={{ position: "absolute", left: "3px", top: "0", fontWeight: "500", fontSize: "14px", lineHeight: "24px" }}>
+            <span style={{ position: "absolute", left: "3px", top: "0", fontWeight: "500", fontSize: "var(--fs-caption)", lineHeight: "24px" }}>
               {I(v.t?.name)}
             </span>
             {" "}
-            <input value={v.nameVal ?? ""} onChange={v.setName} style={{ position: "absolute", left: "62px", top: "0", width: "171px", height: "24px", border: "none", outline: "none", background: "transparent", fontWeight: "500", fontSize: "14px", color: "#010002", padding: "0" }} />
+            <input value={v.nameVal ?? ""} onChange={v.setName} style={{ position: "absolute", left: "62px", top: "0", width: "171px", height: "24px", border: "none", outline: "none", background: "transparent", fontWeight: "500", fontSize: "var(--fs-caption)", color: "#22304A", padding: "0" }} />
             <div style={{ position: "absolute", left: "0", top: "33px", width: "237px", height: "2px", background: "#D9D9D9" }} />
-            <span style={{ position: "absolute", left: "3px", top: "58px", fontWeight: "500", fontSize: "14px", lineHeight: "24px" }}>
+            <span style={{ position: "absolute", left: "3px", top: "58px", fontWeight: "500", fontSize: "var(--fs-caption)", lineHeight: "24px" }}>
               {I(v.t?.age)}
             </span>
             {" "}
-            <input value={v.ageVal ?? ""} onChange={v.setAge} style={{ position: "absolute", left: "62px", top: "58px", width: "171px", height: "24px", border: "none", outline: "none", background: "transparent", fontWeight: "500", fontSize: "14px", color: "#010002", padding: "0" }} />
+            <input value={v.ageVal ?? ""} onChange={v.setAge} style={{ position: "absolute", left: "62px", top: "58px", width: "171px", height: "24px", border: "none", outline: "none", background: "transparent", fontWeight: "500", fontSize: "var(--fs-caption)", color: "#22304A", padding: "0" }} />
             <div style={{ position: "absolute", left: "0", top: "91px", width: "237px", height: "2px", background: "#D9D9D9" }} />
           </div>
-          <span style={{ position: "absolute", left: "44px", top: "474px", fontWeight: "500", fontSize: "14px", lineHeight: "24px" }}>
+          <span style={{ position: "absolute", left: "44px", top: "474px", fontWeight: "500", fontSize: "var(--fs-caption)", lineHeight: "24px" }}>
             {I(v.t?.personality)}
           </span>
           <div style={{ position: "absolute", left: "44px", right: "44px", top: "506px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
@@ -51,7 +51,7 @@ export default function CatInfoScreen({ v }: { v: Vals }) {
               </>
             ))}
           </div>
-          <div className="dc-hover-4" onClick={v.infoNext} style={{ position: "absolute", left: "142px", top: "680px", width: "119px", height: "61px", borderRadius: "32px", background: "#010002", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "transform .15s ease" }}>
+          <div className="dc-hover-4" onClick={v.infoNext} style={{ position: "absolute", left: "142px", top: "680px", width: "119px", height: "61px", borderRadius: "32px", background: "#22304A", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "transform .15s ease" }}>
             <span style={{ color: "#fff", fontSize: "22px", lineHeight: "1" }}>
               ✓
             </span>

@@ -86,6 +86,8 @@ const PM: Record<string, string> = {
   TH: 'bangkok', AU: 'sydney', US: 'newyork', CA: 'vancouver', SG: 'singapore',
 };
 export const POSTMARK_FILES = Object.values(PM).map((p) => './assets/pm/' + p + '.png');
+/** the countries with a postmark of their own (the stamp book's pages) */
+export const POSTMARK_COUNTRIES = Object.keys(PM);
 
 const pmCache: Record<string, string> = {};
 /** Postmark image URL for a country (blob: URL for generated ones; data: URLs break inline styles). */

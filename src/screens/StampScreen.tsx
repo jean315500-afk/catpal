@@ -7,7 +7,7 @@ export default function StampScreen({ v }: { v: Vals }) {
     <>
     {v.sStamp ? (
       <>
-        <div data-screen-label="05 Stamp" style={{ position: "absolute", inset: "0", background: "#fff", animation: "cp-fadeup .3s ease" }}>
+        <div data-screen-label="05 Stamp" style={{ position: "absolute", inset: "0", background: "transparent", animation: "cp-fadeup .3s ease" }}>
           <div style={{ position: "absolute", left: "56px", top: "150px", width: "290px", height: "110px", background: "#F3ECDD", clipPath: "polygon(50% 0,100% 100%,0 100%)" }} />
           {/* envelope back (inside) */}
           <div style={{ position: "absolute", left: "56px", top: "258px", width: "290px", height: "170px", background: "#F3ECDD", boxShadow: "0 3px 12px rgba(0,0,0,.07)", transformOrigin: "50% 100%", animation: "cp-gulp .35s ease .62s" }} />
@@ -30,7 +30,7 @@ export default function StampScreen({ v }: { v: Vals }) {
           <div style={{ position: "absolute", left: "56px", top: "258px", width: "290px", height: "170px", transformOrigin: "50% 100%", animation: "cp-gulp .35s ease .62s", filter: "drop-shadow(0 -2px 3px rgba(0,0,0,.08))", pointerEvents: "none" }}>
             <div style={{ width: "100%", height: "100%", background: "#F9F4EB", clipPath: "polygon(0 0,50% 34%,100% 0,100% 100%,0 100%)" }} />
           </div>
-          <span style={{ position: "absolute", left: "44px", top: "506px", fontWeight: "500", fontSize: "14px", lineHeight: "24px" }}>
+          <span style={{ position: "absolute", left: "44px", top: "506px", fontWeight: "500", fontSize: "var(--fs-caption)", lineHeight: "24px" }}>
             {I(v.t?.pickStamp)}
           </span>
           <div style={{ position: "absolute", left: "0", right: "0", top: "534px", display: "flex", gap: "12px", overflowX: "auto", padding: "6px 40px 10px", boxSizing: "border-box", scrollbarWidth: "none" }}>

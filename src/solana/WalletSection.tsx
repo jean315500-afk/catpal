@@ -14,7 +14,7 @@ import {
 import { SOLANA_CHAIN, shortAddress } from './config';
 
 const card = { marginTop: '12px', background: '#fff', boxShadow: 'inset 0 0 0 1px #EFE7D6', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' } as const;
-const title = { fontWeight: 700, fontSize: '14px', lineHeight: '20px' } as const;
+const title = { fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '14px', lineHeight: '20px', letterSpacing: 'var(--ls-heading)' } as const;
 const note = { fontWeight: 500, fontSize: '12px', lineHeight: '18px', color: '#a89f8d' } as const;
 
 export default function WalletSection() {
@@ -28,7 +28,7 @@ export default function WalletSection() {
       {account ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-            <span style={{ ...title, fontFamily: 'Inter,sans-serif' }} title={account.address}>{shortAddress(account.address)}</span>
+            <span style={{ ...title, fontFamily: "var(--font-body)" }} title={account.address}>{shortAddress(account.address)}</span>
             <span style={note}>Devnet</span>
           </div>
           {owner && owner.features.includes('standard:disconnect') ? (
@@ -79,7 +79,7 @@ function WalletOption({ wallet, onConnected, onError }: { wallet: UiWallet; onCo
   return (
     <div className="dc-hover-13" onClick={pick} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 6px', borderRadius: '12px', cursor: 'pointer', transition: 'background .15s ease' }}>
       <img src={wallet.icon} alt="" style={{ flex: 'none', width: '28px', height: '28px', borderRadius: '7px' }} />
-      <span style={{ flex: 1, fontWeight: 700, fontSize: '14px' }}>{wallet.name}</span>
+      <span style={{ flex: 1, fontWeight: 700, fontSize: "var(--fs-caption)" }}>{wallet.name}</span>
       <span style={{ fontWeight: 500, fontSize: '12px', color: '#a89f8d' }}>{isConnecting ? 'Connecting…' : ''}</span>
     </div>
   );

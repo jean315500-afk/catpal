@@ -7,7 +7,7 @@ export default function OpenMailScreen({ v }: { v: Vals }) {
     <>
     {v.sMail ? (
       <>
-        <div data-screen-label="Cat Mail" style={{ position: "absolute", inset: "0", background: "#fff", animation: "cp-fadeup .3s ease" }}>
+        <div data-screen-label="Cat Mail" style={{ position: "absolute", inset: "0", background: "transparent", animation: "cp-fadeup .3s ease" }}>
           <div style={css(`position:absolute;left:126px;top:84px;width:150px;height:260px;background:#fff;padding:5px;box-sizing:border-box;box-shadow:0 2px 8px rgba(0,0,0,.16);animation:${R(v.mWiggle)}`)}>
             <div style={{ width: "100%", height: "100%", overflow: "hidden" }}>
               <image-slot id={v.mSlot} src={v.mImg} shape="rect" placeholder="pal’s cat 🐈" />
@@ -19,14 +19,14 @@ export default function OpenMailScreen({ v }: { v: Vals }) {
             <div style={css(`position:absolute;right:40px;bottom:6px;width:76px;height:56px;background:url(${R(v.mPm)}) center / contain no-repeat;mix-blend-mode:multiply;opacity:.92;transform:rotate(-8deg)`)} />
           </div>
           <div style={{ position: "absolute", left: "25px", right: "25px", top: "430px", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", textAlign: "center" }}>
-            <span style={{ fontWeight: "700", fontSize: "20px", lineHeight: "30px" }}>
+            <span style={{ fontWeight: 700, fontSize: "var(--fs-h2)", lineHeight: "30px", fontFamily: "var(--font-heading)", letterSpacing: "var(--ls-heading)" }}>
               {I(v.t?.mailTitle)}
             </span>
-            <span onClick={v.openMailProfile} style={{ fontWeight: "500", fontSize: "13px", lineHeight: "20px", color: "#746e63", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "3px", textDecorationColor: "#D9D9D9" }}>
+            <span onClick={v.openMailProfile} style={{ fontWeight: "500", fontSize: "var(--fs-caption-sm)", lineHeight: "20px", color: "#746e63", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "3px", textDecorationColor: "#D9D9D9" }}>
               {I(v.mPlace)}{" · "}{I(v.mDist)}
             </span>
             <div style={{ marginTop: "8px", maxWidth: "300px", padding: "12px 16px", borderRadius: "16px 16px 16px 4px", background: "#F9F4EB", alignSelf: "center" }}>
-              <span style={{ fontWeight: "500", fontSize: "15px", lineHeight: "22px", textWrap: "pretty" }}>
+              <span style={{ fontWeight: "500", fontSize: "var(--fs-body)", lineHeight: "22px", textWrap: "pretty" }}>
                 {"“"}{I(v.mNote)}{"”"}
               </span>
             </div>
@@ -50,8 +50,8 @@ export default function OpenMailScreen({ v }: { v: Vals }) {
             ))}
           </div>
           <div style={{ position: "absolute", left: "25px", right: "25px", top: "690px", display: "flex", justifyContent: "center", gap: "12px" }}>
-            <div className="dc-hover-8" onClick={v.openMailLetters} style={{ height: "58px", padding: "0 44px", borderRadius: "32px", background: "#010002", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "transform .15s ease" }}>
-              <span style={{ fontFamily: "Inter,sans-serif", fontWeight: "700", fontSize: "15px", color: "#fff", whiteSpace: "nowrap" }}>
+            <div className="dc-hover-8" onClick={v.openMailLetters} style={{ height: "58px", padding: "0 44px", borderRadius: "32px", background: "#22304A", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "transform .15s ease" }}>
+              <span style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "var(--fs-button)", color: "#fff", whiteSpace: "nowrap" }}>
                 {I(v.t?.reply)}
               </span>
             </div>

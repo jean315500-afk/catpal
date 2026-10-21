@@ -7,9 +7,9 @@ export default function SendScreen({ v }: { v: Vals }) {
     <>
     {v.sSend ? (
       <>
-        <div data-screen-label="06 Send" style={{ position: "absolute", inset: "0", background: "#fff", animation: "cp-fadeup .3s ease" }}>
+        <div data-screen-label="06 Send" style={{ position: "absolute", inset: "0", background: "transparent", animation: "cp-fadeup .3s ease" }}>
           <div style={{ position: "absolute", left: "46px", top: "220px", width: "310px", height: "200px", background: "#F9F4EB", boxShadow: "0 3px 12px rgba(0,0,0,.07)" }}>
-            <span style={{ position: "absolute", left: "20px", top: "20px", fontFamily: "Inter,sans-serif", fontSize: "12px", whiteSpace: "nowrap" }}>
+            <span style={{ position: "absolute", left: "20px", top: "20px", fontFamily: "var(--font-body)", fontSize: "12px", whiteSpace: "nowrap" }}>
               {"To. "}{I(v.t?.toShort)}
             </span>
             <div style={css(`position:absolute;left:228px;top:14px;width:58px;height:78px;background:url(${R(v.stampMotif)}) center / contain no-repeat;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18))`)} />
@@ -18,7 +18,7 @@ export default function SendScreen({ v }: { v: Vals }) {
               {I(v.t?.fromLine)}
             </span>
           </div>
-          <span style={{ position: "absolute", left: "44px", top: "506px", fontWeight: "500", fontSize: "14px", lineHeight: "24px" }}>
+          <span style={{ position: "absolute", left: "44px", top: "506px", fontWeight: "500", fontSize: "var(--fs-caption)", lineHeight: "24px" }}>
             {I(v.t?.pickStamp)}
           </span>
           <div style={{ position: "absolute", left: "0", right: "0", top: "534px", display: "flex", gap: "12px", overflowX: "auto", padding: "6px 40px 10px", boxSizing: "border-box", scrollbarWidth: "none" }}>
@@ -28,8 +28,8 @@ export default function SendScreen({ v }: { v: Vals }) {
               </>
             ))}
           </div>
-          <div className="dc-hover-4" onClick={v.sendNow} style={{ position: "absolute", left: "124px", top: "665px", width: "153px", height: "61px", borderRadius: "32px", background: "#010002", display: "flex", alignItems: "center", justifyContent: "center", gap: "9px", cursor: "pointer", transition: "transform .15s ease" }}>
-            <span style={{ fontFamily: "Inter,sans-serif", fontWeight: "700", fontSize: "15px", color: "#fff" }}>
+          <div className="dc-hover-4" onClick={v.sendNow} style={{ position: "absolute", left: "124px", top: "665px", width: "153px", height: "61px", borderRadius: "32px", background: "#22304A", display: "flex", alignItems: "center", justifyContent: "center", gap: "9px", cursor: "pointer", transition: "transform .15s ease" }}>
+            <span style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "var(--fs-button)", color: "#fff" }}>
               {I(v.t?.send)}
             </span>
           </div>

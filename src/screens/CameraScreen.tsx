@@ -13,11 +13,11 @@ export default function CameraScreen({ v }: { v: Vals }) {
             {v.camErr ? (
               <>
                 <div style={{ position: "absolute", inset: "0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "14px", padding: "0 40px", textAlign: "center" }}>
-                  <span style={{ fontWeight: "500", fontSize: "14px", lineHeight: "22px", color: "#fff" }}>
+                  <span style={{ fontWeight: "500", fontSize: "var(--fs-caption)", lineHeight: "22px", color: "#fff" }}>
                     {I(v.t?.camErr)}
                   </span>
                   <div onClick={v.pickAlbum} style={{ height: "44px", padding: "0 20px", borderRadius: "22px", background: "#fff", display: "flex", alignItems: "center", cursor: "pointer" }}>
-                    <span style={{ fontWeight: "700", fontSize: "14px" }}>
+                    <span style={{ fontWeight: "700", fontSize: "var(--fs-caption)" }}>
                       {I(v.t?.album)}
                     </span>
                   </div>
@@ -26,12 +26,12 @@ export default function CameraScreen({ v }: { v: Vals }) {
             ) : null}
           </div>
           <div onClick={v.back} style={{ position: "absolute", left: "20px", top: "50px", width: "34px", height: "34px", borderRadius: "50%", background: "rgba(60,58,54,.9)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-            <span style={{ color: "#fff", fontSize: "15px", lineHeight: "1" }}>
+            <span style={{ color: "#fff", fontSize: "var(--fs-body)", lineHeight: "1" }}>
               ✕
             </span>
           </div>
           <div onClick={v.pickAlbum} style={{ position: "absolute", right: "20px", top: "50px", width: "34px", height: "34px", borderRadius: "8px", background: "rgba(60,58,54,.9)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-            <span style={{ fontSize: "14px" }}>
+            <span style={{ fontSize: "var(--fs-caption)" }}>
               🖼
             </span>
           </div>

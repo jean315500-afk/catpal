@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import './typography.css';
 import './styles.css';
 import './hover.css';
 

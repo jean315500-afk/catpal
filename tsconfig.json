@@ -9,6 +9,7 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "noEmit": true,
+    "paths": { "@/*": ["./src/*"] },
 
     // The ported prototype logic is untyped JavaScript; strict mode can be
     // switched on file by file later.
