@@ -811,13 +811,14 @@ export default class CatPalLogic extends DCLogic {
         return;
       }
     }
-    // the message, in the app's language: its title and line (what a chat shows above the link)
+    // the message, in the app's language: its title, its line and the link, as one text — given the link apart, chat
+    // apps (KakaoTalk, WhatsApp…) often keep only the link and drop the words
     const title = this.tx("palShareTitle"), text = title + "\n" + this.tx("palShareText");
     this.setState({ palShare: { ...this.state.palShare, phase: "ready", url } });
     // KakaoTalk, as a card with a button to the link (when the app has a Kakao key); the link stays here to copy too
     if (kakaoConfigured && await shareKakao({ title, description: this.tx("palShareText"), button: this.tx("palShareButton"), url, imageUrl: location.origin + "/og-image.jpg" })) return;
     if (typeof navigator !== "undefined" && (navigator as any).share) {
-      try { await (navigator as any).share({ title, text, url }); this.setState({ palShare: { ...this.state.palShare, sent: true } }); return; }
+      try { await (navigator as any).share({ text: text + "\n" + url }); this.setState({ palShare: { ...this.state.palShare, sent: true } }); return; }
       catch (e: any) { if (e && e.name === "AbortError") return; /* couldn't open now (no gesture left): the link shows, with its buttons */ }
     }
     this.setState({ palShare: { ...this.state.palShare, noSheet: !(navigator as any).share } });
