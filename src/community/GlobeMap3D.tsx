@@ -19,6 +19,9 @@ type Props = {
   height: number | string;
   bubble?: number;
   onSelect?: (cc: string) => void;
+  /** a bubble tapped — one place, or several close together at this zoom: which ones (the globe turns to it, no
+   *  zooming; whoever's there is listed by the caller). Without it, a tap zooms in until they split, as before. */
+  onCluster?: (ccs: string[]) => void;
   selected?: string | null;
   controlsBottom?: number;
   /** the + / − buttons (pinch and wheel zoom either way) */
@@ -31,6 +34,13 @@ type Props = {
   hover?: { lon: number; lat: number } | null;
   /** the letter set off (when the globe is ready) */
   onFlightStart?: () => void;
+  /** a way to look at (a cat pal picked): the globe turns and zooms so both ends are in view — or, the same country
+   *  at both ends, close in on it. While it's set the globe doesn't turn by itself; dragging is yours. */
+  aimAt?: { a: { lon: number; lat: number }; b: { lon: number; lat: number } } | null;
+  /** cat profiles on the globe (the two ends of the way picked): their photo in a round frame, their name under it */
+  /** zooming in past the globe's closest: hand on to the close-up map (where the globe's middle is) */
+  onZoomPast?: (at: { lon: number; lat: number }) => void;
+  pins?: { key: string; lon: number; lat: number; photo: string; name: string; mine?: boolean; ring?: string; active?: boolean; dx?: number; onTap?: () => void }[];
 };
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -53,9 +63,9 @@ const VIEW = [0.3, 0.7], VIEW_TILT = 8;
 const reduceMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 
-export default function GlobeMap3D({ groups, home, routes = [], height, bubble = 50, onSelect, selected, controlsBottom = 12, zoomButtons = true, flight = null, onFlightStart, hover = null }: Props) {
+export default function GlobeMap3D({ groups, home, routes = [], height, bubble = 50, onSelect, selected, controlsBottom = 12, zoomButtons = true, flight = null, onFlightStart, hover = null, aimAt = null, pins = [], onZoomPast, onCluster }: Props) {
   const box = useRef<HTMLDivElement>(null), cv = useRef<HTMLCanvasElement>(null);
-  const bubbleEls = useRef<(HTMLDivElement | null)[]>([]);
+  const bubbleEls = useRef<(HTMLDivElement | null)[]>([]), pinEls = useRef<(HTMLDivElement | null)[]>([]);
   const homeEl = useRef<HTMLDivElement>(null), flightEl = useRef<HTMLDivElement>(null);
   const [world, setWorld] = useState<any>(null);
   const [k, setK] = useState(1);                       // zoom (React state: drives clustering)
@@ -68,16 +78,28 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
   // Cluster bubbles that would overlap at this zoom — by angular distance, so it doesn't depend on rotation.
   const clusters = useMemo(() => {
     const r = Math.min(st.current.w || 360, st.current.h || 600) * 0.44 * k;
-    const out: { lon: number; lat: number; count: number; photo: string; members: MapGroup[] }[] = [];
+    const out: { lon: number; lat: number; count: number; photo: string; active: boolean; members: MapGroup[] }[] = [];
     for (const g of [...groups].sort((a, b) => b.count - a.count)) {
       const near = out.find((c) => geoDistance([c.lon, c.lat], [g.lon, g.lat]) * r < bubble * 0.9);
-      if (near) { near.members.push(g); near.count += g.count; if (!near.photo && g.photo) near.photo = g.photo; }
-      else out.push({ lon: g.lon, lat: g.lat, count: g.count, photo: g.photo, members: [g] });
+      if (near) { near.members.push(g); near.count += g.count; if (!near.photo && g.photo) near.photo = g.photo; near.active = near.active || !!g.active; }
+      else out.push({ lon: g.lon, lat: g.lat, count: g.count, photo: g.photo, active: !!g.active, members: [g] });
     }
     return out;
   }, [groups, k, bubble]);
   const clustersRef = useRef(clusters); clustersRef.current = clusters;
-  const live = useRef({ routes, home, flight, onFlightStart, hover }); live.current = { routes, home, flight, onFlightStart, hover };
+  const live = useRef({ routes, home, flight, onFlightStart, hover, aimAt, pins }); live.current = { routes, home, flight, onFlightStart, hover, aimAt, pins };
+
+  // a way picked: turn to its middle and zoom so both ends fit (a little south of it, as for the letter's flight);
+  // one country at both ends: close in on it. Unpicked: back out to the whole globe. (A drag stops it there.)
+  const fKey = aimAt ? [aimAt.a.lon, aimAt.a.lat, aimAt.b.lon, aimAt.b.lat].join(",") : "";
+  useEffect(() => {
+    const s = st.current, now = performance.now();
+    if (!aimAt) { if (s.k > 1.01) s.tween = { t0: now, r0: [...s.rot], r1: [...s.rot], k0: s.k, k1: 1 }; s.idleAt = now; return; }
+    const a: [number, number] = [aimAt.a.lon, aimAt.a.lat], b: [number, number] = [aimAt.b.lon, aimAt.b.lat], d = geoDistance(a, b);
+    const [ml, mt] = d < 1e-4 ? a : geoInterpolate(a, b)(0.5);
+    const k1 = d < 1e-4 ? MAX_ZOOM : clamp(0.78 / Math.max(0.05, Math.sin(d / 2)), 1, MAX_ZOOM);
+    s.tween = { t0: now, r0: [...s.rot], r1: [((-ml - s.rot[0] + 540) % 360) - 180 + s.rot[0], clamp(-(mt - (d < 1e-4 ? 0 : VIEW_TILT)), -70, 70)], k0: s.k, k1 };
+  }, [fKey]);
 
   // the scene
   useEffect(() => {
@@ -155,11 +177,11 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
         }
       }
       if (s.tween) {
-        const u = Math.min(1, (now - s.tween.t0) / 520), e = 1 - Math.pow(1 - u, 3);
+        const u = Math.min(1, (now - s.tween.t0) / (live.current.aimAt ? 760 : 520)), e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
         s.rot = [s.tween.r0[0] + (s.tween.r1[0] - s.tween.r0[0]) * e, s.tween.r0[1] + (s.tween.r1[1] - s.tween.r0[1]) * e];
         s.k = s.tween.k0 + (s.tween.k1 - s.tween.k0) * e;
         if (u >= 1) { s.tween = null; setK(s.k); }
-      } else if (!still && !s.drag && now - s.idleAt > 2500 && !flying && !holding) s.rot = [s.rot[0] + dt * 0.004, s.rot[1]];
+      } else if (!still && !s.drag && now - s.idleAt > 2500 && !flying && !holding && !live.current.aimAt) s.rot = [s.rot[0] + dt * 0.004, s.rot[1]];
       const { w, h } = s, R = Math.min(w, h) * 0.44 * s.k;
       const d = Math.sqrt(1 + Math.pow(h / 2 / (Math.tan((FOV / 2) * rad) * R), 2));
       camera.position.set(0, 0, d); camera.lookAt(0, 0, 0); camDir.set(0, 0, 1);
@@ -177,6 +199,11 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
         const p = screenOf(c.lon, c.lat, 1.01, 0.06);
         if (!p.front) { node.style.opacity = '0'; node.style.pointerEvents = 'none'; return; }
         node.style.opacity = '1'; node.style.pointerEvents = 'auto'; node.style.transform = `translate(${p.x}px, ${p.y}px)`;
+      });
+      (live.current.pins || []).forEach((pn, i) => {
+        const node = pinEls.current[i]; if (!node) return;
+        const p = screenOf(pn.lon, pn.lat, 1.012, 0.02);
+        node.style.opacity = p.front ? '1' : '0'; node.style.pointerEvents = p.front ? 'auto' : 'none'; node.style.transform = `translate(${p.x + (pn.dx || 0)}px, ${p.y}px)`;
       });
       const hm = live.current.home;
       if (homeEl.current && hm) { const p = screenOf(hm.lon, hm.lat, 1.012, 0.03); homeEl.current.style.opacity = p.front ? '1' : '0'; homeEl.current.style.transform = `translate(${p.x}px, ${p.y}px)`; }
@@ -205,7 +232,17 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
   // gestures: drag turns the globe, pinch / wheel zooms
   const pts = useRef(new Map<number, { x: number; y: number }>()), moved = useRef(0);
   const local = (e: { clientX: number; clientY: number }) => { const r = box.current!.getBoundingClientRect(), f = box.current!.offsetWidth / r.width || 1; return { x: (e.clientX - r.left) * f, y: (e.clientY - r.top) * f }; };
-  const zoomBy = (f: number) => { const s = st.current; s.k = clamp(s.k * f, 1, MAX_ZOOM); setK(s.k); s.idleAt = performance.now(); };
+  const past = useRef(false), onPast = useRef(onZoomPast); onPast.current = onZoomPast;
+  const zoomBy = (f: number) => {
+    const s = st.current;
+    // already as close as the globe goes, and still zooming in: on to the close-up map (once per gesture)
+    if (s.k >= MAX_ZOOM - 0.01 && f > 1.01 && onPast.current && !past.current) {
+      past.current = true;
+      onPast.current({ lon: ((-s.rot[0] + 540) % 360) - 180, lat: clamp(-s.rot[1], -80, 80) });
+      setTimeout(() => { past.current = false; }, 900);
+    }
+    s.k = clamp(s.k * f, 1, MAX_ZOOM); setK(s.k); s.idleAt = performance.now();
+  };
   const onDown = (e: any) => { pts.current.set(e.pointerId, local(e)); moved.current = 0; st.current.drag = true; st.current.tween = null; };
   const onMove = (e: any) => {
     if (!pts.current.has(e.pointerId)) return;
@@ -227,6 +264,11 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
   const focus = (c: (typeof clusters)[number]) => (e: any) => {
     e.stopPropagation(); if (moved.current > 6) return;
     const s = st.current, many = c.members.length > 1;
+    if (onCluster) {
+      s.tween = { t0: performance.now(), r0: [...s.rot], r1: [-c.lon, clamp(-c.lat, -70, 70)], k0: s.k, k1: s.k };
+      s.idleAt = performance.now() + 4000;
+      onCluster(c.members.map((m) => m.cc)); return;
+    }
     let k1 = s.k;
     if (many) {
       let dmin = Infinity;
@@ -257,13 +299,31 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
                 {c.photo ? <img src={c.photo} alt="" loading="lazy" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : <span style={{ fontSize: s * 0.45 }}>🐱</span>}
               </div>
               <div style={{ position: 'absolute', left: '50%', bottom: -7, marginLeft: -6, width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '8px solid #fff' }} />
+              {/* someone there active lately (a cat pal): the small red dot, as on a profile */}
+              {c.active ? <span aria-label="active" className="cp-active-dot" style={{ position: 'absolute', left: -4, top: -4, width: 12, height: 12, borderRadius: 6, background: '#FF4B3E', border: '2px solid #fff', boxSizing: 'border-box', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }} /> : null}
               {c.count > 1 ? <span style={{ position: 'absolute', right: -7, top: -7, minWidth: 20, height: 20, padding: '0 5px', boxSizing: 'border-box', borderRadius: 10, background: '#1F1E22', color: '#fff', border: '2px solid #fff', fontFamily: "var(--font-body)", fontWeight: 700, fontSize: 10.5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{c.count > 99 ? '99+' : c.count}</span> : null}
             </div>
           </div>
         );
       })}
-      {flight || hover ? (
-        /* the letter: the landing story's red envelope (the one the bird carries) */
+      {pins.map((pn, i) => (
+        /* a cat profile at one end of the way: its photo in a round frame (red ring: you), its name under it */
+        <div key={pn.key} ref={(n) => { pinEls.current[i] = n; }} onClick={(e) => { e.stopPropagation(); if (moved.current <= 6) pn.onTap?.(); }} role={pn.onTap ? 'button' : undefined} aria-label={pn.name}
+          style={{ position: 'absolute', left: 0, top: 0, width: 0, height: 0, opacity: 0, willChange: 'transform', zIndex: 5, transition: 'opacity .2s ease' }}>
+          <div style={{ position: 'absolute', left: -27, top: -66, width: 54, display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: pn.onTap ? 'pointer' : 'default' }}>
+            <div style={{ position: 'relative', width: 50, height: 50 }}>
+              <div style={{ width: 50, height: 50, borderRadius: '50%', overflow: 'hidden', border: '3px solid ' + (pn.ring || (pn.mine ? '#FF4B3E' : '#fff')), boxSizing: 'border-box', boxShadow: '0 6px 14px rgba(40,30,20,.25)', background: '#EFE7DB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {pn.photo ? <img src={pn.photo} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : <span style={{ fontSize: 22 }}>🐱</span>}
+              </div>
+              {/* active lately: a small red dot on the frame */}
+              {pn.active ? <span aria-label="active" className="cp-active-dot" style={{ position: 'absolute', right: 1, top: 1, width: 12, height: 12, borderRadius: 6, background: '#FF4B3E', border: '2px solid #fff', boxSizing: 'border-box', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }} /> : null}
+            </div>
+            <span style={{ marginTop: 3, padding: '1px 7px', borderRadius: 8, background: 'rgba(255,255,255,.94)', boxShadow: '0 1px 3px rgba(0,0,0,.12)', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 10.5, color: '#22304A', whiteSpace: 'nowrap' }}>{pn.name}</span>
+          </div>
+        </div>
+      ))}
+      {(flight || hover) && !aimAt ? (
+        /* the letter: the landing story's red envelope (the one the bird carries) — not over a way's two cats */
         <div ref={flightEl} aria-hidden="true" style={{ position: 'absolute', left: 0, top: 0, width: 40, height: 25, marginLeft: -20, marginTop: -12, opacity: 0, pointerEvents: 'none', willChange: 'transform', zIndex: 4 }}>
           <img src="./assets/onboarding-preview/envelope-closed.png" alt="" draggable={false} style={{ display: 'block', width: '100%', height: '100%', transform: 'rotate(-8deg)', filter: 'drop-shadow(0 3px 4px rgba(40,20,20,.35))' }} />
         </div>

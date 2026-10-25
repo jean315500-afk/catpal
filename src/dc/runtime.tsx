@@ -7,10 +7,26 @@ export type Vals = Record<string, any>;
 
 const kebabToCamel = (s: string) => s.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
 
-/** Inline style string -> React style object (same naive split as the runtime). */
+/** Split declarations on ";" — but not one inside url(…) or quotes (a data: URL has one: "data:image/jpeg;base64,…"). */
+function decls(src: string): string[] {
+  const out: string[] = [];
+  let cur = '', depth = 0, quote = '';
+  for (const ch of src) {
+    if (quote) { if (ch === quote) quote = ''; }
+    else if (ch === '"' || ch === "'") quote = ch;
+    else if (ch === '(') depth++;
+    else if (ch === ')') depth = Math.max(0, depth - 1);
+    else if (ch === ';' && depth === 0) { out.push(cur); cur = ''; continue; }
+    cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+
+/** Inline style string -> React style object (the runtime's split, keeping url(…) whole). */
 export function css(src: string): CSSProperties {
   const o: Record<string, string> = {};
-  for (const decl of String(src).split(';')) {
+  for (const decl of decls(String(src))) {
     const i = decl.indexOf(':');
     if (i < 0) continue;
     const prop = decl.slice(0, i).trim();

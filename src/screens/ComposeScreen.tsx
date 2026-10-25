@@ -1,11 +1,14 @@
 // THE LETTER FROM HOME — one letter, finished step by step on the same sheet of paper:
-//   1 your cat's photo (a polaroid taped on) and a hello, written right on the letter (a fine serif, italic accents)
-//   2 (first letter only) who's this little one: the polaroid, the cat's name, where it's sent from
-//   3 the finished letter over the open red envelope: it tucks itself in, the flap shuts, it's stamped; "Send my
-//     letter" goes straight to the map, which shows the loading while a cat pal is found
-//   4 nobody to match yet: the sealed envelope waits (nothing is sent); "Try again" looks for a match again
+//   1 a cat's photo (a polaroid taped on) and a little story, written right on the letter (a fine serif, italic accents);
+//     once there's a photo, "Need ideas?" (the hello tips, when asked for) and a light "My cat / A cat I met" — a cat
+//     you met needs no profile, only a photo and a story
+//   2 (first letter only) who's this little one: the polaroid, the cat's name, where it's sent from — or, for a cat you
+//     met, the name you sign with
+//   3 the finished letter over the open red envelope, to read once more; "Send my letter" tucks it in, shuts the flap,
+//     stamps it, then goes to the map (loading while a cat pal is found — or, with no one yet, "Invite a friend")
+//   4 sent as a link (from the Map): the sealed envelope, the link to share or copy (not delivered until the friend writes back)
 // Sending goes on to the delivery globe (DeliveryMapScreen). State and steps live in CatPalLogic (openCompose…).
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { css, each, I, R } from '../dc/runtime';
 import type { Vals } from '../dc/runtime';
 import { field, label } from './OnboardScreen';
@@ -50,7 +53,7 @@ function Polaroid({ v, w, caption, onPick }: { v: Vals; w: number; caption?: str
 }
 
 /** the letter: a hello, the polaroid, your words on fine ruled lines, signed by your cat (in the letter serif) */
-export function Paper({ v, w, edit }: { v: Vals; w: number; edit?: boolean }) {
+export function Paper({ v, w, edit, underPhoto }: { v: Vals; w: number; edit?: boolean; underPhoto?: ReactNode }) {
   const line = edit ? 27 : 23;
   return (
     <div className="cp-paper-sheet" style={{ ...paperBg, position: "relative", width: w + "px", maxWidth: "100%", boxSizing: "border-box", padding: edit ? "18px 18px 14px" : "14px 14px 12px", transform: "rotate(-1deg)" }}>
@@ -58,6 +61,8 @@ export function Paper({ v, w, edit }: { v: Vals; w: number; edit?: boolean }) {
       <div style={{ display: "flex", justifyContent: "center", margin: edit ? "14px 0 12px" : "10px 0 8px" }}>
         <Polaroid v={v} w={Math.round(w * (edit ? 0.56 : 0.58))} onPick={edit ? v.cmpPickPhoto : undefined} />
       </div>
+      {/* (writing) right under the photo: whose cat it is */}
+      {edit && underPhoto ? <div style={{ margin: "-2px 0 12px" }}>{underPhoto}</div> : null}
       {edit ? (
         <textarea id="cp-letter-text" value={v.cmpText ?? ""} onChange={v.setCmpText} placeholder={v.cpT?.cpMsgPh} maxLength={v.cmpTextMax} rows={3} className="cp-letter cp-letter-input"
           style={{ display: "block", width: "100%", boxSizing: "border-box", border: "none", outline: "none", resize: "none", padding: "0 2px", margin: "0", background: "transparent", backgroundImage: ruled(line), backgroundAttachment: "local",
@@ -103,25 +108,42 @@ export function LetterInEnvelope({ v, deep = 0 }: { v: Vals; deep?: number }) {
 export const DEEP_IN = Math.round(EH * ENV.frontH - TUCK + 20);
 
 export default function ComposeScreen({ v }: { v: Vals }) {
-  // the letter tucks itself into the envelope, the flap shuts, the stamp and postmark go on, as soon as the preview
-  // opens (a beat after it appears); going back to edit takes it out again
+  // the preview shows the letter over the open envelope, to read it once more; "Send my letter" tucks it in, shuts the
+  // flap, puts on the stamp and the postmark — then it goes (to the map). Going back to edit takes it out again.
   const [sealing, setSealing] = useState(false);
+  // the hello tip just tapped (it shows as picked for a moment)
+  const [picked, setPicked] = useState<number | null>(null);
+  // "Need ideas?": the hello tips, only when asked for (closed again on another step)
+  const [ideas, setIdeas] = useState(false);
+  const pickT = useRef<number | undefined>(undefined);
+  useEffect(() => () => clearTimeout(pickT.current), []);
+  const sealT = useRef<number | undefined>(undefined);
   const step = v.cmpStep;
-  useEffect(() => {
-    if (step === 4) { setSealing(true); return; }
-    if (step === 3) { const t = setTimeout(() => setSealing(true), 450); return () => clearTimeout(t); }
-    setSealing(false);
-  }, [step]);
+  useEffect(() => { setSealing(step === 4); setIdeas(false); }, [step]);
+  // back here (from the map, or later from Home): sealed only if it still is (a link being made, or made)
+  useEffect(() => { if (v.sCompose) setSealing(step === 4 || (step === 3 && !!v.cmpBusy)); }, [v.sCompose]);
+  // not sent (an error, back on the preview): it opens again, to try again
+  useEffect(() => { if (step === 3 && v.cmpErr && !v.cmpBusy) setSealing(false); }, [v.cmpErr, v.cmpBusy]);
+  useEffect(() => () => clearTimeout(sealT.current), []);
   // the envelope, letter and all, sits in the middle of the room between the title and the button; as the letter goes
   // in, the whole of it rises by half the letter's height above the envelope, so the shut envelope ends up in the middle
   const letterEl = useRef<HTMLDivElement>(null);
   const [lift, setLift] = useState(0);
   useLayoutEffect(() => { if (step === 3 && letterEl.current) setLift(Math.max(0, (letterEl.current.offsetHeight - (EH * ENV.frontTop + TUCK)) / 2)); }, [step, v.sCompose, v.cmpText, v.cmpPhoto]);
   if (!v.sCompose) return null;
-  // sending goes straight to the map, which shows the loading (the letter waiting over your country, the cat running)
-  const send = () => { if (v.cmpBusy) return; setSealing(true); v.cmpSend(); };
-  const titles: Record<number, [string, string]> = { 1: [v.cpT?.cpS1Title, v.cpT?.cpS1Sub], 2: [v.cpT?.cpS2Title, v.cpT?.cpS2Sub], 3: [v.cpT?.cpS3Title, v.cpT?.cpS3Sub], 4: [v.cpT?.cpWaitTitle, v.cpT?.cpWaitSub] };
-  const [title, sub] = titles[step] || titles[1];
+  // sending: sealed first (~2.4 s: in, shut, stamped, postmarked), then off to the map, which shows the loading
+  const send = () => {
+    if (v.cmpBusy || sealing) return;
+    setSealing(true);
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    sealT.current = window.setTimeout(() => v.cmpSend(), reduce ? 0 : 2400);
+  };
+  const T = v.cpT || {};
+  const titles: Record<number, [string, string]> = { 1: [T.cpS1Title, T.cpS1Sub], 2: v.cmpMet ? [T.cpS2MetTitle, T.cpS2MetSub] : [T.cpS2Title, T.cpS2Sub], 3: [T.cpS3Title, T.cpS3Sub], 4: [T.ivReadyTitle, T.ivReadySub] };
+  const [title0, sub0] = titles[step] || titles[1];
+  // a reply: "Write back to …" (its first step), and their letter kept in view
+  const re = v.cmpReply, s3 = step === 3 ? v.cmpS3 : null;
+  const title = re && step === 1 ? re.title : s3 ? s3.title : title0, sub = re && step === 1 ? re.sub : s3 ? s3.sub : sub0;
   const sealed = sealing || step === 4;
   return (
     <div data-screen-label="Letter" style={{ position: "absolute", inset: "0", background: "transparent", overflowY: "auto", overflowX: "hidden", scrollbarWidth: "none" }}>
@@ -142,27 +164,54 @@ export default function ComposeScreen({ v }: { v: Vals }) {
 
           {step === 1 ? (
             <>
-              <div style={{ marginTop: "20px", width: "100%", display: "flex", justifyContent: "center", animation: "cp-letterup .6s cubic-bezier(.2,.9,.3,1) both" }}><Paper v={v} w={330} edit /></div>
-              {/* a little help saying hello: tap one and its example is written on the letter (after what's there), ready to go on */}
-              <div style={{ marginTop: "16px", width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", animation: "cp-rise2 .45s cubic-bezier(.2,.8,.2,1) .25s both" }}>
-                <span style={{ fontFamily: "var(--font-body)", fontWeight: 500, fontSize: "13px", color: "#7A8091", textAlign: "center" }}>{I(v.cpT?.cpGuide)}</span>
-                <div className="cp-tips">
-                  {each(v.cmpTips, (chip: any) => (
-                    <span className="dc-hover-2" onClick={() => { chip.add(); setTimeout(() => { const el = document.getElementById("cp-letter-text") as HTMLTextAreaElement | null; if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); el.scrollTop = el.scrollHeight; } }, 0); }}
-                      role="button" style={{ flex: "none", padding: "8px 12px", borderRadius: "999px", background: "rgba(255,252,244,.72)", border: "1px solid #D9D5CC", boxShadow: "0 1px 2px rgba(60,40,20,.04)", fontFamily: "var(--font-body)", fontWeight: 500, fontSize: "13.5px", lineHeight: "16px", color: INK, cursor: "pointer", whiteSpace: "nowrap", transition: "transform .15s ease, background .15s ease, border-color .15s ease" }}>{I(chip.label)}</span>
-                  ))}
+              {/* (writing back: just your sheet, "Dear …," at its top) */}
+              <div style={{ marginTop: "20px", position: "relative", zIndex: 2, width: "100%", display: "flex", justifyContent: "center", animation: "cp-letterup .6s cubic-bezier(.2,.9,.3,1) both" }}><Paper v={v} w={330} edit underPhoto={v.cmpPhoto ? (
+                <>
+                  <div role="radiogroup" aria-label={T.cpKindAsk} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", flexWrap: "wrap", animation: "cp-rise2 .4s cubic-bezier(.2,.8,.2,1) both" }}>
+                    {each(v.cmpKinds, (k: any) => (
+                      <span key={k.id} onClick={k.tap} role="radio" aria-checked={k.on} className="dc-hover-2"
+                        style={{ padding: "6px 11px", borderRadius: "999px", border: "1px solid " + (k.on ? INK : "#D9D5CC"), background: k.on ? "#fff" : "rgba(255,252,244,.6)", fontWeight: k.on ? 700 : 500, fontSize: "12.5px", lineHeight: "15px", color: INK, cursor: "pointer", whiteSpace: "nowrap", transition: "border-color .15s ease, background .15s ease" }}>{I(k.label)}</span>
+                    ))}
+                  </div>
+                </>
+              ) : null} /></div>
+              {/* once there's a photo: ideas if wanted (one quiet button; the tips open under it, and only the one you pick
+                  is written on the letter — after what's there, never over it). Whose cat it is sits right under the photo */}
+              {v.cmpPhoto ? (
+                <div style={{ marginTop: "14px", width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", animation: "cp-rise2 .45s cubic-bezier(.2,.8,.2,1) .1s both" }}>
+                  <span onClick={() => setIdeas((o) => !o)} role="button" aria-expanded={ideas} className="dc-hover-2"
+                    style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 14px", borderRadius: "999px", fontFamily: "var(--font-body)", fontWeight: 500, fontSize: "13.5px", lineHeight: "16px", color: INK, cursor: "pointer",
+                      background: ideas ? "#fff" : "rgba(255,252,244,.72)", border: "1px solid " + (ideas ? INK : "#D9D5CC"), boxShadow: "0 1px 2px rgba(60,40,20,.06)", transition: "background .15s ease, border-color .15s ease" }}>
+                    {I(T.cpIdeas)}
+                    <span aria-hidden="true" style={{ display: "inline-block", lineHeight: "1", transform: ideas ? "rotate(180deg) translateY(-3px)" : "translateY(-3px)", transition: "transform .2s ease" }}>⌄</span>
+                  </span>
+                  {ideas ? (
+                    <div className="cp-tips" style={{ animation: "cp-rise2 .3s cubic-bezier(.2,.8,.2,1) both" }}>
+                      {each(v.cmpTips, (chip: any, i: number) => (
+                        <span className={"dc-hover-2 cp-tip" + (picked === i ? " is-picked" : "")} onClick={() => { chip.add(); setPicked(i); clearTimeout(pickT.current); pickT.current = window.setTimeout(() => setPicked(null), 1600); setTimeout(() => { const el = document.getElementById("cp-letter-text") as HTMLTextAreaElement | null; if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); el.scrollTop = el.scrollHeight; } }, 0); }}
+                          role="button" style={{ flex: "none", padding: "8px 12px", borderRadius: "999px", background: "rgba(255,252,244,.72)", border: "1px solid #D9D5CC", boxShadow: "0 1px 2px rgba(60,40,20,.04)", fontFamily: "var(--font-body)", fontWeight: 500, fontSize: "13.5px", lineHeight: "16px", color: INK, cursor: "pointer", whiteSpace: "nowrap", transition: "transform .12s ease, background .15s ease, border-color .15s ease" }}>{picked === i ? <span aria-hidden="true" style={{ marginRight: "5px", color: "#2E7458", fontWeight: 700 }}>✓</span> : null}{I(chip.label)}</span>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
-              </div>
+              ) : null}
             </>
           ) : null}
 
           {step === 2 ? (
             <>
-              <div style={{ marginTop: "22px" }}><Polaroid v={v} w={168} caption={v.cmpCatName} /></div>
-              <label style={{ marginTop: "24px", width: "100%", display: "flex", flexDirection: "column", gap: "6px" }}>
-                <span style={label}>{I(v.cpT?.cpCatName)}</span>
-                <input value={v.cmpCatName ?? ""} onChange={v.setCmpCat} placeholder={v.cpT?.cpCatNamePh} maxLength={24} autoComplete="off" style={{ ...field, background: "rgba(255,255,255,.88)" }} />
-              </label>
+              <div style={{ marginTop: "22px" }}><Polaroid v={v} w={168} caption={v.cmpMet ? undefined : v.cmpCatName} /></div>
+              {v.cmpMet ? (
+                <label style={{ marginTop: "24px", width: "100%", display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <span style={label}>{I(T.cpPenName)}</span>
+                  <input value={v.cmpPenName ?? ""} onChange={v.setCmpPen} placeholder={T.cpPenNamePh} maxLength={24} autoComplete="nickname" style={{ ...field, background: "rgba(255,255,255,.88)" }} />
+                </label>
+              ) : (
+                <label style={{ marginTop: "24px", width: "100%", display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <span style={label}>{I(v.cpT?.cpCatName)}</span>
+                  <input value={v.cmpCatName ?? ""} onChange={v.setCmpCat} placeholder={v.cpT?.cpCatNamePh} maxLength={24} autoComplete="off" style={{ ...field, background: "rgba(255,255,255,.88)" }} />
+                </label>
+              )}
               <label style={{ marginTop: "14px", width: "100%", display: "flex", flexDirection: "column", gap: "6px" }}>
                 <span style={label}>{I(v.cpT?.cpFrom)}</span>
                 <select value={v.cmpCountry ?? ""} onChange={v.setCmpCountry} style={{ ...field, background: "rgba(255,255,255,.88)", appearance: "none", WebkitAppearance: "none", cursor: "pointer" }}>
@@ -183,7 +232,7 @@ export default function ComposeScreen({ v }: { v: Vals }) {
             </div>
           ) : null}
           {step === 3 ? (
-            /* the letter over the open envelope, its bottom in the pocket; then it tucks itself in and the flap shuts */
+            /* the letter over the open envelope, its bottom in the pocket; sending tucks it in and shuts the flap */
             <div style={{ flex: "1", display: "flex", alignItems: "center", justifyContent: "center", padding: "18px 0" }}>
             <div className={"cp-seal" + (sealed ? " is-sealed" : "")} style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center",
               transform: sealed ? `translateY(${-lift}px)` : "none", transition: "transform .85s cubic-bezier(.5,0,.3,1)" }}>
@@ -210,22 +259,51 @@ export default function ComposeScreen({ v }: { v: Vals }) {
           ) : null}
           {step === 3 ? (
             <>
-              <div className="dc-hover-8" onClick={send} role="button" aria-busy={v.cmpBusy} style={{ ...cta, marginTop: "18px", width: "100%", background: v.cmpBusy ? "#FBF5EA" : "#E5483D", boxShadow: v.cmpBusy ? "inset 0 0 0 1.5px #EADFCB" : "0 10px 22px rgba(229,72,61,.28)", cursor: v.cmpBusy ? "default" : "pointer", position: "relative", overflow: "hidden" }}>
+              {/* who it goes to (once you have cat pals): a new cat pal at random — as before, the default — or one you have */}
+              {v.cmpTo && !v.cmpBusy && !sealing ? (
+                <div style={{ marginTop: "14px", width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                  <span style={{ fontFamily: "ui-monospace,'SF Mono',Menlo,monospace", fontSize: "10px", letterSpacing: ".16em", textTransform: "uppercase", color: "#8A8478" }}>{I(v.cmpTo.label)}</span>
+                  <div role="radiogroup" aria-label={v.cmpTo.label} className="cp-tips">
+                    {each(v.cmpTo.options, (o: any) => (
+                      <span key={o.id || "random"} onClick={o.tap} role="radio" aria-checked={o.on} className="dc-hover-2"
+                        style={{ flex: "none", display: "inline-flex", alignItems: "center", gap: "7px", padding: o.photo ? "4px 12px 4px 4px" : "7px 12px", borderRadius: "999px", border: "1px solid " + (o.on ? INK : "#D9D5CC"), background: o.on ? "#fff" : "rgba(255,252,244,.6)", boxShadow: o.on ? "0 2px 6px rgba(34,48,74,.12)" : "none", cursor: "pointer", whiteSpace: "nowrap", transition: "border-color .15s ease, background .15s ease" }}>
+                        {o.photo ? <img src={o.photo} alt="" style={{ width: "26px", height: "26px", borderRadius: "50%", objectFit: "cover", display: "block", border: "1.5px solid #fff", boxShadow: "0 1px 2px rgba(0,0,0,.15)" }} /> : <span aria-hidden="true" style={{ fontSize: "14px", lineHeight: "1" }}>{o.flag}</span>}
+                        <span style={{ fontWeight: o.on ? 700 : 500, fontSize: "13px", lineHeight: "16px", color: INK }}>{I(o.name)}</span>
+                        {o.photo ? <span aria-hidden="true" style={{ fontSize: "12px", lineHeight: "1" }}>{o.flag}</span> : null}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              <div className="dc-hover-8" onClick={send} role="button" aria-busy={v.cmpBusy || sealing} style={{ ...cta, marginTop: "18px", width: "100%", background: v.cmpBusy || sealing ? "#FBF5EA" : "#22304A", boxShadow: v.cmpBusy || sealing ? "inset 0 0 0 1.5px #EADFCB" : "0 10px 22px rgba(34,48,74,.2)", cursor: v.cmpBusy || sealing ? "default" : "pointer", position: "relative", overflow: "hidden" }}>
                 {v.cmpBusy ? <span className="cp-catrun" aria-hidden="true"><img src="./assets/cat-run.gif" alt="" /></span> : null}
-                <span style={{ ...ctaText, position: "relative", color: v.cmpBusy ? "#7A5A43" : "#fff" }}>{I(v.cmpBusy ? v.cpT?.cpSending : v.cpT?.cpSend)}</span>
+                <span style={{ ...ctaText, position: "relative", color: v.cmpBusy || sealing ? "#7A5A43" : "#fff" }}>{I(v.cmpBusy ? (v.cmpRouteInvite ? T.cpInviting : v.cmpTo?.busyLabel || T.cpSending) : sealing ? T.cpSealing : v.cmpTo?.sendLabel || T.cpSend)}</span>
               </div>
-              {!v.cmpBusy ? (
+              {!v.cmpBusy && !sealing ? (
                 <div style={{ marginTop: "6px", display: "flex", gap: "6px", justifyContent: "center" }}>
                   <span onClick={v.cmpEditLetter} role="button" style={linkBtn}>{I(v.cpT?.cpEditLetter)}</span>
-                  <span onClick={v.cmpEditCat} role="button" style={linkBtn}>{I(v.cpT?.cpEditCat)}</span>
+                  <span onClick={v.cmpEditCat} role="button" style={linkBtn}>{I(v.cmpMet ? T.cpEditMet : T.cpEditCat)}</span>
                 </div>
               ) : null}
             </>
           ) : null}
-          {step === 4 ? (
+          {step === 4 && v.cmpLink ? (
+            /* the link: to share (the device's share sheet: WhatsApp, Instagram DM, KakaoTalk…) or copy; not delivered yet */
             <>
-              <div className="dc-hover-8" onClick={v.cmpBusy ? undefined : v.cmpSend} role="button" aria-busy={v.cmpBusy} style={{ ...cta, marginTop: "18px", width: "100%", background: v.cmpBusy ? "#B9B2A4" : INK }}><span style={ctaText}>{I(v.cmpBusy ? v.cpT?.cpSending : v.cpT?.cpTryAgain)}</span></div>
-              <span onClick={v.cmpClose} role="button" style={{ ...linkBtn, marginTop: "6px" }}>{I(v.cpT?.cpBackHome)}</span>
+              <span style={{ marginTop: "2px", fontWeight: 500, fontSize: "12.5px", lineHeight: "18px", color: v.cmpLink.opened ? "#2E7458" : "#8A6A4E", textAlign: "center" }}>{I(v.cmpLink.opened ? T.ivOpened : T.ivNotYet)}</span>
+              <div style={{ marginTop: "12px", width: "100%", boxSizing: "border-box", display: "flex", alignItems: "center", gap: "8px", padding: "6px 6px 6px 14px", borderRadius: "14px", background: "rgba(255,252,244,.9)", boxShadow: "inset 0 0 0 1px #E5DCCB" }}>
+                <input readOnly value={v.cmpLink.url} onFocus={(e) => e.currentTarget.select()} aria-label={T.ivCopy}
+                  style={{ flex: "1", minWidth: "0", border: "none", outline: "none", background: "transparent", fontFamily: "ui-monospace,'SF Mono',Menlo,monospace", fontSize: "12px", color: MUTED, textOverflow: "ellipsis" }} />
+                <span onClick={v.cmpLink.copy} role="button" className="dc-hover-2" style={{ flex: "none", padding: "8px 12px", borderRadius: "10px", background: v.cmpLink.copied ? "rgba(46,116,88,.12)" : "#fff", boxShadow: "0 1px 2px rgba(60,40,20,.1)", fontWeight: 700, fontSize: "12.5px", color: v.cmpLink.copied ? "#2E7458" : INK, cursor: "pointer", whiteSpace: "nowrap" }}>{I(v.cmpLink.copied ? T.ivCopied : T.ivCopy)}</span>
+              </div>
+              {v.cmpLink.canShare ? (
+                <div className="dc-hover-8" onClick={v.cmpLink.share} role="button" style={{ ...cta, marginTop: "14px", width: "100%", background: "#22304A", boxShadow: "0 10px 22px rgba(34,48,74,.2)" }}><span style={ctaText}>{I(T.ivShare)}</span></div>
+              ) : null}
+              <span style={{ marginTop: "12px", fontWeight: 400, fontSize: "12px", lineHeight: "17px", color: "#7A8091", textAlign: "center", maxWidth: "320px" }}>{I(T.ivPublicNote)}</span>
+              <div style={{ marginTop: "6px", display: "flex", gap: "6px", justifyContent: "center" }}>
+                <span onClick={v.cmpLink.done} role="button" style={{ ...linkBtn, fontWeight: 700, color: INK }}>{I(T.ivDone)}</span>
+                <span onClick={v.cmpLink.cancel} role="button" style={linkBtn}>{I(T.ivCancel)}</span>
+              </div>
             </>
           ) : null}
         </div>

@@ -239,7 +239,7 @@ export function buildStory(root: HTMLElement, L: Layout, G: Story, gs: StoryGlob
   gsap.set('.ob-env-flapup', { transformOrigin: `50% ${SPOTS.fold * 100}%`, transformPerspective: 700, rotationX: 0 });
   gsap.set('.ob-env-flapdown', { transformOrigin: `50% ${SPOTS.fold * 100}%`, transformPerspective: 700, rotationX: 90 });
   gsap.set('.ob-env-back', { clipPath: 'inset(0% 0% 0% 0%)' });
-  gsap.set(env, { transformOrigin: '50% 50%', opacity: 1, x: 0, y: 0, scale: 1, rotation: 0 });
+  gsap.set(env, { transformOrigin: '50% 100%', opacity: 1, x: 0, y: 0, scale: 1, rotation: 0 });
   gsap.set('.ob-globe', { opacity: 0, y: L.H * 0.45, scale: 0.9 });
   gsap.set(bird, { x: -G.bw * 0.7 - G.letter.x, y: G.P0.y - G.letter.y, xPercent: -50, yPercent: -50, opacity: 0, rotation: 0, scale: 1 });
   gsap.set([...friends, ...gsap.utils.toArray<HTMLElement>('.ob-local')], { scale: 0, opacity: 0 });
@@ -268,11 +268,16 @@ export function buildStory(root: HTMLElement, L: Layout, G: Story, gs: StoryGlob
     if (i) tl.to(steps[i - 1], { opacity: 0, y: -6, duration: 0.3, ease: 'power2.in' }, at).to(dots[i - 1], { width: 6, backgroundColor: dotOff, duration: 0.4 }, at);
     tl.to(steps[i], { opacity: 1, y: 0, duration: 0.55, ease: 'power3.out' }, `${at}+=0.2`).to(dots[i], { width: 18, backgroundColor: dotOn, duration: 0.45, ease: 'back.out(2)' }, at);
   };
-  /** a paper goes into the envelope: shrink above it, slide down inside, the envelope gives a little */
+  /** a paper goes into the envelope, as by hand: it straightens and shrinks to fit as it lines up over the opening,
+   *  slips down into the pocket (quicker as it goes, the two moves running into each other), lands a touch deep and
+   *  settles; the envelope takes it — a little dip and give, papers and all — and springs back */
   const putIn = (el: HTMLElement, p: typeof G.photo, at: string) => tl
-    .to(el, { scale: p.s, rotation: 0, y: p.above, duration: T.shrink, ease: 'power3.out' }, at)
-    .to(el, { y: p.inside, duration: T.insert, ease: 'power2.inOut' })
-    .to(['.ob-env-back', '.ob-env-front'], { y: 4, duration: 0.2, ease: 'power2.out', yoyo: true, repeat: 1 }, '>-0.25');
+    .to(el, { scale: p.s, rotation: 0, y: p.above, duration: T.shrink, ease: 'power2.inOut' }, at)
+    .to(el, { y: p.inside + 5, duration: T.insert, ease: 'power2.in' }, '>-0.12')
+    .addLabel('landed')
+    .to(el, { y: p.inside, duration: 0.3, ease: 'power2.out' }, 'landed')
+    .to(env, { y: 4, scaleY: 0.975, scaleX: 1.012, duration: 0.12, ease: 'power2.out' }, 'landed')
+    .to(env, { y: 0, scaleY: 1, scaleX: 1, duration: 0.55, ease: 'elastic.out(1, 0.55)' }, 'landed+=0.12');
   /** a friend pops up on the globe, with a little bounce; a link draws in between two friends */
   const meet = (i: number, at: number) => tl.to(friends[i], { scale: 1, opacity: 1, duration: 0.55, ease: 'back.out(2.2)' }, at);
   const link = (i: number, at: number) => tl.to(links[i], { '--on': 1, duration: 0.6, ease: 'power2.out' }, at);
@@ -312,13 +317,13 @@ export function buildStory(root: HTMLElement, L: Layout, G: Story, gs: StoryGlob
     .to('.ob-note-from', { opacity: 1, duration: 0.3, ease: 'none' }, '>+=0.1');
   putIn(note, G.note, '>+=0.3');
   tl.set('.ob-env-back', { clipPath: `inset(${SPOTS.fold * 100}% 0% 0% 0%)` }, '>').set('.ob-env-flapup', { opacity: 1, rotationX: 0 }, '<')
-    .to('.ob-env-flapup', { rotationX: 90, duration: T.flapUp, ease: 'power2.in' })
+    .to('.ob-env-flapup', { rotationX: 90, duration: T.flapUp, ease: 'sine.in' })
     .set('.ob-env-flapup', { opacity: 0 }).set('.ob-env-flapdown', { opacity: 1, rotationX: 90 }, '<')
-    .to('.ob-env-flapdown', { rotationX: 179.5, duration: T.flapDown, ease: 'power2.out' })
-    .to('.ob-env-closed', { opacity: 1, duration: 0.16, ease: 'none' }, '>-0.05')
-    .set(['.ob-env-back', '.ob-env-front', '.ob-env-flapdown', photo, note], { opacity: 0 })
-    .to(env, { scaleX: 1.05, scaleY: 0.93, duration: 0.12, ease: 'power2.in' })
-    .to(env, { scaleX: 1, scaleY: 1, duration: T.squash, ease: 'elastic.out(1, 0.4)' })
+    .to('.ob-env-flapdown', { rotationX: 179.5, duration: T.flapDown, ease: 'power3.out' })
+    .to('.ob-env-closed', { opacity: 1, duration: 0.22, ease: 'sine.inOut' }, '>-0.14')
+    .to(['.ob-env-back', '.ob-env-front', '.ob-env-flapdown', photo, note], { opacity: 0, duration: 0.22, ease: 'sine.inOut' }, '<')
+    .to(env, { scaleX: 1.03, scaleY: 0.955, y: 2, duration: 0.13, ease: 'power2.out' }, '<+=0.06')
+    .to(env, { scaleX: 1, scaleY: 1, y: 0, duration: T.squash, ease: 'elastic.out(1, 0.5)' })
 
   // ========== 3 · Send a letter to a cat lover abroad! — the bird takes it across the world
     .addLabel('s4', '>-0.4');

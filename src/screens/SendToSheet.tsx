@@ -45,7 +45,7 @@ export default function SendToSheet({ v }: { v: Vals }) {
                     {I(p?.name)}
                   </span>
                   <span style={{ fontWeight: "500", fontSize: "12px", lineHeight: "18px", color: "#746e63" }}>
-                    {I(p?.flag)}{" "}{I(p?.city)}{" · "}{I(p?.dist)}
+                    {I(p?.flag)}{" "}{I(p?.city)}{p?.dist ? " · " : ""}{I(p?.dist)}
                   </span>
                 </div>
               </div>

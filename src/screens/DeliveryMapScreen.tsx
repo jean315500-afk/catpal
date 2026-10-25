@@ -43,7 +43,7 @@ function SpinTo({ pool, final, onLand }: { pool: string[]; final: string; onLand
 export default function DeliveryMapScreen({ v }: { v: Vals }) {
   // the distance shows once the "To" has stopped on their country (for each letter)
   const [landedKey, setLandedKey] = useState<number | null>(null);
-  const landed = landedKey === v.flightKey;
+  const landed = landedKey === v.flightKey || (!!v.dmKnown && !!v.dRouteTo);
   return (
     <>
     {v.sDeliveryMap ? (
@@ -60,15 +60,32 @@ export default function DeliveryMapScreen({ v }: { v: Vals }) {
             </div>
           ) : <LetterFlight key={v.flightKey} from={v.flightFrom} to={v.flightTo || null} fromLabel={v.flightFromLabel} toLabel={v.flightToLabel} />) : null}
           {" "}
-          <span style={{ position: "absolute", left: "20px", right: "20px", top: "52px", textAlign: "center", fontWeight: 700, fontSize: "var(--fs-h2)", color: "#22304A", fontFamily: "var(--font-heading)", letterSpacing: "var(--ls-heading)", lineHeight: "var(--lh-heading)" }}>
+          {!v.dmNoPal ? <span style={{ position: "absolute", left: "20px", right: "20px", top: "52px", textAlign: "center", fontWeight: 700, fontSize: "var(--fs-h2)", color: "#22304A", fontFamily: "var(--font-heading)", letterSpacing: "var(--ls-heading)", lineHeight: "var(--lh-heading)" }}>
             {I(v.dmTitle)}
-          </span>
+          </span> : null}
+          {/* no one to send to yet: nothing was sent. The globe stays over your country, the letter waiting on it; it can
+              go to a friend by link, or wait for later — kept as it is */}
+          {v.dmNoPal ? (
+            <div role="dialog" aria-label={v.dmNoPalT?.npTitle} style={{ position: "absolute", left: "22px", right: "22px", bottom: "34px", maxWidth: "380px", margin: "0 auto", boxSizing: "border-box", padding: "20px 20px 14px", borderRadius: "24px", background: "rgba(255,255,255,.95)", boxShadow: "0 12px 30px rgba(34,48,74,.14)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) both" }}>
+              <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "var(--fs-title)", lineHeight: "24px", letterSpacing: "var(--ls-heading)", color: "#22304A" }}>{I(v.dmNoPalT?.npTitle)}</span>
+              <span style={{ marginTop: "6px", fontWeight: 400, fontSize: "var(--fs-caption)", lineHeight: "20px", color: "#4C5562", maxWidth: "290px" }}>{I(v.dmNoPalT?.npDesc)}</span>
+              <div className="dc-hover-8" onClick={v.npInvite} role="button" style={{ marginTop: "16px", width: "100%", height: "50px", borderRadius: "25px", background: "#22304A", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 10px 22px rgba(34,48,74,.2)", transition: "transform .15s ease" }}>
+                <span style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "var(--fs-button)", color: "#fff" }}>{I(v.dmNoPalT?.npInvite)}</span>
+              </div>
+              <span onClick={v.npSave} role="button" style={{ marginTop: "6px", padding: "8px 12px", fontWeight: 500, fontSize: "var(--fs-caption)", color: "#5E6A80", textDecoration: "underline", textUnderlineOffset: "3px", cursor: "pointer" }}>{I(v.dmNoPalT?.npSave)}</span>
+            </div>
+          ) : null}
           {/* where it's going: from your country to theirs, how far, and how far along — the running cat (tap to go on once it has landed) */}
-          <div className="dc-hover-6" onClick={v.tapDeliveryCard} role="button" aria-label={v.dRouteFrom + " → " + v.dRouteTo}
+          {!v.dmNoPal ? <div className="dc-hover-6" onClick={v.tapDeliveryCard} role="button" aria-label={v.dRouteFrom + " → " + v.dRouteTo}
             style={{ position: "absolute", left: "22px", right: "22px", bottom: "34px", maxWidth: "380px", margin: "0 auto", boxSizing: "border-box", padding: "16px 20px 18px", borderRadius: "24px", background: "rgba(255,255,255,.95)", boxShadow: "0 12px 30px rgba(34,48,74,.14)", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px", cursor: "pointer", transition: "transform .2s ease", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) .2s both" }}>
             <div style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "2px" }}>
               <span style={{ fontWeight: 500, fontSize: "12px", color: "#8E8A84" }}>{I(v.dmFrom)}</span>
-              <span style={{ fontWeight: 700, fontSize: "15px", lineHeight: "19px", color: "#22304A" }}>{I(v.dRouteFrom)}</span>
+              {v.dmKnown ? (
+                <>
+                  <span style={{ fontWeight: 700, fontSize: "15px", lineHeight: "19px", color: "#22304A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(v.dmKnown.from)}</span>
+                  <span style={{ fontWeight: 500, fontSize: "12px", lineHeight: "16px", color: "#5E6A80", whiteSpace: "nowrap" }}>{I(v.dRouteFrom)}</span>
+                </>
+              ) : <span style={{ fontWeight: 700, fontSize: "15px", lineHeight: "19px", color: "#22304A" }}>{I(v.dRouteFrom)}</span>}
             </div>
             {/* the whole way, in km, over the arrow */}
             <div style={{ flex: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
@@ -79,7 +96,13 @@ export default function DeliveryMapScreen({ v }: { v: Vals }) {
             </div>
             <div style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "2px", textAlign: "right" }}>
               <span style={{ fontWeight: 500, fontSize: "12px", color: "#8E8A84" }}>{I(v.dmTo)}</span>
-              <SpinTo key={v.flightKey} pool={v.dmSpinPool || []} final={v.dRouteTo || ""} onLand={() => setLandedKey(v.flightKey)} />
+              {v.dmKnown ? (
+                /* chosen: who and where, from the start */
+                <>
+                  <span style={{ fontWeight: 700, fontSize: "15px", lineHeight: "19px", color: "#22304A", maxWidth: "100%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(v.dmKnown.name)}</span>
+                  <span style={{ fontWeight: 500, fontSize: "12px", lineHeight: "16px", color: "#5E6A80", whiteSpace: "nowrap" }}>{I(v.dmKnown.place)}</span>
+                </>
+              ) : <SpinTo key={v.flightKey} pool={v.dmSpinPool || []} final={v.dRouteTo || ""} onLand={() => setLandedKey(v.flightKey)} />}
             </div>
             {/* how far along it is (the whole flight, ~7 s): the cat runs along the bar as it fills; while a cat pal is
                 still being found, the cat runs back and forth along an empty bar (it starts over when the flight does) */}
@@ -91,7 +114,7 @@ export default function DeliveryMapScreen({ v }: { v: Vals }) {
                 <img src="./assets/cat-run.gif" alt="" className="cp-cathop" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
               </div>
             </div>
-          </div>
+          </div> : null}
         </div>
       </>
     ) : null}

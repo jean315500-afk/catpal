@@ -137,6 +137,17 @@ export async function openThread(uid: string, moment: { id: string; user_id: str
   return data.id;
 }
 
+/** Everyone who can get a letter: anyone with a profile (made with their first letter), newest first. Their nickname
+ *  and country only — profiles are readable to signed-in people already. */
+export async function listPeople(limit = 500): Promise<Profile[]> {
+  return must(await supabase.from('profiles').select('id, nickname, country').order('created_at', { ascending: false }).limit(limit)) || [];
+}
+
+/** A thread with someone, not about any moment (a cat pal found among everyone who writes). */
+export async function openDirectThread(uid: string, other: string): Promise<string> {
+  return must(await supabase.from('threads').insert({ moment_id: null, starter_id: uid, owner_id: other }).select('id').single()).id;
+}
+
 export async function sendLetter(uid: string, threadId: string, body: string | null, photo: Blob | null, stamp: number) {
   let photo_path: string | null = null;
   if (photo) {
@@ -150,13 +161,68 @@ export async function markThreadRead(threadId: string) {
   must(await supabase.rpc('mark_thread_read', { t: threadId }));
 }
 
-/** Signed URLs (1 h) for private letter photos. */
+/** Signed URLs (1 h) for private letter photos. A letter that came by an invite link keeps its invite's photo
+ *  ('invites:<path>', a public file at a random path). */
 export async function letterPhotoUrls(paths: string[]): Promise<Record<string, string>> {
-  if (!paths.length) return {};
-  const rows = must(await supabase.storage.from('letters').createSignedUrls(paths, 3600)) || [];
   const out: Record<string, string> = {};
+  for (const p of paths) if (p.startsWith(INVITE_PREFIX)) out[p] = invitePhotoUrl(p.slice(INVITE_PREFIX.length));
+  const own = paths.filter((p) => !p.startsWith(INVITE_PREFIX));
+  if (!own.length) return out;
+  const rows = must(await supabase.storage.from('letters').createSignedUrls(own, 3600)) || [];
   for (const r of rows as any[]) if (r.signedUrl && r.path) out[r.path] = r.signedUrl;
   return out;
+}
+
+// ---------------------------------------------------------------- invites (a letter to a friend, by link)
+// supabase/fix-2026-10-22-letter-invites.sql. A link is only a link until the friend writes back (claim_invite): then
+// it becomes a real thread with the letter in it — the only point at which anything counts as delivered.
+
+const INVITE_PREFIX = 'invites:';
+export const invitePhotoUrl = (path: string) => supabase.storage.from('invites').getPublicUrl(path).data.publicUrl;
+export type Invite = {
+  id: string; token: string; body: string | null; photo_path: string | null; stamp: number; sign: string | null; cat_kind: Category;
+  created_at: string; expires_at: string; opened_at: string | null; revoked_at: string | null; claimed_at: string | null; thread_id: string | null;
+};
+export type InviteRead = {
+  status: 'ok' | 'claimed' | 'revoked' | 'expired' | 'missing'; sender_nickname: string | null; sender_country: string | null; body: string | null;
+  photo_path: string | null; stamp: number | null; sign: string | null; cat_kind: Category | null; created_at: string | null;
+  mine: boolean; claimed_by_me: boolean; thread_id: string | null;
+};
+
+/** One invite per draft (`clientId`): a second call for the same draft returns the same link. */
+export async function createInvite(uid: string, clientId: string, input: { body: string | null; stamp: number; sign: string; kind: Category }, photo: Blob | null) {
+  let path: string | null = null;
+  if (photo) {
+    path = `${uid}/${crypto.randomUUID()}.jpg`;
+    must(await supabase.storage.from('invites').upload(path, photo, { contentType: 'image/jpeg', upsert: false }));
+  }
+  const { data, error } = await supabase.rpc('create_invite', { p_client_id: clientId, p_body: input.body, p_photo_path: path, p_stamp: input.stamp, p_sign: input.sign, p_kind: input.kind });
+  const row = Array.isArray(data) ? data[0] : data;
+  if (error || !row) { if (path) await supabase.storage.from('invites').remove([path]); throw error || new Error('Could not make the link.'); }
+  // the same draft sent before: its first photo is the one kept
+  if (path && row.photo_path && row.photo_path !== path) await supabase.storage.from('invites').remove([path]);
+  return row as { id: string; token: string; expires_at: string; photo_path: string | null };
+}
+
+/** Anyone with the link can read it (no sign-in needed). */
+export async function readInvite(token: string): Promise<InviteRead> {
+  const data = must(await supabase.rpc('read_invite', { p_token: token }));
+  return (Array.isArray(data) ? data[0] : data) as InviteRead;
+}
+
+/** Writing back to an invite: the thread with the letter in it (made once; the same one again after that). */
+export async function claimInvite(token: string): Promise<string> {
+  return must(await supabase.rpc('claim_invite', { p_token: token })) as string;
+}
+
+export async function myInvites(uid: string): Promise<Invite[]> {
+  return must(await supabase.from('letter_invites').select('id, token, body, photo_path, stamp, sign, cat_kind, created_at, expires_at, opened_at, revoked_at, claimed_at, thread_id')
+    .eq('sender_id', uid).order('created_at', { ascending: false }).limit(50)) as any || [];
+}
+
+export async function revokeInvite(inv: { id: string; photo_path: string | null }) {
+  must(await supabase.rpc('revoke_invite', { p_id: inv.id }));
+  if (inv.photo_path) await supabase.storage.from('invites').remove([inv.photo_path]);
 }
 
 // ---------------------------------------------------------------- explore (public feed)
@@ -210,4 +276,30 @@ export async function getShowAsRecipient(uid: string): Promise<boolean | null> {
 
 export async function setShowAsRecipient(uid: string, on: boolean) {
   must(await supabase.from('profiles').update({ show_as_recipient: on }).eq('id', uid));
+}
+
+// ---------------------------------------------------------------- pal invites (a personal link: "be my cat pal")
+// supabase/fix-2026-10-24-pal-invites.sql. Sharing the link connects nobody; accepting does (once), and the two get a
+// thread (no letters yet) — in each other's CatPals — as soon as both have a profile.
+
+export type PalInviteRead = { status: 'ok' | 'mine' | 'missing'; inviter_id: string | null; ready: boolean; nickname: string | null; country: string | null; photo_path: string | null; linked: boolean };
+
+export async function myPalInvite(): Promise<string> {
+  return must(await supabase.rpc('my_pal_invite')) as string;
+}
+export async function readPalInvite(token: string): Promise<PalInviteRead> {
+  const data = must(await supabase.rpc('read_pal_invite', { p_token: token }));
+  return (Array.isArray(data) ? data[0] : data) as PalInviteRead;
+}
+/** the thread made with them, if both have a profile already (else null: it's made later, by linkMyPals) */
+export async function acceptPalInvite(token: string): Promise<string | null> {
+  return (must(await supabase.rpc('accept_pal_invite', { p_token: token })) as string | null) || null;
+}
+export async function linkMyPals(): Promise<number> {
+  return (must(await supabase.rpc('link_my_pals')) as number) || 0;
+}
+/** the threads that are cat pal links (so an empty one still shows in CatPals) */
+export async function myPalThreads(): Promise<string[]> {
+  const rows = must(await supabase.from('pal_links').select('thread_id').not('thread_id', 'is', null)) || [];
+  return (rows as any[]).map((r) => r.thread_id);
 }

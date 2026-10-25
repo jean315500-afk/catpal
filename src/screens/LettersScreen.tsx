@@ -1,4 +1,5 @@
-// LETTERS (thread) — converted from the Claude Design prototype (Cat Pal v6.dc.html).
+// LETTERS (thread) — converted from the Claude Design prototype (Cat Pal v6.dc.html). The letters with one cat pal;
+// writing more is the usual letter paper (ComposeScreen, in reply), opened from the button at the bottom.
 import { css, each, I, R } from '../dc/runtime';
 import type { Vals } from '../dc/runtime';
 
@@ -14,11 +15,11 @@ export default function LettersScreen({ v }: { v: Vals }) {
                 {I(v.t?.lettersWith)}
               </span>
               <span style={{ fontWeight: "500", fontSize: "12px", lineHeight: "18px", color: "#a89f8d" }}>
-                {I(v.lPal?.city)}{" "}{I(v.lPal?.flag)}{" · "}{I(v.lPal?.dist)}{" · "}{I(v.t?.letterCount)}
+                {I(v.lPal?.city)}{" "}{I(v.lPal?.flag)}{v.lPal?.dist ? " · " : ""}{I(v.lPal?.dist)}{" · "}{I(v.t?.letterCount)}
               </span>
             </div>
           </div>
-          <div ref={v.threadRef} style={{ position: "absolute", left: "0", right: "0", top: "112px", bottom: "262px", overflowY: "auto", padding: "10px 25px 20px", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: "16px", scrollbarWidth: "none" }}>
+          <div ref={v.threadRef} style={{ position: "absolute", left: "0", right: "0", top: "112px", bottom: "150px", overflowY: "auto", padding: "10px 25px 20px", boxSizing: "border-box", display: "flex", flexDirection: "column", gap: "16px", scrollbarWidth: "none" }}>
             {v.lMoment ? (
               <div style={{ flex: "none", alignSelf: "center", display: "flex", alignItems: "center", gap: "12px", padding: "10px 14px 10px 10px", borderRadius: "14px", background: "#F6F6F6", maxWidth: "100%", boxSizing: "border-box" }}>
                 <div style={css(`flex:none;width:44px;height:52px;background:url(${R(v.lMoment.photo)}) center / cover no-repeat;box-shadow:0 0 0 3px #FEFEFE,0 1px 3px #cecece;transform:rotate(-3deg)`)} />
@@ -80,57 +81,16 @@ export default function LettersScreen({ v }: { v: Vals }) {
               </>
             ) : null}
           </div>
-          <div style={{ position: "absolute", left: "25px", right: "25px", bottom: "40px", height: "210px", background: "#F9F4EB", padding: "16px 18px", boxSizing: "border-box", boxShadow: "0 -2px 14px rgba(0,0,0,.06)", display: "flex", flexDirection: "column" }}>
-            <div style={{ position: "relative", display: "flex", justifyContent: "space-between", alignItems: "flex-start", minHeight: "14px" }}>
-              <span style={{ fontWeight: "700", fontSize: "9px", letterSpacing: ".1em", color: "#a89f8d" }}>
-                {I(v.t?.toUpper)}
-              </span>
-              <div className="dc-hover-5" onClick={v.nextStamp} role="button" aria-label="stamp" title={v.t?.tapStamp} style={css(`position:absolute;right:-4px;top:-6px;width:30px;height:40px;background:url(${R(v.draftStamp)}) center / contain no-repeat;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18));cursor:pointer;transition:transform .15s ease`)} />
-            </div>
-            <textarea value={v.draft ?? ""} onChange={v.setDraft} placeholder={v.t?.draftHint} maxLength={500} style={{ flex: "1", marginTop: "6px", border: "none", outline: "none", background: "transparent", resize: "none", fontWeight: "500", fontSize: "16px", lineHeight: "23px", color: "#22304A", padding: "0" }} />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
-              {v.noDraftPhoto ? (
-                <>
-                  <div className="dc-hover-9" onClick={v.pickReplyPhoto} style={{ flex: "none", height: "36px", padding: "0 14px", borderRadius: "18px", background: "#fff", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", transition: "background .15s ease", boxShadow: "0 1px 2px rgba(0,0,0,.06)" }}>
-                    <span style={{ fontSize: "var(--fs-caption)" }}>
-                      📷
-                    </span>
-                    <span style={{ fontWeight: 500, fontSize: "var(--fs-caption-sm)", whiteSpace: "nowrap" }}>
-                      {I(v.t?.photoShort)}
-                    </span>
-                  </div>
-                </>
-              ) : null}
-              {v.hasDraftPhoto ? (
-                <>
-                  <div style={css(`flex:none;position:relative;width:52px;height:52px;background:url(${R(v.draftPhoto)}) center / cover no-repeat;box-shadow:0 0 0 3px #FEFEFE,0 1px 3px #cecece`)}>
-                    <div onClick={v.clearReplyPhoto} role="button" aria-label="remove photo" style={{ position: "absolute", right: "-8px", top: "-8px", width: "20px", height: "20px", borderRadius: "50%", background: "#22304A", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                      <span style={{ fontSize: "11px", lineHeight: "1", color: "#fff" }}>
-                        ✕
-                      </span>
-                    </div>
-                  </div>
-                </>
-              ) : null}
-              {v.hasDraftPhoto ? (
-                <div onClick={v.toggleDraftPublic} role="switch" aria-checked={!!v.draftPublic} title={v.t?.xShareHint}
-                  style={css(`flex:none;height:34px;padding:0 10px 0 6px;border-radius:17px;display:flex;align-items:center;gap:6px;cursor:pointer;background:${v.draftPublic ? "#22304A" : "#fff"};box-shadow:0 1px 2px rgba(0,0,0,.06);transition:background .15s ease`)}>
-                  <span style={css(`width:26px;height:16px;border-radius:8px;position:relative;background:${v.draftPublic ? "#E5483D" : "#D9D3C8"};transition:background .15s ease`)}>
-                    <span style={css(`position:absolute;top:2px;left:${v.draftPublic ? "12px" : "2px"};width:12px;height:12px;border-radius:6px;background:#fff;transition:left .15s ease`)} />
-                  </span>
-                  <span style={css(`font-weight:700;font-size:11.5px;white-space:nowrap;color:${v.draftPublic ? "#fff" : "#4A443D"}`)}>{"🌍 "}{I(v.t?.xShare)}</span>
-                </div>
-              ) : null}
-              {v.sendErr ? (
-                <span style={{ flex: "1", minWidth: "0", fontWeight: "500", fontSize: "11px", lineHeight: "15px", color: "#FF4800" }}>{I(v.sendErr)}</span>
-              ) : null}
-              <div className="dc-hover-4" onClick={v.sendLetter} style={css(`flex:none;height:48px;padding:0 22px;border-radius:26px;background:${R(v.sendBg)};display:flex;align-items:center;gap:8px;cursor:pointer;transition:transform .15s ease,background .15s ease`)}>
-                <span style={{ fontFamily: "var(--font-body)", fontWeight: "700", fontSize: "var(--fs-caption)", color: "#fff", whiteSpace: "nowrap" }}>
-                  {I(v.t?.reply)}
-                </span>
+          {/* writing here is the usual letter paper (the same as the first letter): one button to it */}
+          {v.lWrite ? (
+            <div style={{ position: "absolute", left: "25px", right: "25px", bottom: "40px", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+              <div className="dc-hover-8" onClick={v.lWrite.go} role="button" style={{ width: "100%", maxWidth: "340px", height: "54px", borderRadius: "27px", background: "#22304A", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", cursor: "pointer", boxShadow: "0 10px 22px rgba(34,48,74,.2)", transition: "transform .15s ease" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4.5 18.5c1.2-3.6 4-6.4 9.5-6.6V8.5L20 13l-6 4.6v-3.3c-3.9 0-6.9 1.3-9.5 4.2z" /></svg>
+                <span style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "var(--fs-button)", color: "#fff", whiteSpace: "nowrap" }}>{I(v.lWrite.label)}</span>
               </div>
+              <span style={{ fontWeight: 500, fontSize: "12px", color: "#7A8091" }}>{I(v.lWrite.sub)}</span>
             </div>
-          </div>
+          ) : null}
         </div>
       </>
     ) : null}

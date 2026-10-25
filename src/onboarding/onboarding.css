@@ -106,3 +106,6 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); 
 /* the sky, pinned to the screen (a fixed layer, since iOS ignores fixed backgrounds) */
 body::before { content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(rgba(255, 255, 255, .5), rgba(255, 255, 255, .5)), url('/assets/onboarding-preview/sky.webp') center / cover no-repeat; }   /* washed lighter so the paper stands out */
 #root { position: relative; z-index: 1; }
+
+/* Korean lines break between words, not inside one */
+.ob-page { word-break: keep-all; overflow-wrap: break-word; }

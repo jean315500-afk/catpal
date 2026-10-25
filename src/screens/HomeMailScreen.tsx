@@ -62,7 +62,7 @@ export default function HomeMailScreen({ v }: { v: Vals }) {
               <span style={{ position: "absolute", right: "-8px", top: "2px", minWidth: "20px", height: "20px", padding: "0 5px", boxSizing: "border-box", borderRadius: "10px", background: RED, border: "2px solid #FBF5EA", color: "#fff", fontWeight: 700, fontSize: "11px", display: "flex", alignItems: "center", justifyContent: "center", animation: "cp-pop .4s cubic-bezier(.34,1.56,.64,1) 1.35s both", zIndex: 2 }}>{I(v.mbCount)}</span>
             ) : null}
           </div>
-          <span style={{ minWidth: "0", fontWeight: 700, fontSize: "var(--fs-caption)", lineHeight: "18px", color: v.mbHasNew ? RED : "#6F6A63", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(v.mbTitle)}</span>
+          <span style={{ minWidth: "0", fontWeight: 700, fontSize: "var(--fs-caption)", lineHeight: "18px", color: v.mbHasNew ? RED : v.mbTurn ? "var(--hand-ink)" : "#6F6A63", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(v.mbTitle)}</span>
           <span aria-hidden="true" style={{ flex: "none", fontSize: "16px", color: "#C6BBA8" }}>›</span>
         </div>
 
@@ -77,7 +77,7 @@ export default function HomeMailScreen({ v }: { v: Vals }) {
               <div className="cp-env-letter" style={{ position: "absolute", left: "50%", top: LETTER.top + "px", width: LETTER.w + "px", height: LETTER.h + "px", zIndex: 2, backgroundColor: "#FFFCF4", boxSizing: "border-box", padding: "12px 14px",
                 borderRadius: "3px",
                 boxShadow: "0 1px 2px rgba(60,40,20,.12), 0 6px 14px rgba(60,40,20,.12)", transform: "translateX(-50%) rotate(-1.5deg)", animation: opening ? "cp-env-letter .6s cubic-bezier(.3,1.2,.5,1) both" : undefined }}>
-                <span className="cp-letter-i" style={{ display: "block", fontSize: "19px", lineHeight: "26px", color: "#2F3B57", whiteSpace: "nowrap" }}>{I(v.hmLetterTo)}</span>
+                <span className="cp-letter-i" style={{ display: "block", fontSize: "19px", lineHeight: "26px", color: "#2F3B57", whiteSpace: "nowrap" }}>{I(v.hmLetterToName || v.hmLetterTo)}</span>
                 <span className="cp-letter" style={{ display: "block", paddingRight: "76px", minHeight: "80px", fontSize: "15px", lineHeight: "20px", color: "#4A5470", backgroundImage: "repeating-linear-gradient(to bottom, transparent 0 19px, rgba(47,59,87,.14) 19px 20px)" }}>{I(v.hmLetterLine)}</span>
                 <div style={{ position: "absolute", right: "8px", top: "32px", width: "60px", background: "#fff", padding: "4px 4px 9px", boxShadow: "0 2px 6px rgba(40,25,20,.2)", transform: "rotate(5deg)" }}>
                   <img src={photo} alt="" draggable={false} style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }} />
@@ -91,9 +91,11 @@ export default function HomeMailScreen({ v }: { v: Vals }) {
 
           <h1 className="cp-h1 cp-arr-head" style={{ margin: "26px 0 0", color: INK, textAlign: "center", textWrap: "balance", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) .12s both" } as any}>{I(v.hmHead)}</h1>
           <p className="cp-arr-sub" style={{ margin: "8px 0 0", fontWeight: 400, fontSize: "var(--fs-body)", lineHeight: "var(--lh-body)", color: "#5E6A80", textAlign: "center", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) .16s both" }}>{I(v.hmSub)}</p>
-          <div className="dc-hover-8 cp-arr-cta" onClick={send} role="button" style={{ ...ctaBtn, alignSelf: "stretch", maxWidth: "340px", width: "100%", margin: "22px auto 0", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) .2s both" }}>
+          {/* your turn with a cat pal: the button writes back to them (in the envelope's red); a new cat pal is a link below */}
+          <div className="dc-hover-8 cp-arr-cta" onClick={send} role="button" style={{ ...ctaBtn, alignSelf: "stretch", maxWidth: "340px", width: "100%", margin: "22px auto 0", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) .2s both", ...(v.hmTurn ? { background: "#22304A", boxShadow: "0 10px 22px rgba(34,48,74,.2)" } : {}) }}>
             <span style={btnText}>{I(v.hmCta)}</span>
           </div>
+          {v.hmTurn ? <span onClick={v.hmNewPalGo} role="button" style={{ marginTop: "10px", padding: "6px 12px", fontWeight: 500, fontSize: "var(--fs-caption)", color: "#5E6A80", textDecoration: "underline", textUnderlineOffset: "3px", cursor: "pointer" }}>{I(v.hmNewPal)}</span> : null}
         </div>
       </div>
     </div>
@@ -117,7 +119,7 @@ export default function HomeMailScreen({ v }: { v: Vals }) {
                   <span className="cp-hand cp-clamp3" style={{ marginTop: "4px", fontSize: "19px", lineHeight: "22px", color: "#3E3A35" }}>{"“"}{I(v.palCard.caption)}{"”"}</span>
                 </div>
               </div>
-              <div className="dc-hover-8" onClick={v.palWrite} role="button" style={{ ...ctaBtn, marginTop: "20px", background: RED, boxShadow: "0 10px 22px rgba(229,72,61,.28)" }}>
+              <div className="dc-hover-8" onClick={v.palWrite} role="button" style={{ ...ctaBtn, marginTop: "20px", background: "#22304A", boxShadow: "0 10px 22px rgba(34,48,74,.2)" }}>
                 <span aria-hidden="true" style={{ fontSize: "var(--fs-body)" }}>✉️</span>
                 <span style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "var(--fs-button)", color: "#fff" }}>{I(v.t?.mtWrite)}</span>
               </div>

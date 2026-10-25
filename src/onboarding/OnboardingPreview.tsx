@@ -3,10 +3,26 @@
 // line sit at the top with the progress dots; the CTA comes at the end. Reduced motion: the final frame.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import gsap from 'gsap';
-import { COPY, CTA_HREF, LAYOUTS } from './config';
+import { COPY, CTA_HREF, LANDING_LANG, LAYOUTS } from './config';
+import { saveLang } from '../community/lang';
 import { StoryStage, buildStory, geometry, globeStart, type StoryGlobe } from './story';
 
 const forceReduce = new URLSearchParams(location.search).has('reduce');
+/** the story has been seen: from now on the app opens straight on Home (see main.tsx) */
+const seen = () => { try { localStorage.setItem('cp-onboarded', '1'); } catch { /* private mode: it shows again next time */ } };
+/** someone who has watched it before (Replay is for them; a first-timer just sees Skip) */
+const seenBefore = (() => { try { return !!localStorage.getItem('cp-onboarded'); } catch { return false; } })();
+/** Skip: straight on to the app, the same hand-over as the story's own end (Home builds itself up on the sky) */
+const skip = (e?: { preventDefault: () => void }) => {
+  e?.preventDefault(); seen();
+  try { sessionStorage.setItem('cp-enter', 'globe'); } catch { /* private mode: no hand-over, just go */ }
+  document.querySelector('.ob-frame')?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 280, easing: 'ease-in', fill: 'forwards' });
+  setTimeout(() => { location.href = CTA_HREF; }, 260);
+};
+
+/** the other language (한국어 ⇄ English): kept for here and the app, and the story told again in it */
+const switchLang = () => { saveLang(LANDING_LANG === 'ko' ? 'en' : 'ko'); location.reload(); };
+try { document.documentElement.lang = LANDING_LANG; document.title = 'Cat Pal · ' + COPY.title; } catch { /* no document */ }
 
 const useMedia = (q: string) => {
   const [m, setM] = useState(() => matchMedia(q).matches);
@@ -52,6 +68,7 @@ export default function OnboardingPreview() {
    *  keeps turning slowly, the last words come up over it, then it sinks away below the screen; the app's home
    *  then fades in on the same sky (EnterFromOnboarding in App.tsx). */
   function leave(root: HTMLElement) {
+    seen();
     try { sessionStorage.setItem('cp-enter', 'globe'); } catch { /* private mode: no hand-over, just go */ }
     const go = () => { location.href = CTA_HREF; };
     const q = (sel: string) => [...root.querySelectorAll(sel)];
@@ -108,7 +125,7 @@ export default function OnboardingPreview() {
           {reduce ? (
             <div className="ob-final ob-final-center" style={box(s3.final.x, s3.final.y, mobile ? L.W * 0.86 : 460)}>
               <div className="ob-final-actions">
-                <a className="ob-btn ob-btn-ink" href={CTA_HREF} tabIndex={done ? 0 : -1}>{COPY.cta}</a>
+                <a className="ob-btn ob-btn-ink" href={CTA_HREF} onClick={seen} tabIndex={done ? 0 : -1}>{COPY.cta}</a>
               </div>
             </div>
           ) : null}
@@ -116,7 +133,9 @@ export default function OnboardingPreview() {
       </div>
       <div className="ob-topbar">
         {reduce ? <a className="ob-note-link" href={forceReduce ? './' : undefined}>Reduced motion{forceReduce ? ' · play full ›' : ' (system setting)'}</a> : null}
-        <button type="button" className="ob-btn ob-btn-small" onClick={() => setRun((n) => n + 1)}>{COPY.replay}</button>
+        <button type="button" className="ob-btn ob-btn-small" onClick={switchLang} lang={LANDING_LANG === 'ko' ? 'en' : 'ko'}>{COPY.other}</button>
+        {seenBefore ? <button type="button" className="ob-btn ob-btn-small" onClick={() => setRun((n) => n + 1)}>{COPY.replay}</button> : null}
+        {!done || !reduce ? <a className="ob-btn ob-btn-small" href={CTA_HREF} onClick={skip}>{COPY.skip}</a> : null}
       </div>
     </main>
   );

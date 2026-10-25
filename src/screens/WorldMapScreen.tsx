@@ -47,7 +47,7 @@ export default function WorldMapScreen({ v }: { v: Vals }) {
                         {I(p?.flag)}{" "}{I(p?.name)}
                       </span>
                       <span style={{ fontWeight: "500", fontSize: "11px", lineHeight: "16px", color: "#746e63", whiteSpace: "nowrap" }}>
-                        {I(p?.city)}{" · "}{I(p?.dist)}
+                        {I(p?.city)}{p?.dist ? " · " : ""}{I(p?.dist)}
                       </span>
                     </div>
                   </div>

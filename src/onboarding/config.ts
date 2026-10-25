@@ -3,6 +3,12 @@
 // mobile 390×844) that is scaled to fit the screen, so nothing here depends on the viewport.
 // x / y are object centres, w is the rendered width, r the resting rotation (deg).
 
+import { initialLang } from '../community/lang';
+
+/** the landing's language: the one picked before (here or in the app), else the browser's — Korean or English */
+export const LANDING_LANG = initialLang(['en', 'ko']) as 'en' | 'ko';
+const KO = LANDING_LANG === 'ko';
+
 const A = '/assets/onboarding-preview/';
 
 export const ASSETS = {
@@ -160,22 +166,46 @@ export const GLOBE_VIEW = { tilt: 22, preTurn: 0.05, lead: 0.22, trail: 60,
   bow: 24 };
 /** The two ends of the route, labelled on the globe (only these: the globe explains, it doesn't decorate). */
 export const PLACES = [
-  { name: 'South Korea', lon: 126.98, lat: 37.57, key: 'from' },
-  { name: 'United States', lon: -74.01, lat: 40.71, key: 'to' },
+  { name: KO ? '대한민국' : 'South Korea', lon: 126.98, lat: 37.57, key: 'from' },
+  { name: KO ? '미국' : 'United States', lon: -74.01, lat: 40.71, key: 'to' },
 ] as { name: string; lon: number; lat: number; key?: 'from' | 'to' }[];
+
+/** the words, in English and Korean — one message per step, what the service is, plainly, like a friend telling you.
+ *  Not "abroad only": a letter goes to a friend you know, or a random Cat Pal anywhere. */
+const WORDS = {
+  en: {
+    title: 'Share your cat’s day. Make a new friend.',
+    desc: 'Send cat photos and letters to friends you know or a random Cat Pal around the world.',
+    scenes: [
+      { title: 'Snap a photo of your cat.', line: 'Naps, zoomies, judgy looks — any moment works.' },
+      { title: 'Add a little note about their day.', line: 'A line or two is plenty. Then seal it up.' },
+      { title: 'Share your cat’s day. Make a new friend.', line: 'Send cat photos and letters to friends you know or a random Cat Pal around the world.' },
+      { title: 'Friends near and far!', line: 'Your cat is the perfect icebreaker.' },
+    ],
+    you: 'You 🇰🇷',
+    note: { to: 'Hey new friend,', body: 'This is Mochi. She says hi!', from: '— Mina, Seoul' },
+    outro: { lead: 'It’s not just pen pals.', brand: 'It’s Cat Pal.' },
+    cta: 'Say hi with your cat', replay: 'Replay', skip: 'Skip', other: '한국어',
+  },
+  ko: {
+    title: '고양이의 하루를 나누고, 새로운 친구를 만나요.',
+    desc: '아는 친구에게도, 세계 어딘가의 랜덤 친구에게도 고양이 사진과 편지를 보내보세요.',
+    scenes: [
+      { title: '고양이 사진을 찍어요.', line: '낮잠, 우다다, 째려보기 — 어떤 순간이든 좋아요.' },
+      { title: '오늘 하루를 짧게 적어요.', line: '한두 줄이면 충분해요. 그리고 봉투에 쏙.' },
+      { title: '고양이의 하루를 나누고, 새로운 친구를 만나요.', line: '아는 친구에게도, 세계 어딘가의 랜덤 친구에게도 고양이 사진과 편지를 보내보세요.' },
+      { title: '가까운 친구도, 먼 친구도!', line: '고양이가 첫인사를 대신해 줘요.' },
+    ],
+    you: '나 🇰🇷',
+    note: { to: '안녕, 새 친구!', body: '우리 모찌가 인사해요!', from: '— 서울에서, 미나' },
+    outro: { lead: '그냥 펜팔이 아니에요.', brand: '캣팔이에요.' },
+    cta: '고양이와 인사하기', replay: '다시 보기', skip: '건너뛰기', other: 'English',
+  },
+};
 
 /** The people in the story are examples (made-up names), each with their cat (an Unsplash photo id). */
 export const COPY = {
-  /** one message per step — what the service is, plainly, like a friend telling you */
-  scenes: [
-    { title: 'Snap a photo of your cat.', line: 'Naps, zoomies, judgy looks — any moment works.' },
-    { title: 'Add a little note about their day.', line: 'A line or two is plenty. Then seal it up.' },
-    { title: 'Send a letter to a cat lover abroad!', line: 'Your letter will find a new friend somewhere in the world.' },
-    { title: 'Make friends from other countries!', line: 'Your cat is the perfect icebreaker.' },
-  ],
-  you: 'You 🇰🇷',
-  /** the hello that goes in with your cat's photo (written out by hand) */
-  note: { to: 'Hey new friend,', body: 'This is Mochi. She says hi!', from: '— Mina, Seoul' },
+  ...WORDS[LANDING_LANG],
   /** the new friends, around the world — the first is where the letter lands; the last link comes back to you */
   friends: [
     { name: 'Tom', flag: '🇺🇸', id: 'photo-1561948955-570b270e7c36', lon: -74.01, lat: 40.71 },
@@ -200,9 +230,6 @@ export const COPY = {
   ],
   /** who is linked to whom (indexes into friends; 6 = you) — drawn as the world turns */
   links: [[6, 0], [0, 1], [0, 2], [2, 3], [2, 4], [4, 5], [5, 6]] as [number, number][],
-  /** the last words, over the globe's horizon at the very end */
-  outro: { lead: 'It’s not just pen pals.', brand: 'It’s Cat Pal.' },
-  cta: 'Say hi with your cat', replay: 'Replay',
 };
 
 /** Durations (s). The timeline reads everything from here. */
@@ -210,7 +237,7 @@ export const TIMING = {
   // 1 · your cat's photo is taken
   cameraIn: 0.6, focus: 0.6, shutter: 0.16, flash: 0.45, print: 0.6,
   // 2 · your cat's photo and a hello go in the envelope; the bird takes it to a new friend
-  envIn: 0.7, toPaper: 0.7, shrink: 0.4, insert: 0.65, noteIn: 0.5, perChar: 0.035, flapUp: 0.24, flapDown: 0.32, squash: 0.7,
+  envIn: 0.7, toPaper: 0.7, shrink: 0.45, insert: 0.42, noteIn: 0.55, perChar: 0.035, flapUp: 0.22, flapDown: 0.38, squash: 0.6,
   sceneIn: 0.9, toSeoul: 1.1,
   /** the bird: gliding in to Seoul, flying the route to New York, flying on out; one slow rise-and-fall */
   enter: 1.6, flight: 4.6, leave: 2.0, bob: 2.6,

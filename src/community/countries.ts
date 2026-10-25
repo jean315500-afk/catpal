@@ -60,7 +60,19 @@ export const countryOptions = (locale: string) =>
     .map(({ cc, name }) => ({ cc, label: flagOf(cc) + ' ' + name }));
 
 /** Best guess from the browser locale ("ko-KR" -> "KR"), else "". */
+/** time zones that name one country: a better guess than the language (a phone in Seoul set to English is still in Korea) */
+const TZ_COUNTRY: Record<string, string> = {
+  'Asia/Seoul': 'KR', 'Asia/Tokyo': 'JP', 'Asia/Taipei': 'TW', 'Asia/Shanghai': 'CN', 'Asia/Hong_Kong': 'HK', 'Asia/Singapore': 'SG',
+  'Asia/Bangkok': 'TH', 'Asia/Jakarta': 'ID', 'Asia/Makassar': 'ID', 'Asia/Manila': 'PH', 'Asia/Ho_Chi_Minh': 'VN', 'Asia/Kuala_Lumpur': 'MY',
+  'Asia/Kolkata': 'IN', 'Asia/Calcutta': 'IN', 'Asia/Dubai': 'AE', 'Europe/London': 'GB', 'Europe/Paris': 'FR', 'Europe/Berlin': 'DE',
+  'Europe/Rome': 'IT', 'Europe/Madrid': 'ES', 'Europe/Amsterdam': 'NL', 'Europe/Stockholm': 'SE', 'Europe/Istanbul': 'TR',
+  'Australia/Sydney': 'AU', 'Australia/Melbourne': 'AU', 'Australia/Brisbane': 'AU', 'Australia/Perth': 'AU', 'Pacific/Auckland': 'NZ',
+  'America/Toronto': 'CA', 'America/Vancouver': 'CA', 'America/Sao_Paulo': 'BR', 'America/Mexico_City': 'MX',
+  'America/New_York': 'US', 'America/Chicago': 'US', 'America/Denver': 'US', 'America/Los_Angeles': 'US', 'Pacific/Honolulu': 'US',
+};
+
 export function guessCountry() {
+  try { const tz = TZ_COUNTRY[Intl.DateTimeFormat().resolvedOptions().timeZone]; if (tz && COUNTRY_COORDS[tz]) return tz; } catch { /* no Intl: the language below */ }
   for (const l of navigator.languages || [navigator.language]) {
     const m = /-([A-Z]{2})\b/i.exec(l || '');
     if (m && COUNTRY_COORDS[m[1].toUpperCase()]) return m[1].toUpperCase();
@@ -71,7 +83,8 @@ export function guessCountry() {
 /** Great-circle distance between two countries' capitals, km (null if unknown). */
 export function distanceKm(a: string, b: string): number | null {
   const p = COUNTRY_COORDS[a], q = COUNTRY_COORDS[b];
-  if (!p || !q) return null;
+  // the same country: no distance to show (both are placed at its capital — "0 km" would say nothing)
+  if (!p || !q || a === b) return null;
   const r = Math.PI / 180, dLat = (q[1] - p[1]) * r, dLon = (q[0] - p[0]) * r;
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(p[1] * r) * Math.cos(q[1] * r) * Math.sin(dLon / 2) ** 2;
   return Math.round(6371 * 2 * Math.asin(Math.sqrt(h)));
@@ -88,6 +101,9 @@ const PM: Record<string, string> = {
 export const POSTMARK_FILES = Object.values(PM).map((p) => './assets/pm/' + p + '.png');
 /** the countries with a postmark of their own (the stamp book's pages) */
 export const POSTMARK_COUNTRIES = Object.keys(PM);
+/** each country's own stamp (one of the app's stamp designs): the same country, the same stamp, every time */
+const STAMP_OF: Record<string, number> = { KR: 1, JP: 2, FR: 3, US: 4, GB: 5, IT: 6, TW: 7, TH: 8, ID: 2, AU: 5, CA: 6, SG: 3 };
+export const stampOf = (cc: string) => './assets/stamp-' + (STAMP_OF[cc] ?? ((((cc || 'XX').charCodeAt(0) * 31 + (cc || 'XX').charCodeAt(1)) % 8) + 1)) + '.png';
 
 const pmCache: Record<string, string> = {};
 /** Postmark image URL for a country (blob: URL for generated ones; data: URLs break inline styles). */

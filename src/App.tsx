@@ -16,6 +16,8 @@ import LettersScreen from './screens/LettersScreen';
 import MailboxScreen from './screens/MailboxScreen';
 import WorldMapScreen from './screens/WorldMapScreen';
 import PassportScreen from './screens/PassportScreen';
+import InviteScreen from './screens/InviteScreen';
+import PalInviteScreen from './screens/PalInviteScreen';
 import BackButton from './screens/BackButton';
 import BottomNav from './screens/BottomNav';
 import PhotoSheet from './screens/PhotoSheet';
@@ -98,6 +100,8 @@ export default function App() {
             <MailboxScreen v={v} />
             <WorldMapScreen v={v} />
             <PassportScreen v={v} />
+            <InviteScreen v={v} />
+            <PalInviteScreen v={v} />
             <BackButton v={v} />
             <BottomNav v={v} />
             <PhotoSheet v={v} />
