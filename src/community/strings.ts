@@ -62,7 +62,7 @@ export const COMMUNITY_STRINGS: Record<string, Record<string, string>> = {
     // "start with a friend?" (after the story's Start) and a friend's cat pal link
     palTitle: 'Start with a friend?', palDesc: 'Invite a friend who loves cats to swap photos and letters.', palInvite: 'Invite a friend', palSkip: 'Skip and start',
     palMaking: 'Making your link…', palSent: 'Your link is on its way. When your friend accepts, you’ll find each other in CatPals.', palCopy: 'Copy link', palCopied: 'Copied!', palShare: 'Share', palStartGo: 'Start',
-    palShareText: 'Want to be cat pals? Let’s swap cat photos and letters!', palMissing: 'Friend invites will work after the Cat Pal database update.',
+    palShareTitle: 'Wanna be Cat Pals? 🐈💌', palShareText: 'Exchange cat photos and little letters with cat lovers around the world!', palShareButton: 'Join Cat Pal', palMissing: 'Friend invites will work after the Cat Pal database update.',
     palWho: '{name} invited you to be cat pals', palWhoAnon: 'A friend invited you to be cat pals', palAcceptGo: 'Accept the invite', palLater: 'Maybe later',
     palNoSignup: 'No forms — your cat’s name is asked with your first letter.', palGoneTitle: 'This invite can’t be opened', palGone: 'The link isn’t valid. Check that it was copied in full.',
     palMine: 'This is your own invite link — share it with a friend.', palAccepted: 'You and {name} are cat pals now!', palAcceptedAnon: 'You’re cat pals now!',
@@ -312,7 +312,7 @@ export const COMMUNITY_STRINGS: Record<string, Record<string, string>> = {
     mbSampleWrite: '샘플 편지예요 — 답장을 써 볼 수 있지만 보내지지는 않아요', cpReadAgain: '눌러서 {name}의 편지 다시 읽기', cpReplyPh: '{name}에게 고양이의 하루를 들려주세요...',
     palTitle: '친구와 함께 시작해볼까요?', palDesc: '고양이를 좋아하는 친구를 초대해 사진과 편지를 주고받아 보세요.', palInvite: '친구 초대하기', palSkip: '건너뛰고 시작하기',
     palMaking: '링크를 만드는 중…', palSent: '링크를 보냈어요. 친구가 수락하면 CatPals에서 서로 만나요.', palCopy: '링크 복사', palCopied: '복사했어요!', palShare: '공유하기', palStartGo: '시작하기',
-    palShareText: '나랑 캣팔 할래? 고양이 사진이랑 편지를 주고받자!', palMissing: '친구 초대는 Cat Pal 데이터베이스 업데이트 후에 사용할 수 있어요.',
+    palShareTitle: '나랑 캣팔 할래? 🐈💌', palShareText: '고양이 사진과 짧은 편지로 전 세계 고양이 러버들과 친구가 되어봐!', palShareButton: '캣팔 시작하기', palMissing: '친구 초대는 Cat Pal 데이터베이스 업데이트 후에 사용할 수 있어요.',
     palWho: '{name:이/가} 캣팔이 되자고 초대했어요', palWhoAnon: '친구가 캣팔이 되자고 초대했어요', palAcceptGo: '초대 수락하기', palLater: '나중에 할게요',
     palNoSignup: '따로 가입할 필요 없어요. 고양이 이름은 첫 편지를 쓸 때 물어봐요.', palGoneTitle: '이 초대는 열 수 없어요', palGone: '올바르지 않은 링크예요. 전체가 복사됐는지 확인해 주세요.',
     palMine: '내 초대 링크예요. 친구에게 보내 주세요.', palAccepted: '이제 {name:과/와} 캣팔이에요!', palAcceptedAnon: '이제 캣팔이에요!',

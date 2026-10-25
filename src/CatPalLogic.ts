@@ -15,6 +15,7 @@ import { dataUrlToBlob, toUploadJpeg } from './community/image';
 import { enableReplyNotifications, REPLY_NOTIFY_OFFERED, replyNotifyState } from './community/notify';
 import { fmtDate, fmtListTime } from './community/dates';
 import { initialLang, saveLang } from './community/lang';
+import { kakaoConfigured, loadKakao, shareKakao } from './community/kakao';
 import type { CatStampInput } from './solana/catStamp';
 
 for (const l in COMMUNITY_STRINGS) I18N[l] = { ...(I18N[l] || {}), ...COMMUNITY_STRINGS[l] };
@@ -144,7 +145,7 @@ export default class CatPalLogic extends DCLogic {
     // a friend's link (once the story, if any, is done): who invited you, and "Accept"
     else if (palToken()) this.setState({ screen: "palAccept", palInv: { token: palToken(), phase: "loading", d: null } });
     // just in from the story's Start: "start with a friend?" first (once there), then Home as before
-    else if (FROM_STORY && !(draft && draft.open)) this.setState({ screen: "palStart", palShare: { phase: "idle" } });
+    else if (FROM_STORY && !(draft && draft.open)) { this.setState({ screen: "palStart", palShare: { phase: "idle" } }); loadKakao(); }
     else if (draft && draft.open && (!this.state.screen || this.state.screen === "home")) { this.setState({ screen: "compose", cmp: { ...draft, busy: false, err: "" } }); this.pushLetterStep(); }
     // the browser's back button steps back through the letter (and out of it to Home)
     this.onPop = () => {
@@ -810,10 +811,13 @@ export default class CatPalLogic extends DCLogic {
         return;
       }
     }
-    const text = this.tx("palShareText");
+    // the message, in the app's language: its title and line (what a chat shows above the link)
+    const title = this.tx("palShareTitle"), text = title + "\n" + this.tx("palShareText");
     this.setState({ palShare: { ...this.state.palShare, phase: "ready", url } });
+    // KakaoTalk, as a card with a button to the link (when the app has a Kakao key); the link stays here to copy too
+    if (kakaoConfigured && await shareKakao({ title, description: this.tx("palShareText"), button: this.tx("palShareButton"), url, imageUrl: location.origin + "/og-image.jpg" })) return;
     if (typeof navigator !== "undefined" && (navigator as any).share) {
-      try { await (navigator as any).share({ text, url }); this.setState({ palShare: { ...this.state.palShare, sent: true } }); return; }
+      try { await (navigator as any).share({ title, text, url }); this.setState({ palShare: { ...this.state.palShare, sent: true } }); return; }
       catch (e: any) { if (e && e.name === "AbortError") return; /* couldn't open now (no gesture left): the link shows, with its buttons */ }
     }
     this.setState({ palShare: { ...this.state.palShare, noSheet: !(navigator as any).share } });
@@ -821,7 +825,7 @@ export default class CatPalLogic extends DCLogic {
   async palCopy() {
     const p = this.state.palShare; if (!p?.url) return;
     let ok = false;
-    try { await navigator.clipboard.writeText(this.tx("palShareText") + " " + p.url); ok = true; } catch (_) {
+    try { await navigator.clipboard.writeText(this.tx("palShareTitle") + "\n" + this.tx("palShareText") + "\n" + p.url); ok = true; } catch (_) {
       try { const t = document.createElement("textarea"); t.value = p.url; t.style.position = "fixed"; t.style.opacity = "0"; document.body.appendChild(t); t.select(); ok = document.execCommand("copy"); t.remove(); } catch (__) { ok = false; }
     }
     this.setState({ palShare: { ...p, copied: ok, sent: p.sent || ok, err: ok ? "" : this.tx("ivCopyFail") } });
@@ -1385,7 +1389,7 @@ export default class CatPalLogic extends DCLogic {
           "palAcceptGo", "palLater", "palGoneTitle", "palGone", "palMine", "palAccepted", "palNotYetSub", "palFirst", "palStartGo2", "ivRetry", "palNoSignup"].map((k) => [k, tx(k)]));
         return {
           T,
-          share: { phase: p.phase || "idle", url: p.url || "", sent: !!p.sent, copied: !!p.copied, err: p.err || "", canShare: typeof navigator !== "undefined" && !!(navigator as any).share,
+          share: { phase: p.phase || "idle", url: p.url || "", sent: !!p.sent, copied: !!p.copied, err: p.err || "", canShare: kakaoConfigured || (typeof navigator !== "undefined" && !!(navigator as any).share),
             go: () => this.palInviteShare(), copy: () => this.palCopy(), skip: () => this.palStartDone(), done: () => this.palStartDone() },
           accept: inv ? {
             phase: inv.phase, busy: !!inv.busy, err: inv.err || "", ready: !!d?.ready,
