@@ -26,7 +26,10 @@ const TAB_IDS = ["received", "sent", "pals"] as const;
 /** each divider's card stock: a dusty blue, a sage, an oat */
 const PAPER: Record<string, string> = { received: "#B9C5CB", sent: "#C5CDB6", pals: "#E4D8BF" };
 
-const sampleOn = typeof location !== "undefined" && ["mbSample", "mapSample"].some((k) => new URLSearchParams(location.search).has(k));
+const sampleOn = typeof location !== "undefined" && ["mbSample", "mapSample", "arriveSample"].some((k) => new URLSearchParams(location.search).has(k));
+/** "?arriveSample=1": the sample, plus one more sample letter on its way — it lands ~30 s after the page opens (when:
+ *  the logic's v.arriveAt; it counts it down, on Home too) */
+const arriveOn = typeof location !== "undefined" && new URLSearchParams(location.search).has("arriveSample");
 /** sample letters for ?mbSample=1 / ?mapSample=1 only (illustrative names; the photos are the app's own cat images) */
 const SAMPLE = {
   received: [
@@ -41,6 +44,8 @@ const SAMPLE = {
     { key: "t3", name: "Yuki", flag: "🇯🇵", country: "Japan", date: "Oct 15", photo: "./assets/cats/cat-6.jpg", stamp: "./assets/stamp-6.png", pm: "./assets/pm/seoul.png", status: "read", statusLabel: "Read" },
     { key: "t4", name: "Ava", flag: "🇦🇺", country: "Australia", date: "Oct 10", photo: "./assets/cats/cat-2.jpg", stamp: "./assets/stamp-8.png", pm: "./assets/pm/seoul.png", status: "read", statusLabel: "Read" },
   ],
+  /** (?arriveSample=1) the one on its way, till it lands */
+  arriving: { key: "s0", name: "Alex", cc: "CA", flag: "🇨🇦", country: "Canada", date: "Oct 28", photo: "./assets/cats/cat-4.jpg", stamp: stampOf("CA"), pm: "./assets/pm/vancouver.png", isNew: true, body: "Hi from Vancouver! Luna slept on my keyboard all morning while I tried to work. Does your cat steal your chair too?", dateLong: "October 28, 2026" },
   pals: [
     { id: "p1", name: "Léa", flag: "🇫🇷", country: "France", n: 4, lettersLabel: "4 letters", photo: "./assets/cats/cat-1.jpg", pm: "./assets/pm/paris.png", stampImg: stampOf("FR"), hasStamp: true, hasMark: true, yourTurn: true },
     { id: "p2", name: "Yuki", flag: "🇯🇵", country: "Japan", n: 3, lettersLabel: "3 letters", photo: "./assets/cats/cat-2.jpg", pm: "./assets/pm/tokyo.png", stampImg: stampOf("JP"), hasStamp: true, hasMark: true, yourTurn: false },
@@ -67,10 +72,14 @@ export default function MailboxScreen({ v }: { v: Vals }) {
   // the envelope being opened (it opens, its photo rises, then on to the letter)
   const [opened, setOpened] = useState<{ c: MailItem; rect: DOMRect } | null>(null);
   useEffect(() => { if (!v.sMailbox) setOpened(null); }, [v.sMailbox]);
+  // (?arriveSample=1) the sample letter landed — "just landed" for a moment
+  const now = Date.now(), landed = arriveOn && !!v.arriveAt && now >= v.arriveAt, justLanded = landed && now < v.arriveAt + 4500;
   if (!v.sMailbox) return null;
   const T = v.mbT || {};
   const tab: string = v.mbTab || "received";
-  const received = sampleOn ? SAMPLE.received : v.mbReceived || [];
+  const received = sampleOn ? (landed ? [SAMPLE.arriving, ...SAMPLE.received] : SAMPLE.received) : v.mbReceived || [];
+  // on their way to you (the sample's one among them, counted down by the logic)
+  const inbound = sampleOn && !arriveOn ? [] : v.mbInbound || [];
   const sent = sampleOn ? SAMPLE.sent : v.mbSent || [];
   const pals = sampleOn ? SAMPLE.pals : v.mbPals || [];
   const ready = sampleOn || v.mbReady;
@@ -107,8 +116,15 @@ export default function MailboxScreen({ v }: { v: Vals }) {
     <div data-screen-label="Mailbox" style={{ position: "absolute", inset: "0", background: "transparent", animation: "cp-fade .25s ease", overflowY: "auto", scrollbarWidth: "none" }}>
       <div style={{ maxWidth: "460px", margin: "0 auto", padding: "52px 18px 120px", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
         <span style={{ paddingLeft: v.showBack ? "34px" : "4px", fontWeight: 700, fontSize: "var(--fs-h2)", lineHeight: "30px", fontFamily: "var(--font-heading)", letterSpacing: "var(--ls-heading)", color: INK }}>{I(v.t?.mailbox)}</span>
-        {sampleOn ? <span style={{ marginTop: "4px", paddingLeft: "4px", fontWeight: 500, fontSize: "12px", color: "#C9785D" }}>{I(T.mbSampleNote)}</span> : null}
+        {sampleOn ? <span style={{ marginTop: "4px", paddingLeft: "4px", fontWeight: 500, fontSize: "12px", color: "#C9785D" }}>{I(arriveOn ? T.mbArriveSampleNote : T.mbSampleNote)}</span> : null}
 
+        {/* (the sample) it just landed */}
+        {justLanded ? (
+          <div role="status" style={{ position: "fixed", left: "50%", top: "64px", zIndex: 50, transform: "translateX(-50%)", display: "flex", alignItems: "center", gap: "8px", padding: "8px 14px 8px 8px", borderRadius: "999px", background: "#fff", boxShadow: "0 10px 26px rgba(34,48,74,.18)", whiteSpace: "nowrap", animation: "cp-rise2 .4s cubic-bezier(.2,.8,.2,1) both" }}>
+            <img src="./assets/map/bird-letter-still.webp" alt="" aria-hidden="true" style={{ width: "30px", transform: "scaleX(-1)" }} />
+            <span style={{ fontWeight: 700, fontSize: "13px", color: INK }}>{I(SAMPLE.arriving.flag)}{" "}{I((T.mbLanded || "").replace("{name}", SAMPLE.arriving.name))}</span>
+          </div>
+        ) : null}
         {/* index tabs: the chosen one is the sheet in front */}
         <div className="cp-mb-tabs" role="tablist" style={{ marginTop: "16px" }}>
           {each(v.mbTabs, (b: any, i: number) => (
@@ -122,11 +138,27 @@ export default function MailboxScreen({ v }: { v: Vals }) {
         {/* the sheet: it turns like a page when the tab changes */}
         <div className="cp-mb-panel" style={{ ["--paper" as string]: PAPER[tab], paddingBottom: "18px", ...(tab === "received" && received.length ? { minHeight: "0" } : {}) }}>
           <div key={tab} className="cp-mb-page">
+            {/* on their way to you: where from, and when they land (not to be opened before) */}
+            {ready && tab === "received" && inbound.length ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", padding: "4px 2px 12px" }}>
+                {each(inbound, (x: any) => (
+                  <div key={x.key} role="status" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 14px 10px 10px", borderRadius: "16px", background: "rgba(255,252,244,.92)", boxShadow: "0 1px 2px rgba(60,40,20,.08), inset 0 0 0 1px rgba(160,104,46,.14)", animation: "cp-rise2 .45s cubic-bezier(.2,.8,.2,1) both" }}>
+                    <span aria-hidden="true" style={{ flex: "none", width: "42px", height: "42px", borderRadius: "21px", background: "#FFF1DC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <img src="./assets/map/bird-letter-still.webp" alt="" style={{ width: "30px", transform: "scaleX(-1)" }} />
+                    </span>
+                    <span style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "2px" }}>
+                      <b style={{ fontWeight: 700, fontSize: "13.5px", lineHeight: "18px", color: INK }}>{I(x.flag)}{" "}{I(x.text)}</b>
+                      <span style={{ fontWeight: 500, fontSize: "12px", lineHeight: "16px", color: "#A0682E" }}>{I(x.eta)}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
             {!ready ? null : tab === "received" ? (
               received.length ? (
                 /* the envelopes, stacked: swipe for the next, tap to open */
                 <LetterDeck items={deck} onOpen={openFrom} t={T} lifted={opened ? opened.c.key : null} />
-              ) : empty("mailbox", T.mbEmptyRecvT, T.mbEmptyRecvD)
+              ) : inbound.length ? null : empty("mailbox", T.mbEmptyRecvT, T.mbEmptyRecvD)   /* (one on its way: its card says it all) */
             ) : tab === "sent" ? (
               sent.length ? (
                 <div style={{ display: "flex", flexDirection: "column" }}>
@@ -152,6 +184,13 @@ export default function MailboxScreen({ v }: { v: Vals }) {
                 </div>
               ) : empty("cat", T.mbEmptyPalsT, T.mbEmptyPalsD)
             )}
+            {/* CatPals: a friend by my personal link, always here (small; never in the way of a letter) */}
+            {tab === "pals" && v.mbInvite && !sampleOn ? (
+              <div style={{ marginTop: "18px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+                <span style={{ fontWeight: 400, fontSize: "12.5px", lineHeight: "18px", color: "#5E6A80" }}>{I(T.arrInviteQ)}</span>
+                <span onClick={v.mbInvite} role="button" style={{ padding: "6px 10px", fontWeight: 700, fontSize: "var(--fs-caption)", color: "#22304A", textDecoration: "underline", textUnderlineOffset: "3px", cursor: "pointer" }}>{I(T.arrInvite)}</span>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

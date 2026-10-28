@@ -59,6 +59,7 @@ input,textarea,button{font-family:var(--font-body)}
 @keyframes cp-peek{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
 @keyframes cp-ring{0%{box-shadow:0 0 0 0 rgba(229,72,61,.45)}100%{box-shadow:0 0 0 16px rgba(229,72,61,0)}}
 @keyframes cp-rise2{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes cp-ex-zoom{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:none}}
 .cp-hand{font-family:"Caveat","Gaegu","Klee One",cursive}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.001ms !important;animation-delay:0s !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important}
@@ -76,8 +77,15 @@ input,textarea,button{font-family:var(--font-body)}
 .cp-pop-in{animation:cp-pop .45s cubic-bezier(.34,1.56,.64,1) .3s both}
 /* a cat pal active lately (Map): its red dot breathes a little */
 .cp-active-dot{animation:cp-active 2.4s ease-in-out infinite}
+/* the Map's letters on their way (GlobeMap3D journeys): the bird with the red envelope (yours brighter, a soft red glow), and
+   the one ripple on the profile where it lands */
+.cp-map-bird img{display:block;user-select:none;-webkit-user-drag:none;filter:drop-shadow(0 3px 4px rgba(40,30,20,.28))}
+.cp-map-bird.is-mine img{filter:drop-shadow(0 0 5px rgba(255,75,62,.55)) drop-shadow(0 3px 4px rgba(40,30,20,.28))}
+.cp-map-ripple i{position:absolute;left:-30px;top:-30px;width:60px;height:60px;border-radius:50%;box-sizing:border-box;border:2px solid rgba(255,255,255,.95);box-shadow:0 0 0 2px rgba(255,75,62,.35);opacity:0}
+.cp-map-ripple.is-on i{animation:cp-map-ripple 1.3s cubic-bezier(.2,.7,.3,1) both}
+@keyframes cp-map-ripple{0%{transform:scale(.7);opacity:.95}100%{transform:scale(1.9);opacity:0}}
 @keyframes cp-active{0%,100%{box-shadow:0 0 0 0 rgba(255,75,62,.45),0 1px 3px rgba(0,0,0,.25)}50%{box-shadow:0 0 0 5px rgba(255,75,62,0),0 1px 3px rgba(0,0,0,.25)}}
-@media (prefers-reduced-motion:reduce){.cp-active-dot{animation:none}}
+@media (prefers-reduced-motion:reduce){.cp-active-dot{animation:none}.cp-map-ripple.is-on i{animation:none}}
 @keyframes cp-gift-in{0%{opacity:0;transform:scale(.6) rotate(-4deg)}100%{opacity:1;transform:none}}
 .cp-twinkle{animation:cp-twinkle 1.6s ease-in-out infinite}
 @keyframes cp-twinkle{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1.1)}}

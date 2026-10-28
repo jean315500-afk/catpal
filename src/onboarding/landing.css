@@ -1,0 +1,103 @@
+/* The landing page (Landing.tsx): the words beside (desktop) or above (phone) the letter-exchange example. On top of
+   onboarding.css (its sky, colours, type and buttons); this page scrolls when it must, never sideways. */
+html, body { height: auto; min-height: 100%; overflow-x: hidden; overflow-y: auto; }
+.ln-page { word-break: keep-all; overflow-wrap: break-word; position: relative; min-height: 100vh; min-height: 100svh; display: flex; align-items: center; justify-content: center; padding: 46px 0 0; overflow: hidden; }
+.ln-topbar { position: fixed; right: 16px; top: 14px; z-index: 60; }
+.ln-wrap { width: 100%; max-width: 1180px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; justify-items: center; }
+
+/* the words, and the way in: short, so the cat is on the first screen too (the title: two lines at most on a phone,
+   one or two beside it on a desktop) */
+.ln-hero { width: 100%; max-width: 400px; padding: 0 16px; box-sizing: border-box; text-align: center; position: relative; z-index: 2; }
+.ln-title { margin: 0; font-family: var(--font-heading); font-weight: var(--fw-heading); font-size: clamp(24px, 6.8vw, 34px); line-height: 1.2; letter-spacing: var(--ls-heading); color: var(--ink); text-wrap: balance; }
+.ln-desc { margin: 6px 0 0; font-size: clamp(14.5px, 3.9vw, 17px); line-height: 1.45; color: var(--muted); text-wrap: balance; }
+.ln-actions { margin-top: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.ln-cta { height: auto; min-height: 50px; box-sizing: border-box; max-width: 100%; padding: 12px 30px; border-radius: 25px; font-size: 16px; line-height: 1.3; text-align: center; text-wrap: balance; }
+
+/* the example: a canvas of 360 × 500 design units, scaled to its box — on the page's own sky, not in a box of its own:
+   the globe as big as the screen allows, as on the story page before */
+.ln-demo { width: min(100%, 460px, calc((100svh - 210px) * 0.72)); }   /* the words and the globe on one screen */
+.ln-box { position: relative; width: 100%; aspect-ratio: 360 / 500; }
+.ln-stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.ln-stage img { display: block; user-select: none; -webkit-user-drag: none; }
+
+@media (min-width: 880px) {
+  .ln-page { padding: 20px 40px; }
+  .ln-wrap { grid-template-columns: minmax(0, 1fr) auto; gap: 64px; align-items: center; }
+  .ln-hero { max-width: 520px; text-align: left; justify-self: end; }
+  .ln-title { font-size: clamp(34px, 3.4vw, 46px); }
+  .ln-desc { margin-top: 10px; font-size: 18px; }
+  .ln-actions { margin-top: 22px; }
+  .ln-actions { align-items: flex-start; }
+  .ln-demo { width: min(620px, calc((100svh - 48px) * 0.72)); }
+}
+
+/* the globe and the cats on it */
+.ln-world { position: absolute; left: 0; top: 0; width: 360px; height: 500px; z-index: 4; will-change: transform; }
+.ln-globe { position: absolute; z-index: 1; }
+.ln-globe-in { position: absolute; inset: 0; }
+.ln-route { position: absolute; left: 0; top: 0; z-index: 3; overflow: visible; pointer-events: none; }
+.ln-way { fill: none; stroke: #E5483D; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 0.1 7; }
+.ln-way-reveal { fill: none; stroke: #fff; stroke-width: 10; stroke-linecap: round; stroke-dasharray: 1 1; }
+.ln-pin { position: absolute; z-index: 4; width: 0; height: 0; }
+.ln-pin img { position: absolute; left: -22px; top: -22px; width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; background: #EEE; box-shadow: 0 4px 12px rgba(30, 40, 70, .25); }
+.ln-pin-me img { border-color: var(--accent); }
+.ln-pin-name { position: absolute; left: 0; top: 26px; transform: translateX(-50%); white-space: nowrap; padding: 3px 7px; border-radius: 999px; background: rgba(255, 255, 255, .92); box-shadow: 0 2px 8px rgba(34, 48, 74, .14); font: 500 10.5px/1.1 var(--font-body); color: var(--ink); }
+.ln-badge { position: absolute; left: 12px; top: -28px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #E5483D; border: 2px solid #fff; color: #fff; font: 700 10px/14px var(--font-body); text-align: center; box-sizing: border-box; }
+.ln-newchip { position: absolute; left: 0; top: 46px; transform: translateX(-50%); white-space: nowrap; padding: 4px 8px; border-radius: 999px; background: var(--ink); color: #fff; font: 700 10.5px/1 var(--font-body); box-shadow: 0 4px 12px rgba(34, 48, 74, .25); }
+
+/* her day, on a phone (the frame's screen see-through): the clip on the screen, only inside it (the frame lies over
+   it); the camera's one white button (a soft shade under it, so it shows on white fur); the shutter's flash and the dim
+   as the photo lifts off, on the screen only; and the photo on its way out of the phone */
+.ln-iphone { position: absolute; z-index: 18; will-change: transform, opacity; }
+.ln-phone-screen { position: absolute; overflow: hidden; background: #1C1A18; isolation: isolate; -webkit-mask-image: -webkit-radial-gradient(white, black); }   /* (the mask: Safari keeps the video inside the rounded corners) */
+.ln-phone-screen video, .ln-phone-poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.ln-phone-poster { z-index: 1; }
+.ln-phone-screen::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 24%; z-index: 1; pointer-events: none; background: linear-gradient(to top, rgba(20, 16, 12, .34), transparent); }
+.ln-phone-frame { position: absolute; inset: 0; z-index: 4; width: 100%; height: 100%; pointer-events: none; user-select: none; -webkit-user-drag: none; filter: drop-shadow(0 14px 24px rgba(34, 48, 74, .18)); }
+.ln-phone-flash, .ln-phone-dim { position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0; }
+.ln-phone-flash { background: #fff; }
+.ln-phone-dim { background: #000; }
+.ln-phone-shutter { position: absolute; left: 50%; bottom: 4.5%; z-index: 2; width: 19%; aspect-ratio: 1; transform: translateX(-50%); box-sizing: border-box; border-radius: 50%; border: 3px solid #fff; display: flex; align-items: center; justify-content: center; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .25)); }
+.ln-phone-shutter i { width: 80%; height: 80%; border-radius: 50%; background: #fff; }
+/* the bird that carries the letter (an animated picture: its wings beat by themselves) */
+.ln-bird { position: absolute; left: 0; top: 0; z-index: 25; pointer-events: none; will-change: transform; filter: drop-shadow(0 6px 8px rgba(40, 50, 80, .18)); }
+.ln-bird img { display: block; width: 100%; height: 100%; }
+.ln-fly { position: absolute; left: 0; top: 0; z-index: 30; transform-origin: 0 0; overflow: hidden; background: #fff; box-shadow: 0 10px 26px rgba(20, 25, 40, .28); }
+.ln-fly img { width: 100%; height: 100%; object-fit: cover; }
+
+/* the letter: paper, the photo on it, two short lines (the app's letter type) */
+.ln-paper { position: absolute; z-index: 11;   /* inside the envelope: over its back, under its front pocket */ border-radius: 4px; background: #FBF6EC;
+  box-shadow: 0 0 0 1px rgba(120, 105, 85, .12), 0 2px 4px rgba(30, 40, 70, .10), 0 14px 30px rgba(30, 40, 70, .20); }
+.ln-paper-photo { position: absolute; left: 50%; transform: translateX(-50%); padding: 5px 5px 14px; background: #fff; box-shadow: 0 2px 6px rgba(30, 40, 70, .18); }
+.ln-paper-photo img { object-fit: cover; }
+.ln-paper-lines { position: absolute; left: 18px; right: 18px; }
+.ln-line { margin: 0; font-family: var(--font-letter); font-size: 13.5px; line-height: 21px; color: #3A3F52; text-align: center; word-break: keep-all; text-wrap: balance; }
+
+/* the envelope: its parts laid over one another (the closed one with its seal, stamp and postmark) */
+.ln-env { position: absolute; z-index: 10; will-change: transform; filter: drop-shadow(0 10px 18px rgba(60, 45, 25, .14)); }
+.ln-env > img { position: absolute; left: 0; width: 100%; }
+.ln-env-back, .ln-env-flap { top: 0; height: 100%; }
+.ln-env-back { z-index: 10; }
+.ln-env-front { z-index: 12; }
+.ln-env-closed { z-index: 14; }
+.ln-env-dress { position: absolute; left: 0; width: 100%; z-index: 15; pointer-events: none; }
+.ln-env-stamp { position: absolute; right: 7%; top: 10%; width: 17%; transform: rotate(4deg); box-shadow: 0 1px 3px rgba(0, 0, 0, .18); }
+.ln-env-pm { position: absolute; right: 16%; top: 4%; width: 26%; opacity: .8; mix-blend-mode: multiply; transform: rotate(-10deg); }
+.ln-env-seal { position: absolute; left: 50%; top: 38%; width: 25%; margin-left: -12.5%; filter: drop-shadow(0 2px 4px rgba(60, 40, 10, .35)); }
+
+/* the way it goes (over the flight): from where, to where, how far */
+.ln-routechip { position: absolute; left: 50%; top: 34px; z-index: 40; white-space: nowrap; padding: 6px 12px; border-radius: 999px; background: rgba(255, 255, 255, .94); box-shadow: 0 4px 14px rgba(34, 48, 74, .14); font: 700 12.5px/1.2 var(--font-body); color: var(--ink); }
+.ln-routechip b { font-weight: 500; color: var(--muted); }
+/* to whom it's going (an example), above the letter while it's written */
+.ln-to { position: absolute; left: 50%; top: 31px; z-index: 40; display: flex; align-items: center; gap: 8px; width: max-content; max-width: 344px; box-sizing: border-box; padding: 4px 12px 4px 4px; border-radius: 16px; background: rgba(255, 255, 255, .95); box-shadow: 0 4px 14px rgba(34, 48, 74, .14); }
+.ln-to img { flex: none; width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .15); }
+.ln-to span { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ln-to b { font: 700 11.5px/1.25 var(--font-body); color: var(--ink); white-space: nowrap; }
+.ln-to i { font: 500 10px/1.3 var(--font-body); font-style: normal; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }   /* one line: between the label above and the letter below */
+/* labels: it's an example; what's happening now; and replay at the end */
+.ln-example { position: absolute; left: 8px; top: 8px; white-space: nowrap; z-index: 40; padding: 3px 8px; border-radius: 999px; background: rgba(255, 255, 255, .78); box-shadow: 0 0 0 1px rgba(34, 48, 74, .08); font: 600 9.5px/1.2 var(--font-body); letter-spacing: .02em; color: var(--muted); }   /* small, in the corner */
+.ln-step { position: absolute; left: 50%; bottom: 12px; z-index: 40; max-width: calc(100% - 32px); transform: translateX(-50%); margin: 0; padding: 5px 11px; border-radius: 999px; background: rgba(255, 255, 255, .88); box-shadow: 0 2px 8px rgba(34, 48, 74, .10); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; font: 700 12px/1.3 var(--font-body); color: var(--ink); }
+.ln-replay { position: absolute; right: 12px; top: 8px; z-index: 41; height: 28px; padding: 0 11px; border-radius: 14px; border: 1px solid rgba(34, 48, 74, .14); background: rgba(255, 255, 255, .92); color: var(--ink); font: 700 11.5px/1 var(--font-body); cursor: pointer; animation: ln-in .4s ease both; }
+.ln-replay:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+@keyframes ln-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+

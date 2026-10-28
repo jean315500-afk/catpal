@@ -1,7 +1,9 @@
 // ARRIVED — the letter's receipt, once it has landed: "Your letter has arrived in Japan!" (delivered to whom), where it went (from your
 // country and cat to theirs and your new cat pal, each cat's photo, how far, the date) and the letter itself in its red envelope, its
 // top peeking out, the envelope stamped and postmarked. It stays until you go on: "Notify me of replies" (on only once
-// really registered — see community/notify), or the Mailbox's Sent tab (where it's kept).
+// really registered — see community/notify), or the Mailbox's Sent tab (where it's kept). Your first letter: "Your first
+// letter has set off!", how letters are delivered and — apart from that — replies, the Mailbox as the one thing to do,
+// and under it, small, a friend by link.
 import { useEffect, useState } from 'react';
 import { I } from '../dc/runtime';
 import type { Vals } from '../dc/runtime';
@@ -136,6 +138,8 @@ export default function ArrivedScreen({ v }: { v: Vals }) {
                 <path d="M63 2 68 6 63 10" fill="none" stroke="#E5483D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               {v.destKm ? <span style={{ fontWeight: 700, fontSize: "12px", color: "#C9785D", whiteSpace: "nowrap" }}>{I(v.destKm)}{" km"}</span> : null}
+              {/* and how long it flies */}
+              {v.arrEta ? <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontWeight: 600, fontSize: "11.5px", color: "#8A6A4E", whiteSpace: "nowrap" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: "none" }}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>{I(v.arrEta)}</span> : null}
             </div>
             <End label={T.dmTo} flag={v.arrToFlag} photo={v.arrToPhoto} country={v.destCity} who={v.arrToName} right />
           </div>
@@ -147,6 +151,12 @@ export default function ArrivedScreen({ v }: { v: Vals }) {
           <div style={{ marginTop: "22px", animation: "cp-letterup .6s cubic-bezier(.2,.9,.3,1) .2s both" }}>
             <LetterInEnvelope v={{ cmpPhoto: l.photo, cmpText: l.text, cmpSign: l.sign, cmpFlag: l.flag, cmpCountryName: l.country, cmpStamp: v.stampMotif, cmpPm: v.myPm, cpT: T }} deep={DEEP_IN} />
           </div>
+        ) : null}
+        {/* when it lands (only then can it be opened) */}
+        {v.arrLandsIn ? (
+          <span role="status" style={{ marginTop: "16px", display: "inline-flex", alignItems: "center", gap: "7px", padding: "8px 16px", borderRadius: "999px", background: "rgba(255,241,220,.92)", boxShadow: "0 4px 12px rgba(160,104,46,.12)", fontWeight: 700, fontSize: "var(--fs-caption)", lineHeight: "18px", color: "#8A5A2B", animation: "cp-rise2 .45s cubic-bezier(.2,.8,.2,1) .35s both" }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: "none" }}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>{I(v.arrLandsIn)}
+          </span>
         ) : null}
 
         {/* a reply that went: the country's postmark, stamped into the passport the first time (a short press, then on) —
@@ -174,9 +184,25 @@ export default function ArrivedScreen({ v }: { v: Vals }) {
           </div>
         ) : null}
 
-        {/* on from here: replies — notify me (bell), the Mailbox under it; once notifications are really on, the Mailbox */}
+        {/* on from here: replies — notify me (bell), the Mailbox under it; once notifications are really on, the Mailbox.
+            The first letter: the Mailbox first (notify me, if it can be had, under it), then — small — a friend by link */}
         <div style={{ flex: "1 0 24px" }} />
-        {v.arrNotify?.state === "on" ? (
+        {v.arrFirst ? (
+          <>
+            <div className="dc-hover-8" onClick={v.arrToMailbox} role="button" style={{ ...cta, background: INK, boxShadow: "0 10px 22px rgba(34,48,74,.2)" }}>
+              <span style={ctaText}>{I(v.arrFirst.cta)}</span>
+            </div>
+            {v.arrNotify?.note ? <span role="status" style={{ marginTop: "10px", maxWidth: "320px", fontWeight: 500, fontSize: "12.5px", lineHeight: "18px", color: MUTED, textAlign: "center" }}>{I(v.arrNotify.note)}</span> : null}
+            {v.arrNotify?.state === "on" ? <span style={{ marginTop: "10px", display: "inline-flex", alignItems: "center", gap: "6px", fontWeight: 500, fontSize: "var(--fs-caption)", color: "#2E7458" }}><Bell size={14} color="#2E7458" />{I(v.arrNotify.on)}</span>
+              : v.arrNotify && (v.arrNotify.state === "off" || v.arrNotify.state === "failed") ? (
+                <span onClick={v.arrNotify.go} role="button" style={{ marginTop: "8px", padding: "8px 12px", display: "inline-flex", alignItems: "center", gap: "6px", fontWeight: 500, fontSize: "var(--fs-caption)", color: MUTED, textDecoration: "underline", textUnderlineOffset: "3px", cursor: "pointer" }}><Bell size={14} color={MUTED} />{I(v.arrNotify.label)}</span>
+              ) : null}
+            <div style={{ marginTop: "18px", paddingTop: "12px", borderTop: "1px dashed #E2DCD0", width: "100%", maxWidth: "320px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+              <span style={{ fontWeight: 400, fontSize: "12.5px", lineHeight: "18px", color: MUTED }}>{I(v.arrFirst.inviteQ)}</span>
+              <span onClick={v.arrFirst.goInvite} role="button" style={{ padding: "6px 10px", fontWeight: 700, fontSize: "var(--fs-caption)", color: INK, textDecoration: "underline", textUnderlineOffset: "3px", cursor: "pointer" }}>{I(v.arrFirst.invite)}</span>
+            </div>
+          </>
+        ) : v.arrNotify?.state === "on" ? (
           <>
             <div className="dc-hover-8" onClick={v.arrToMailbox} role="button" style={{ ...cta, background: INK, boxShadow: "0 10px 22px rgba(34,48,74,.2)" }}>
               <span style={ctaText}>{I(v.arrNotify.view)}</span>

@@ -2,7 +2,7 @@
 // Row Level Security does the access control; these helpers just shape the data.
 import { supabase } from './supabase';
 
-export type Profile = { id: string; nickname: string; country: string; show_as_recipient?: boolean; /** not in the database yet: the passport number, once issued */ passport_no?: string | null };
+export type Profile = { id: string; nickname: string; country: string; /** a line or two about their cat (once supabase/fix-2026-10-28-profile-intro.sql has run) */ intro?: string | null; show_as_recipient?: boolean; /** not in the database yet: the passport number, once issued */ passport_no?: string | null };
 export type Category = 'my_cat' | 'met_cat';
 export type MomentCard = {
   id: string; user_id: string; category: Category; photo_path: string; caption: string;
@@ -48,12 +48,28 @@ export async function signInAnonymously(): Promise<string> {
   return data.user!.id;
 }
 
+/** the profile's intro column: there once fix-2026-10-28-profile-intro.sql has run; till then (or if it isn't),
+ *  profiles are read and saved without it, as before */
+let introCol: boolean | null = null;
+const noIntroCol = (e: any) => /intro/.test(String(e?.message || '')) && /column|schema cache/i.test(String(e?.message || ''));
+const PROFILE_COLS = () => (introCol === false ? 'id, nickname, country' : 'id, nickname, country, intro');
+
 export async function getProfile(id: string): Promise<Profile | null> {
-  return must(await supabase.from('profiles').select('id, nickname, country').eq('id', id).maybeSingle());
+  const { data, error } = await supabase.from('profiles').select(PROFILE_COLS()).eq('id', id).maybeSingle();
+  if (error && introCol !== false && noIntroCol(error)) { introCol = false; return getProfile(id); }
+  if (error) throw error;
+  if (introCol === null) introCol = true;
+  return data as any;
 }
 
-export async function saveProfile(id: string, nickname: string, country: string): Promise<Profile> {
-  return must(await supabase.from('profiles').upsert({ id, nickname, country }).select('id, nickname, country').single());
+/** `intro` left out: kept as it is */
+export async function saveProfile(id: string, nickname: string, country: string, intro?: string | null): Promise<Profile> {
+  const row: Record<string, unknown> = { id, nickname, country };
+  if (intro !== undefined && introCol !== false) row.intro = intro || null;
+  const { data, error } = await supabase.from('profiles').upsert(row).select(PROFILE_COLS()).single();
+  if (error && introCol !== false && noIntroCol(error)) { introCol = false; return saveProfile(id, nickname, country); }
+  if (error) throw error;
+  return data as any;
 }
 
 // ---------------------------------------------------------------- moments & likes
@@ -137,10 +153,10 @@ export async function openThread(uid: string, moment: { id: string; user_id: str
   return data.id;
 }
 
-/** Everyone who can get a letter: anyone with a profile (made with their first letter), newest first. Their nickname
- *  and country only — profiles are readable to signed-in people already. */
-export async function listPeople(limit = 500): Promise<Profile[]> {
-  return must(await supabase.from('profiles').select('id, nickname, country').order('created_at', { ascending: false }).limit(limit)) || [];
+/** Everyone who can get a letter: anyone with a profile (made with their first letter), newest first. Their nickname,
+ *  country and when they joined only — profiles are readable to signed-in people already. */
+export async function listPeople(limit = 500): Promise<(Profile & { created_at?: string })[]> {
+  return must(await supabase.from('profiles').select('id, nickname, country, created_at').order('created_at', { ascending: false }).limit(limit)) || [];
 }
 
 /** A thread with someone, not about any moment (a cat pal found among everyone who writes). */
@@ -155,6 +171,11 @@ export async function sendLetter(uid: string, threadId: string, body: string | n
     must(await supabase.storage.from('letters').upload(photo_path, photo, { contentType: 'image/jpeg', upsert: false }));
   }
   return must(await supabase.from('letters').insert({ thread_id: threadId, sender_id: uid, body, photo_path, stamp }).select('*').single()) as Letter;
+}
+
+/** a thread's letters to me not read yet (to see whether any is still on its way before marking the thread read) */
+export async function unreadInThread(threadId: string, uid: string): Promise<Letter[]> {
+  return must(await supabase.from('letters').select('id, thread_id, sender_id, created_at, read_at').eq('thread_id', threadId).neq('sender_id', uid).is('read_at', null)) as any || [];
 }
 
 export async function markThreadRead(threadId: string) {
@@ -302,4 +323,39 @@ export async function linkMyPals(): Promise<number> {
 export async function myPalThreads(): Promise<string[]> {
   const rows = must(await supabase.from('pal_links').select('thread_id').not('thread_id', 'is', null)) || [];
   return (rows as any[]).map((r) => r.thread_id);
+}
+
+// ---------------------------------------------------------------- who's here right now (the Map's red dots)
+
+/** Who has CatPal open right now — Realtime presence, nothing stored: you're in it while signed in and the app is in
+ *  front (it leaves when the tab is hidden or closed); signed out, you only see others. `onChange` gets their ids. */
+export function watchOnline(uid: string | null, onChange: (ids: string[]) => void) {
+  const ch = supabase.channel('cp-online', { config: { presence: { key: uid || '' } } });
+  const here = () => { if (uid && document.visibilityState === 'visible') ch.track({ at: Date.now() }); else if (uid) ch.untrack(); };
+  ch.on('presence', { event: 'sync' }, () => onChange(Object.keys(ch.presenceState()).filter(Boolean)));
+  ch.subscribe((status) => { if (status === 'SUBSCRIBED') here(); });
+  if (uid) document.addEventListener('visibilitychange', here);
+  // (left for good before the next one joins: the same topic would otherwise come back as this channel, still leaving)
+  return async () => { document.removeEventListener('visibilitychange', here); await supabase.removeChannel(ch); };
+}
+
+// ---------------------------------------------------------------- my cat's passport photo
+
+/** The passport's photo, when one has been picked: a file of my own in the moments bucket (moments/<me>/profile-…jpg —
+ *  the newest; there's no profile column for it). '' when none (the passport shows the first photo I saved instead). */
+export async function myProfilePhoto(uid: string): Promise<string> {
+  const { data, error } = await supabase.storage.from('moments').list(uid, { search: 'profile-', limit: 20 });
+  if (error) throw error;
+  const f = (data || []).filter((x) => x.name.startsWith('profile-')).sort((a, b) => (a.name < b.name ? 1 : -1))[0];
+  return f ? momentPhotoUrl(uid + '/' + f.name) : '';
+}
+
+/** A new passport photo: uploaded, then the old ones removed. Returns its URL. */
+export async function saveProfilePhoto(uid: string, photo: Blob): Promise<string> {
+  const name = `profile-${Date.now()}.jpg`;
+  must(await supabase.storage.from('moments').upload(uid + '/' + name, photo, { contentType: 'image/jpeg', upsert: false }));
+  const { data } = await supabase.storage.from('moments').list(uid, { search: 'profile-', limit: 50 });
+  const old = (data || []).filter((x) => x.name.startsWith('profile-') && x.name !== name).map((x) => uid + '/' + x.name);
+  if (old.length) await supabase.storage.from('moments').remove(old);
+  return momentPhotoUrl(uid + '/' + name);
 }

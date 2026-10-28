@@ -12,7 +12,7 @@ const firstVisit = (() => {
   try {
     const q = new URLSearchParams(location.search);
     if (q.has('intro')) return true;
-    if (q.get('start') === 'home') return false;
+    if (q.get('start') === 'home' || q.get('start') === 'letter') return false;
     if (q.has('letter')) return false;   // a letter sent by link: straight to it (the story can wait)
     // a friend's "be my cat pal" link: kept, so it's waiting once the story (first time here) has brought you in
     const pal = q.get('pal'); if (pal && /^[0-9a-f]{64}$/.test(pal)) localStorage.setItem('cp-pal-token', pal);

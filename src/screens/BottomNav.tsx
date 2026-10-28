@@ -1,4 +1,4 @@
-// NAV — floating pill with four tabs: Home (send a letter), Map (the globe, countries, the feed), Mailbox (letters), My Cat.
+// NAV — floating pill with four tabs: Home (send a letter), Map (the globe, countries, the feed), Mailbox (letters), Passport.
 // The icons are drawn by hand, as with a black pen: a few loose strokes each, a little uneven (lines bow, ends overrun
 // or stop just short), the same weight throughout so they read as one set; the active tab becomes a dark pill with its label.
 import { each, I } from '../dc/runtime';

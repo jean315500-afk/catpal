@@ -4,9 +4,14 @@
 // My cat pals, on the globe where they are: tap one and the way between you shows — abroad, the globe turns and zooms until
 // both ends are in view (the way resting on it, the two cats at its ends); in your own country it zooms into it and
 // a real close-up map (DetailMap) takes over, the two cats on it. Zoom in past the globe's closest and it does too.
+// Two views, one switch at the top (the last one kept): the World — public profiles, two or three birds at a time
+// with others' public letters (only their own way showing, gone as they pass), examples until there are any; and My
+// letters — you and your cat pals, one way to each, a bird only for a letter on its way. Pick a profile and only its
+// ways show (the rest holds still); in My letters, a small card: who, letters each way, their letters. Tap the globe
+// itself to let go. Calm until you pick; then only what's yours to see.
 import { each, I } from '../dc/runtime';
 import type { Vals } from '../dc/runtime';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import GlobeMap from '../community/GlobeMap';
 const DetailMap = lazy(() => import('../community/DetailMap'));
 import { FLIGHT_S } from '../community/CatMap';
@@ -77,10 +82,111 @@ function Face({ src, flag, size, ring }: { src: string; flag: string; size: numb
   );
 }
 
+/** the World's senders, at the top (in place of the examples note): collapsed, a frosted white strip — two faces and a
+ *  count, "Sending letters" (who's here right now: a red dot on their face; examples are said so once it's open, and
+ *  on the globe); tapped, it grows into the list (each of them with their way and how far —
+ *  their face and the one it's going to, overlapping — "View" to
+ *  open their profile and intro), the strip fading out as the rows come in; tapped again, or anywhere else, it folds back.
+ *  Examples are said so. */
+const SN_TINT = ["#B98CFF", "#F2716A", "#FFE066", "#BDF26B", "#7FD4FF", "#FFB070"];
+const SN_EASE = "cubic-bezier(.32,.72,0,1)";
+function Senders({ s, onView }: { s: any; onView: (p: any) => void }) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null), pill = useRef<HTMLDivElement>(null), body = useRef<HTMLDivElement>(null);
+  // the box's size, measured: the strip's own width collapsed, the whole row open — so it can grow between the two
+  const [box, setBox] = useState<{ w: number; h: number; full: number; wide: number } | null>(null);
+  useLayoutEffect(() => {
+    const host = wrap.current?.parentElement; if (!host) return;
+    const measure = () => {
+      const full = host.clientWidth;
+      // open: about the strip's own width (it grows down, hardly sideways) — never the whole row
+      const strip = pill.current ? Math.min(full, pill.current.offsetWidth) : full, wide = Math.min(full, Math.max(strip, 284));
+      if (open && body.current) setBox({ w: wide, h: body.current.offsetHeight, full, wide });
+      else setBox({ w: strip, h: pill.current ? pill.current.offsetHeight : 52, full, wide });
+    };
+    measure();
+    document.fonts?.ready.then(measure);   // (measured again once the fonts are in: the strip's own width changes)
+    const ro = new ResizeObserver(measure); ro.observe(host); return () => ro.disconnect();
+  }, [open, s.n, s.title]);
+  // open: a tap anywhere else folds it back
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => { if (wrap.current && !wrap.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("pointerdown", away, true); return () => document.removeEventListener("pointerdown", away, true);
+  }, [open]);
+  const still = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const t = (d: number, delay = 0) => (still ? "0s" : d + "s") + " " + SN_EASE + " " + (still ? "0s" : delay + "s");
+  const dot = (p: any, i: number, size: number) => (
+    <span style={{ position: "relative", flex: "none", width: size + "px", height: size + "px", borderRadius: "50%", background: SN_TINT[i % SN_TINT.length], padding: "3px", boxSizing: "border-box", display: "flex" }}>
+      <img src={p.photo} alt="" draggable={false} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover", display: "block" }} />
+      {/* here right now: the red dot (as on the globe's markers) */}
+      {p.active ? <span aria-label="active" style={{ position: "absolute", zIndex: 3, right: "-1px", top: "-1px", width: "11px", height: "11px", borderRadius: "50%", background: "#FF4B3E", border: "2px solid #fff", boxSizing: "border-box", boxShadow: "0 1px 3px rgba(0,0,0,.25)" }} /> : null}
+    </span>
+  );
+  // a row's faces: who it's from, and where it's going (their cat, or — someone real, whose photo isn't theirs to show
+  // — the country's flag), the second tucked behind the first
+  const pair = (p: any, i: number) => (
+    <span style={{ flex: "none", position: "relative", width: "54px", height: "38px" }}>
+      <span style={{ position: "absolute", left: "20px", top: "0", display: "flex", borderRadius: "50%", boxShadow: "0 0 0 2px #fff" }}>
+        {p.toPhoto ? dot({ photo: p.toPhoto }, i + 3, 34) : <span style={{ width: "34px", height: "34px", borderRadius: "50%", background: "#EEF0F4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "17px" }}>{p.toFlag}</span>}
+      </span>
+      <span style={{ position: "absolute", left: "0", top: "2px", display: "flex", borderRadius: "50%", boxShadow: "0 0 0 2px #fff" }}>{dot(p, i, 34)}</span>
+    </span>
+  );
+  const chev = <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 5l4.5 4.5L11.5 5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+  const tag = s.tag ? <span style={{ flex: "none", padding: "1px 7px", borderRadius: "8px", background: "#F0EBE1", fontWeight: 700, fontSize: "10px", lineHeight: "15px", color: "#8E8A84" }}>{I(s.tag)}</span> : null;
+  const layer = (on: boolean) => ({ position: "absolute", left: "0", top: "0", opacity: on ? 1 : 0, pointerEvents: on ? "auto" : "none", visibility: on || box ? "visible" : "hidden" } as const);
+  return (
+    <div ref={wrap} role="region" aria-label={s.title}
+      style={{ pointerEvents: "auto", position: "relative", width: box ? box.w + "px" : "auto", height: box ? box.h + "px" : "52px", maxWidth: "100%", borderRadius: open ? "22px" : "26px",
+        background: "rgba(255,255,255,.82)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", boxShadow: open ? "0 14px 34px rgba(40,30,20,.16)" : "0 8px 22px rgba(40,30,20,.12)",
+        color: "#22304A", overflow: "hidden", transition: ["width", "height", "border-radius", "box-shadow"].map((k) => k + " " + t(0.5)).join(", "), animation: "cp-fade .35s ease" }}>
+      {/* collapsed: the strip (its natural width, measured) */}
+      <div ref={pill} onClick={() => setOpen(true)} role="button" aria-expanded={false} aria-label={s.open} aria-hidden={open}
+        style={{ ...layer(!open), width: "max-content", maxWidth: box ? box.full + "px" : "none", boxSizing: "border-box", display: "flex", alignItems: "center", gap: "10px", padding: "7px 14px 7px 7px", cursor: "pointer",
+          transform: open ? "scale(.96)" : "none", transformOrigin: "left top", transition: "opacity " + t(open ? 0.18 : 0.3, open ? 0 : 0.16) + ", transform " + t(0.4) }}>
+        <span style={{ flex: "none", display: "flex" }}>
+          {s.list.slice(0, 2).map((p: any, i: number) => <span key={p.key} style={{ marginLeft: i ? "-12px" : "0", display: "flex", borderRadius: "50%", boxShadow: i ? "-2px 0 0 #fff" : "none" }}>{dot(p, i, 38)}</span>)}
+          {s.n > 2 ? <span style={{ marginLeft: "-12px", width: "38px", height: "38px", borderRadius: "50%", background: "#EEF0F4", boxShadow: "-2px 0 0 #fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: "13px" }}>+{s.n - 2}</span> : null}
+        </span>
+        <span style={{ minWidth: "0", display: "flex", alignItems: "center", gap: "7px" }}>
+          <b style={{ fontWeight: 700, fontSize: "15px", lineHeight: "20px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(s.title)}</b>
+        </span>
+        <span style={{ flex: "none", marginLeft: "2px", display: "flex", color: "#22304A" }}>{chev}</span>
+      </div>
+      {/* open: the list, the rows rising in one after another */}
+      <div ref={body} aria-hidden={!open} style={{ ...layer(open), width: box ? box.wide + "px" : "100%", transition: "opacity " + t(open ? 0.3 : 0.16, open ? 0.1 : 0) }}>
+        <div onClick={() => setOpen(false)} role="button" aria-expanded={true} aria-label={s.shut}
+          style={{ display: "flex", alignItems: "center", gap: "8px", padding: "13px 14px 11px 16px", borderBottom: "1px solid rgba(34,48,74,.08)", cursor: "pointer" }}>
+          <span style={{ flex: "1", minWidth: "0", display: "flex", alignItems: "center", gap: "6px" }}>
+            <b style={{ fontWeight: 600, fontSize: "14px", lineHeight: "18px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(s.title)}</b>{tag}
+          </span>
+          <span style={{ flex: "none", display: "flex", transform: open ? "rotate(180deg)" : "none", transition: "transform " + t(0.45, 0.05) }}>{chev}</span>
+        </div>
+        <div style={{ maxHeight: "min(46vh, 300px)", overflowY: "auto", padding: "6px 0 8px" }}>
+          {s.list.map((p: any, i: number) => (
+            <div key={p.key} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "6px 10px 6px 14px", opacity: open ? 1 : 0, transform: open ? "none" : "translateY(8px)",
+              transition: "opacity " + t(0.35, open ? 0.12 + Math.min(i, 8) * 0.04 : 0) + ", transform " + t(0.45, open ? 0.12 + Math.min(i, 8) * 0.04 : 0) }}>
+              {pair(p, i)}
+              <span style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "1px" }}>
+                <b style={{ fontWeight: 600, fontSize: "14px", lineHeight: "18px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(p.name)}{p.km ? <span style={{ marginLeft: "6px", color: "#9AA1B0", fontWeight: 500, fontSize: "11.5px" }}>{I(p.km)}</span> : null}</b>
+                <span style={{ fontWeight: 500, fontSize: "11px", lineHeight: "15px", color: "#7A8091", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(p.route)}</span>
+              </span>
+              <span onClick={() => { setOpen(false); onView(p); }} role="button" tabIndex={open ? 0 : -1} className="dc-hover-8" style={{ flex: "none", height: "30px", padding: "0 13px", borderRadius: "15px", background: "#fff", boxShadow: "inset 0 0 0 1px rgba(34,48,74,.14)", display: "flex", alignItems: "center", fontWeight: 600, fontSize: "12.5px", cursor: "pointer", whiteSpace: "nowrap" }}>{I(s.view)}</span>
+            </div>
+          ))}
+          {s.note ? <span style={{ display: "block", padding: "6px 16px 2px", fontWeight: 500, fontSize: "10.5px", lineHeight: "14px", color: "#9AA1B0" }}>{I(s.note)}</span> : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CatMap({ v }: { v: Vals }) {
   const [started, setStarted] = useState(false);
   const route = v.cmRoute, T = v.cmT || {};
-  const sel = route ? null : v.cmSel2 || v.cmSel;
+  const mineView = v.cmView === "mine", mine = v.cmMine || {};
+  const sel = route || mineView ? null : v.cmSel2 || v.cmSel;
   // the same country at both ends: the globe zooms into it first, then the close-up map comes in over it
   const [detail, setDetail] = useState(false);
   // zoomed past the globe's closest (no way picked): the close-up map, opened where the globe's middle was
@@ -88,10 +194,18 @@ function CatMap({ v }: { v: Vals }) {
   useEffect(() => { if (route) setExplore(null); }, [route?.key]);
   // a place tapped (one marker, or several close together): who's there, in a sheet — cat pals to pick, and the other
   // cat lovers' moments from there. Only moments there (no cat pal): straight to them, as before.
-  const [place, setPlace] = useState<{ title: string; n: number; pals: any[]; others: any[]; ccs: string[] } | null>(null);
+  const [place, setPlace] = useState<{ title: string; n: number; pals: any[]; others: any[]; ccs: string[]; mine?: boolean } | null>(null);
+  // example profiles tapped (not real people): who they are, said so — nothing to write to
+  const [exList, setExList] = useState<any[] | null>(null);
+  /** My letters: a cat pal tapped (or, several close together, the list of them to pick from); you alone: nothing */
+  const openMine = (ccs: string[]) => {
+    const pals = (mine.pals || []).filter((p: any) => ccs.includes(p.cc));
+    if (pals.length === 1) { mine.pick(pals[0].id); return; }
+    if (pals.length) setPlace({ title: [...new Set(pals.map((p: any) => p.country))].join(" · "), n: pals.length, pals, others: [], ccs, mine: true });
+  };
   const openPlaces = (ccs: string[]) => {
-    const ps = (v.cmPlaces || []).filter((p: any) => ccs.includes(p.cc));
-    if (!ps.length) return;
+    const all = (v.cmPlaces || []).filter((p: any) => ccs.includes(p.cc)), ps = all.filter((p: any) => !p.example);
+    if (!ps.length) { if (all.length) setExList(all); return; }
     if (ps.length === 1 && !ps[0].pals.length) { v.cmSelect?.(ps[0].cc); return; }
     setPlace({ title: ps.map((p: any) => p.country).join(" · "), n: ps.reduce((a: number, p: any) => a + p.count, 0), pals: ps.flatMap((p: any) => p.pals), others: ps.filter((p: any) => p.others), ccs });
   };
@@ -101,9 +215,15 @@ function CatMap({ v }: { v: Vals }) {
     if (!pals.length) return;
     setPlace({ title: [...new Set(pals.map((p: any) => p.country))].join(" · "), n: pals.length, pals, others: [], ccs: [...new Set<string>(pals.map((p: any) => p.cc))] });
   };
-  useEffect(() => { setPlace(null); }, [route?.key, v.cmList?.id]);
+  // a sender's "View" (the strip at the top): their profile and intro, in a sheet (an example's said so)
+  const [prof, setProf] = useState<any | null>(null);
+  useEffect(() => { setPlace(null); setExList(null); setProf(null); }, [route?.key, v.cmView]);
+  // what's picked, on the globe: only its ways show (the World: the place tapped; My letters: the cat pal)
+  const at = (cc?: string | null) => { const g = cc ? (v.cmPlaces || []).find((x: any) => x.cc === cc) : null; return g ? { lon: g.lon, lat: g.lat } : null; };
+  const focus = mineView ? (mine.sel && mine.sel.placed ? { lon: mine.sel.lon, lat: mine.sel.lat } : null) : at(prof ? prof.cc : place ? place.ccs[0] : exList ? exList[0].cc : sel ? sel.cc : null);
+  const letGo = () => { if (mineView) mine.unpick?.(); else { setPlace(null); setExList(null); setProf(null); v.cmClose?.(); v.cmJourney?.close?.(); } };
   // the sheet is up: the tab bar steps aside (as for the other sheets here)
-  const placeOpen = !!place;
+  const placeOpen = !!place || !!exList || !!prof;
   useEffect(() => { v.cmPlaceShown?.(placeOpen); return () => { if (placeOpen) v.cmPlaceShown?.(false); }; }, [placeOpen]);
   useEffect(() => {
     if (!route || !route.same || !route.placed) { setDetail(false); return; }
@@ -121,49 +241,37 @@ function CatMap({ v }: { v: Vals }) {
           groups: [], home: null, routes: [], height: "100%", controlsBottom: 230, zoomButtons: route.placed && !route.same,
           flight: route.placed && !route.same ? { a: route.a, b: route.b, play: false } : null, aimAt: route.placed ? { a: route.a, b: route.b } : null,
           pins: !route.placed || route.same ? [] : [{ key: "me", ...route.a, photo: route.me.photo, name: route.me.name, mine: true }, { key: "them", ...route.b, photo: route.them.photo, name: route.them.name, ring: route.tint, active: route.them.active }],
-        } : { groups: v.cmPlaces || [], home: v.cmHome, routes: [], height: "100%", onSelect: (cc: string) => openPlaces([cc]), onCluster: openPlaces,
-          selected: place ? place.ccs[0] : sel ? sel.cc : null, controlsBottom: sel || place ? 12 : 104, zoomButtons: !!sel || !v.cmFlight, flight: v.cmFlight ? { a: v.cmFlight.a, b: v.cmFlight.b, play: v.cmFlight.play } : null, onFlightStart: () => setStarted(true),
-          // people are where their country is (the app keeps no finer place): one marker per place — never pushed aside onto
-          // a neighbour or the sea; close ones share a marker until you zoom in
-          pins: [] };
+        } : mineView ? {
+          // My letters: you and your cat pals, one way to each; a bird only for a letter on its way (the latest one's own
+          // flight); a cat pal picked: only its way, clearly
+          groups: mine.places || [], home: v.cmHome, routes: mine.routes || [], height: "100%", onCluster: openMine, onSelect: (cc: string) => openMine([cc]),
+          selected: null, controlsBottom: mine.sel || mine.empty || v.cmFlight ? 200 : 104, zoomButtons: true,
+          flight: v.cmFlight ? { a: v.cmFlight.a, b: v.cmFlight.b, play: v.cmFlight.play } : null, flightBird: true, onFlightStart: () => setStarted(true),
+          pins: [], focus, onBlankTap: letGo,
+        } : {
+          // the World: public profiles (people are where their country is — the app keeps no finer place; close ones share
+          // a marker until you zoom in), two or three birds at a time, slowly; a place tapped: only its ways, the rest still
+          groups: v.cmPlaces || [], home: null, routes: [], height: "100%", onSelect: (cc: string) => openPlaces([cc]), onCluster: openPlaces,
+          selected: place ? place.ccs[0] : sel ? sel.cc : null, controlsBottom: sel || place ? 12 : 104, zoomButtons: true, flight: null,
+          pins: [], journeys: v.cmJourneys || [], journeyS: 36, maxBirds: 3, exampleTag: T.exTag, focus, onBlankTap: letGo };
         return hasWebGL() ? <Suspense fallback={null}><GlobeMap3D {...props} onZoomPast={(at) => { if (!route) setExplore(at); }} /></Suspense> : <GlobeMap {...props} />;
       })()}
-      {/* title chip (not while a way is picked: its own back button is there) */}
-      <div style={{ display: route || explore ? "none" : "flex", position: "absolute", left: "16px", right: "70px", top: "16px", flexDirection: "column", alignItems: "flex-start", gap: "8px", pointerEvents: "none" }}>
-        {/* sample mode only: a note that what's on the map is a sample */}
-        {v.cmIsSample ? (
-          <div style={{ padding: "7px 12px", borderRadius: "16px", background: "rgba(255,255,255,.94)", boxShadow: "0 4px 14px rgba(40,30,20,.10)", display: "flex", maxWidth: "100%" }}>
-            <span style={{ fontWeight: 500, fontSize: "12px", lineHeight: "16px", color: "#C9785D", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(v.cmSub2)}</span>
-          </div>
-        ) : null}
-        {/* the feed (most-loved cats, this week's Top 10) lives under World */}
-        <div className="dc-hover-8" onClick={v.goExplore} role="button" style={{ pointerEvents: "auto", padding: "7px 12px", borderRadius: "16px", background: "#22304A", boxShadow: "0 4px 14px rgba(40,30,20,.14)", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", transition: "transform .15s ease" }}>
-          {/* a few of the cats in the feed, overlapping, and how many more */}
-          {(v.cmFeedFaces || []).length ? (
-            <span aria-hidden="true" style={{ display: "flex", alignItems: "center", marginLeft: "-4px" }}>
-              {(v.cmFeedFaces as string[]).map((src, i) => (
-                <img key={src} src={src} alt="" draggable={false} style={{ width: "28px", height: "28px", borderRadius: "50%", objectFit: "cover", border: "2px solid #22304A", marginLeft: i ? "-9px" : "0", position: "relative", zIndex: 3 - i, background: "#F3EEE4" }} />
-              ))}
-              {v.cmFeedMore ? <span style={{ minWidth: "28px", height: "28px", padding: "0 5px", boxSizing: "border-box", borderRadius: "14px", marginLeft: "-9px", border: "2px solid #22304A", background: "#FFF7EC", color: "#22304A", fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "11px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", whiteSpace: "nowrap" }}>{"+" + (v.cmFeedMore > 99 ? "99" : v.cmFeedMore)}</span> : null}
-            </span>
-          ) : null}
-          <span style={{ fontWeight: 700, fontSize: "12px", color: "#fff", whiteSpace: "nowrap" }}>{(v.cmFeedFaces || []).length ? "" : "🐾 "}{I(v.cmFeedLink)}{" ›"}</span>
-        </div>
-        {/* letters sent, letters received, cat pals: each opens its list under the map (the one open is in its colour) */}
-        <div role="tablist" aria-label="letters and cat pals" style={{ pointerEvents: "auto", padding: "4px 6px", borderRadius: "16px", background: "rgba(255,255,255,.94)", boxShadow: "0 4px 14px rgba(40,30,20,.10)", display: "flex", alignItems: "center", gap: "2px" }}>
-          {([["sent", v.cmT?.mtSent, v.sentCount, "#E5483D"], ["received", v.cmT?.mtRecv, v.recvCount, "#3F7FD6"], ["pals", v.cmT?.cmPalsTab, v.cmPalCount, "#A05245"]] as [string, string, number, string][]).map(([id, label, n, tint], i) => {
-            const on = v.cmList?.id === id;
+      {/* the top: the one switch [World | My letters], and the sample note or who's
+          sending letters (examples, said so)
+          (not while a way is picked: its own back button is there) */}
+      <div style={{ display: route || explore ? "none" : "flex", position: "absolute", left: "16px", right: "16px", top: "16px", zIndex: 6, flexDirection: "column", alignItems: "flex-start", gap: "8px", pointerEvents: "none" }}>
+        <div role="tablist" aria-label={T.cmViewWorld + " / " + T.cmViewMine} style={{ pointerEvents: "auto", padding: "3px", borderRadius: "18px", background: "rgba(255,255,255,.94)", boxShadow: "0 4px 14px rgba(40,30,20,.12)", display: "flex", gap: "2px" }}>
+          {([["world", T.cmViewWorld], ["mine", T.cmViewMine]] as [string, string][]).map(([id, label]) => {
+            const on = (v.cmView || "world") === id;
             return (
-              <span key={id} style={{ display: "flex", alignItems: "center" }}>
-                {i ? <span aria-hidden="true" style={{ width: "1px", height: "14px", background: "#E4DDD0", margin: "0 2px" }} /> : null}
-                <span onClick={() => v.cmOpenList(id)} role="tab" aria-selected={on} className="dc-hover-2"
-                  style={{ display: "flex", alignItems: "center", gap: "5px", padding: "4px 7px", borderRadius: "11px", background: on ? tint + "14" : "transparent", fontWeight: 500, fontSize: "12px", color: on ? tint : "#4A443D", whiteSpace: "nowrap", cursor: "pointer", transition: "background .15s ease, color .15s ease" }}>
-                  {I(label)}<b style={{ color: on ? tint : "#22304A" }}>{I(n ?? 0)}</b>
-                </span>
-              </span>
+              <span key={id} onClick={() => { if (!on) v.cmSetView(id); }} role="tab" aria-selected={on} className="dc-hover-2"
+                style={{ padding: "6px 14px", borderRadius: "15px", background: on ? "#22304A" : "transparent", color: on ? "#fff" : "#4A443D", fontWeight: 700, fontSize: "12.5px", lineHeight: "16px", whiteSpace: "nowrap", cursor: on ? "default" : "pointer", transition: "background .2s ease, color .2s ease" }}>{I(label)}</span>
             );
           })}
         </div>
+        {v.cmIsSample ? <span style={{ padding: "3px 9px", borderRadius: "10px", background: "rgba(255,255,255,.82)", fontWeight: 500, fontSize: "11px", lineHeight: "15px", color: "#C9785D" }}>{I(v.cmSub2)}</span>
+          : !mineView && v.cmSenders ? <Senders s={v.cmSenders} onView={(p) => { v.cmJourney?.close?.(); v.cmClose?.(); setPlace(null); setExList(null); setProf(p); }} />
+          : !mineView && v.cmJourneyEx ? <span style={{ padding: "3px 9px", borderRadius: "10px", background: "rgba(255,255,255,.82)", fontWeight: 500, fontSize: "11px", lineHeight: "15px", color: "#8E8A84" }}>🕊️ {I(v.cmJourneyEx)}</span> : null}
       </div>
       {/* the country, close up (your own country at both ends): over the globe once it has zoomed in */}
       {/* the close-up map: your own country at both ends of the way picked (after the globe has zoomed in), or the globe
@@ -187,40 +295,6 @@ function CatMap({ v }: { v: Vals }) {
         <div className="dc-hover-8" onClick={() => setExplore(null)} role="button" style={{ position: "absolute", left: "16px", top: "16px", zIndex: 6, height: "36px", padding: "0 14px 0 10px", borderRadius: "18px", background: "#fff", boxShadow: "0 4px 14px rgba(40,30,20,.14)", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
           <span aria-hidden="true" style={{ width: "8px", height: "8px", borderLeft: "2px solid #22304A", borderBottom: "2px solid #22304A", transform: "rotate(45deg)", marginLeft: "4px" }} />
           <span style={{ fontWeight: 700, fontSize: "12.5px", color: "#22304A", whiteSpace: "nowrap" }}>{I(T.cmBackGlobe)}</span>
-        </div>
-      ) : null}
-      {/* a list from the summary (Sent / Received / CatPals): one row per cat pal; pick one for them on the map */}
-      {v.cmList && !route ? (
-        <div role="dialog" aria-label={v.cmList.title} style={{ position: "absolute", left: "0", right: "0", bottom: "0", zIndex: 6, maxHeight: "52%", display: "flex", flexDirection: "column", background: "#FBF7EE", borderRadius: "26px 26px 0 0", boxShadow: "0 -8px 30px rgba(40,30,20,.14)", animation: "cp-sheet .28s cubic-bezier(.2,.8,.2,1)" }}>
-          <div style={{ flex: "none", padding: "10px 18px 8px" }}>
-            <div style={{ width: "38px", height: "4px", borderRadius: "2px", background: "#E2DACB", margin: "0 auto 10px" }} />
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
-              <span style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                <span style={{ fontFamily: "var(--font-hand)", fontSize: "24px", lineHeight: "26px", color: v.cmList.tint }}>{I(v.cmList.title)}</span>
-                <span style={{ fontWeight: 700, fontSize: "13px", color: "#8E8A84" }}>{I(v.cmList.items.length)}</span>
-              </span>
-              <span onClick={v.cmCloseList} role="button" aria-label={T.cmClose} style={{ width: "32px", height: "32px", borderRadius: "16px", background: "#F0EBE1", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "13px", color: "#22304A" }}>✕</span>
-            </div>
-          </div>
-          <div style={{ flex: "1", minHeight: "0", overflowY: "auto", padding: "2px 14px 24px", display: "flex", flexDirection: "column", gap: "8px" }}>
-            {v.cmList.items.length ? each(v.cmList.items, (p: any) => {
-              const on = v.cmList.sel === p.id;
-              return (
-                <div key={p.id} onClick={() => v.cmPick(p.id, v.cmList.id)} role="button" aria-label={p.name + ", " + p.country} className="dc-hover-2"
-                  style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 12px 8px 8px", borderRadius: "16px", background: "#fff", boxShadow: on ? "inset 0 0 0 1.5px " + v.cmList.tint : "0 1px 2px rgba(60,40,20,.08)", cursor: "pointer", transition: "transform .15s ease" }}>
-                  <Face src={p.photo} flag={p.flag} size={42} ring={on ? v.cmList.tint : undefined} />
-                  <span style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "1px" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <b style={{ fontSize: "14.5px", color: "#22304A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(p.name)}</b>
-                      {p.unread ? <span aria-label={T.cmUnread} style={{ flex: "none", width: "8px", height: "8px", borderRadius: "4px", background: "#E5483D" }} /> : null}
-                    </span>
-                    <span style={{ fontWeight: 500, fontSize: "12px", color: "#7A8091", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(p.country)}{" · "}<span style={{ color: v.cmList.tint }}>{I(p.count)}</span></span>
-                  </span>
-                  <span style={{ flex: "none", fontWeight: 500, fontSize: "11px", color: "#9AA1B0", whiteSpace: "nowrap" }}>{I(p.at)}</span>
-                </div>
-              );
-            }) : <span style={{ padding: "18px 6px", textAlign: "center", fontWeight: 500, fontSize: "13px", color: "#7A8091" }}>{I(v.cmList.empty)}</span>}
-          </div>
         </div>
       ) : null}
       {route ? (
@@ -273,7 +347,7 @@ function CatMap({ v }: { v: Vals }) {
         </>
       ) : null}
       {/* a place tapped: who's there */}
-      {place && !route && !v.cmList ? (
+      {place && !route ? (
         <div role="dialog" aria-label={place.title} style={{ position: "absolute", left: "0", right: "0", bottom: "0", zIndex: 6, maxHeight: "52%", display: "flex", flexDirection: "column", background: "#FBF7EE", borderRadius: "26px 26px 0 0", boxShadow: "0 -8px 30px rgba(40,30,20,.14)", animation: "cp-sheet .28s cubic-bezier(.2,.8,.2,1)" }}>
           <div style={{ flex: "none", padding: "10px 18px 8px" }}>
             <div style={{ width: "38px", height: "4px", borderRadius: "2px", background: "#E2DACB", margin: "0 auto 10px" }} />
@@ -288,7 +362,7 @@ function CatMap({ v }: { v: Vals }) {
           <div style={{ flex: "1", minHeight: "0", overflowY: "auto", padding: "2px 14px 24px", display: "flex", flexDirection: "column", gap: "8px" }}>
             {place.pals.length ? <span style={{ padding: "2px 4px 0", fontWeight: 700, fontSize: "11.5px", color: "#A05245" }}>{I(T.cmPlacePals)}</span> : null}
             {each(place.pals, (p: any) => (
-              <div key={p.id} onClick={() => { setPlace(null); v.cmPick(p.id, "pals"); }} role="button" aria-label={p.name + ", " + p.country} className="dc-hover-2"
+              <div key={p.id} onClick={() => { const m = place.mine; setPlace(null); if (m) mine.pick(p.id); else v.cmPick(p.id, "pals"); }} role="button" aria-label={p.name + ", " + p.country} className="dc-hover-2"
                 style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 12px 8px 8px", borderRadius: "16px", background: "#fff", boxShadow: "0 1px 2px rgba(60,40,20,.08)", cursor: "pointer", transition: "transform .15s ease" }}>
                 <span style={{ position: "relative", flex: "none", display: "flex" }}>
                   <Face src={p.photo} flag={p.flag} size={42} />
@@ -315,7 +389,96 @@ function CatMap({ v }: { v: Vals }) {
           </div>
         </div>
       ) : null}
-      {route || v.cmList || explore || place ? null : !sel && v.cmFlight ? (
+      {/* example profiles tapped: who they are — examples, not real people */}
+      {exList && !route && !mineView ? (
+        <div role="dialog" aria-label={T.exProfiles} style={{ position: "absolute", left: "0", right: "0", bottom: "0", zIndex: 6, maxHeight: "52%", display: "flex", flexDirection: "column", background: "#FBF7EE", borderRadius: "26px 26px 0 0", boxShadow: "0 -8px 30px rgba(40,30,20,.12)", animation: "cp-sheet .28s cubic-bezier(.2,.8,.2,1)" }}>
+          <div style={{ flex: "none", padding: "10px 18px 6px" }}>
+            <div style={{ width: "38px", height: "4px", borderRadius: "2px", background: "#E2DACB", margin: "0 auto 10px" }} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
+              <span style={{ fontWeight: 700, fontSize: "var(--fs-title)", lineHeight: "24px", color: "#22304A", fontFamily: "var(--font-heading)", letterSpacing: "var(--ls-heading)" }}>{I(T.exProfiles)}</span>
+              <span onClick={() => setExList(null)} role="button" aria-label={T.cmClose} style={{ flex: "none", width: "32px", height: "32px", borderRadius: "16px", background: "#F0EBE1", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "14px", color: "#5E6A80" }}>✕</span>
+            </div>
+            <span style={{ display: "block", marginTop: "4px", fontWeight: 500, fontSize: "12px", lineHeight: "17px", color: "#8E8A84" }}>{I(T.exProfileNote)}</span>
+          </div>
+          <div style={{ flex: "1", minHeight: "0", overflowY: "auto", padding: "6px 14px 24px", display: "flex", flexDirection: "column", gap: "8px" }}>
+            {exList.map((p: any) => (
+              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 12px 8px 8px", borderRadius: "16px", background: "#fff", boxShadow: "0 1px 2px rgba(60,40,20,.08)" }}>
+                <Face src={p.example.photo} flag={p.flag} size={42} />
+                <span style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "1px" }}>
+                  <b style={{ fontSize: "14.5px", color: "#22304A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(p.example.name)}</b>
+                  <span style={{ fontWeight: 500, fontSize: "12px", color: "#7A8091" }}>{I(p.country)}</span>
+                </span>
+                <span style={{ flex: "none", padding: "2px 8px", borderRadius: "9px", background: "#F0EBE1", fontWeight: 700, fontSize: "10.5px", color: "#8E8A84" }}>{I(T.exTag)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {/* a sender's profile (from the strip at the top): who, where, their intro — an example's said so; a real person's
+          is only what they've made public (their cat, the letter they shared), and more cats from there */}
+      {prof && !route && !mineView ? (
+        <div role="dialog" aria-label={prof.name} style={{ position: "absolute", left: "0", right: "0", bottom: "0", zIndex: 7, maxHeight: "60%", display: "flex", flexDirection: "column", background: "#FBF7EE", borderRadius: "26px 26px 0 0", boxShadow: "0 -8px 30px rgba(40,30,20,.14)", animation: "cp-sheet .32s cubic-bezier(.2,.8,.2,1)" }}>
+          <div style={{ width: "38px", height: "4px", borderRadius: "2px", background: "#E7E2D8", margin: "10px auto 0", flex: "none" }} />
+          <div style={{ flex: "1", minHeight: "0", overflowY: "auto", padding: "14px 18px 26px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              <Face src={prof.photo} flag={prof.flag} size={64} />
+              <span style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "3px" }}>
+                <span style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: "0" }}>
+                  <b style={{ fontWeight: 700, fontSize: "var(--fs-title)", lineHeight: "24px", color: "#22304A", fontFamily: "var(--font-heading)", letterSpacing: "var(--ls-heading)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(prof.name)}</b>
+                  {prof.example ? <span style={{ flex: "none", padding: "2px 8px", borderRadius: "9px", background: "#F0EBE1", fontWeight: 700, fontSize: "10.5px", color: "#8E8A84" }}>{I(v.cmSenders?.tag || T.exTag)}</span> : null}
+                </span>
+                <span style={{ fontWeight: 500, fontSize: "12.5px", color: "#7A8091", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(prof.route)}</span>
+              </span>
+              <span onClick={() => setProf(null)} role="button" aria-label={T.cmClose} style={{ flex: "none", alignSelf: "flex-start", width: "32px", height: "32px", borderRadius: "16px", background: "#F0EBE1", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "13px", color: "#5E6A80" }}>✕</span>
+            </div>
+            {prof.bio || prof.shared ? (
+              <div style={{ marginTop: "16px", padding: "14px 16px", borderRadius: "18px", background: "#fff", boxShadow: "0 1px 2px rgba(60,40,20,.08)", animation: "cp-fadeup .4s .08s ease both" }}>
+                <span style={{ display: "block", fontWeight: 700, fontSize: "11.5px", color: "#8E8A84" }}>{I(prof.bio ? v.cmSenders?.about : v.cmSenders?.sharedLabel)}{prof.cat ? " · 🐈 " + prof.cat : ""}</span>
+                <span style={{ display: "block", marginTop: "6px", fontWeight: 500, fontSize: "14.5px", lineHeight: "22px", color: "#22304A", whiteSpace: "pre-wrap" }}>{I(prof.bio || prof.shared)}</span>
+              </div>
+            ) : null}
+            {prof.example ? <span style={{ display: "block", marginTop: "12px", fontWeight: 500, fontSize: "11.5px", lineHeight: "16px", color: "#9AA1B0" }}>{I(v.cmSenders?.exNote)}</span>
+              : prof.moreHere ? (
+                <div onClick={() => { const cc = prof.cc; setProf(null); openPlaces([cc]); }} role="button" className="dc-hover-8" style={{ marginTop: "14px", height: "46px", borderRadius: "23px", boxShadow: "inset 0 0 0 1.5px #22304A", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "14px", color: "#22304A", cursor: "pointer" }}>{I(prof.moreHere)}</div>
+              ) : null}
+          </div>
+        </div>
+      ) : null}
+      {/* a bird tapped: what it carries, as far as you may know (never the letter itself) */}
+      {!route && !mineView && !explore && !place && !exList && !prof && !sel && v.cmJourney ? (
+        <div role="dialog" aria-label={v.cmJourney.title} style={{ position: "absolute", left: "16px", right: "16px", bottom: "100px", zIndex: 6, padding: "12px 14px 12px 16px", borderRadius: "20px", background: "rgba(255,255,255,.97)", boxShadow: "0 10px 30px rgba(0,20,40,.18)", display: "flex", alignItems: "flex-start", gap: "10px", animation: "cp-rise2 .3s cubic-bezier(.2,.8,.2,1) both" }}>
+          <img src="./assets/map/bird-letter-still.webp" alt="" aria-hidden="true" style={{ flex: "none", width: "40px", marginTop: "2px", transform: "scaleX(-1)" }} />
+          <span style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "2px" }}>
+            <span style={{ fontWeight: 700, fontSize: "11.5px", color: v.cmJourney.mine ? "#E5483D" : "#8E8A84" }}>{I(v.cmJourney.title)}{v.cmJourney.sample ? " · " + v.cmJourney.sample : ""}</span>
+            <span style={{ fontWeight: 700, fontSize: "var(--fs-caption)", lineHeight: "19px", color: "#22304A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(v.cmJourney.route)}</span>
+            <span style={{ fontWeight: 500, fontSize: "12px", color: "#5E6A80" }}>{I(v.cmJourney.status)}{v.cmJourney.when ? " · " + v.cmJourney.when : ""}</span>
+            <span style={{ marginTop: "2px", fontWeight: 400, fontSize: "11px", lineHeight: "15px", color: "#9AA1B0" }}>{I(v.cmJourney.note)}</span>
+          </span>
+          <span onClick={v.cmJourney.close} role="button" aria-label={T.cmClose} style={{ flex: "none", width: "28px", height: "28px", borderRadius: "14px", background: "#F0EBE1", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "13px", color: "#5E6A80" }}>✕</span>
+        </div>
+      ) : null}
+      {/* My letters: the cat pal picked — who, letters each way (the real ones), their letters; or, nothing yet, where the
+          journey will be and the first letter */}
+      {mineView && !route && !explore && !place && (mine.sel || mine.empty) ? (
+        <div role="dialog" aria-label={mine.sel ? mine.sel.name : mine.empty.text} style={{ position: "absolute", left: "16px", right: "16px", bottom: "100px", zIndex: 6, padding: "12px 12px 12px 16px", borderRadius: "20px", background: "rgba(255,255,255,.97)", boxShadow: "0 10px 30px rgba(0,20,40,.16)", display: "flex", alignItems: "center", gap: "12px", animation: "cp-rise2 .3s cubic-bezier(.2,.8,.2,1) both" }}>
+          {mine.sel ? (
+            <>
+              <span style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "2px" }}>
+                <b style={{ fontSize: "14.5px", lineHeight: "19px", color: "#22304A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(mine.sel.name)}{" · "}<span style={{ fontWeight: 500, color: "#5E6A80" }}>{I(mine.sel.place)}</span></b>
+                <span style={{ fontWeight: 500, fontSize: "12px", color: "#7A8091" }}>{I(mine.sel.stat)}</span>
+              </span>
+              {mine.sel.open ? <span onClick={mine.sel.open} role="button" className="dc-hover-8" style={{ flex: "none", height: "36px", padding: "0 14px", borderRadius: "18px", background: "#22304A", color: "#fff", display: "flex", alignItems: "center", fontWeight: 700, fontSize: "13px", whiteSpace: "nowrap", cursor: "pointer" }}>{I(mine.sel.view)}</span> : null}
+              <span onClick={mine.unpick} role="button" aria-label={T.cmClose} style={{ flex: "none", width: "28px", height: "28px", borderRadius: "14px", background: "#F0EBE1", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "13px", color: "#5E6A80" }}>✕</span>
+            </>
+          ) : (
+            <>
+              <span style={{ flex: "1", minWidth: "0", fontWeight: 500, fontSize: "13px", lineHeight: "18px", color: "#22304A" }}>{I(mine.empty.text)}</span>
+              <span onClick={mine.empty.go} role="button" className="dc-hover-8" style={{ flex: "none", height: "36px", padding: "0 14px", borderRadius: "18px", background: "#22304A", color: "#fff", display: "flex", alignItems: "center", fontWeight: 700, fontSize: "13px", whiteSpace: "nowrap", cursor: "pointer" }}>{I(mine.empty.cta)}</span>
+            </>
+          )}
+        </div>
+      ) : null}
+      {route || explore || place || exList || prof || (mineView ? mine.sel || mine.empty : v.cmJourney) ? null : mineView && v.cmFlight ? (
         <FlightCard key={v.cmFlight.key} f={v.cmFlight} started={started} onDone={v.cmFlightDone} />
       ) : !sel ? null : (
         <div style={{ position: "absolute", left: "0", right: "0", bottom: "0", zIndex: 5, background: "#fff", borderRadius: "26px 26px 0 0", boxShadow: "0 -8px 30px rgba(40,30,20,.12)", padding: "10px 0 24px", animation: "cp-sheet .28s cubic-bezier(.2,.8,.2,1)" }}>

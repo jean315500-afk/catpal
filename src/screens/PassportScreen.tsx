@@ -1,6 +1,7 @@
 // PASSPORT — your cat's papers: a file folder on top, its passport's stamp page below.
 //   the folder:   an index divider of oat card stock (its tab in brick-red ink, a blue sheet tucked behind), holding your
-//                 cat's photo (clipped on), its name and country, and three numbers — countries, CatPals, stamps
+//                 cat's photo (clipped on — the first one saved, till another's picked), its name and country, and
+//                 three numbers — countries, CatPals, stamps; "Edit": the photo and the name
 //   the passport: its visa page (an image) — under ENTRIES / DEPARTURES, that country's postmark (the app's own
 //                 stamp images) stamped on for each country a CatPal has written to you from, with the date and their
 //                 name; under OFFICIAL VISAS, the countries still to come, faint in dashed rings
@@ -27,9 +28,15 @@ function Folder({ v }: { v: Vals }) {
         <div className="cp-mb-tab on" style={{ ["--paper" as string]: FOLDER, flex: "none", padding: "0 26px", cursor: "default" }}>{I(T.ppFile)}</div>
       </div>
       <div className="cp-mb-panel" style={{ ["--paper" as string]: FOLDER, minHeight: "0", padding: "18px 16px 16px" }}>
-        <div style={{ display: "flex", gap: "16px", alignItems: "flex-start" }}>
-          {/* the photo, clipped on */}
-          <div className="cp-pp-photo">
+        <div style={{ position: "relative", display: "flex", gap: "16px", alignItems: "flex-start" }}>
+          {v.ppEditOpen ? (
+            <span onClick={v.ppEditOpen} role="button" className="dc-hover-2" style={{ position: "absolute", right: "-4px", top: "-6px", display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 10px", borderRadius: "999px", background: "rgba(255,255,255,.7)", boxShadow: "inset 0 0 0 1px rgba(34,48,74,.14)", fontWeight: 700, fontSize: "11.5px", lineHeight: "15px", color: INK, cursor: "pointer" }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+              {I(T.ppEditBtn)}
+            </span>
+          ) : null}
+          {/* the photo, clipped on (tap it, or "Edit", to change it and the name) */}
+          <div className="cp-pp-photo" onClick={v.ppEditOpen || undefined} role={v.ppEditOpen ? "button" : undefined} aria-label={v.ppEditOpen ? T.ppEditBtn : undefined} style={v.ppEditOpen ? { cursor: "pointer" } : undefined}>
             <svg className="cp-pp-clip" viewBox="0 0 20 48" width="16" height="40" aria-hidden="true"><path d="M7 32 V9 a4.5 4.5 0 0 1 9 0 V35 a7 7 0 0 1 -14 0 V13" fill="none" stroke="#8D96A1" strokeWidth="2.2" strokeLinecap="round" /></svg>
             {c.photo ? <img src={c.photo} alt="" draggable={false} /> : <span style={{ fontSize: "34px" }}>🐈</span>}
           </div>
@@ -37,6 +44,7 @@ function Folder({ v }: { v: Vals }) {
             <div style={{ display: "flex", flexDirection: "column" }}>
               <span className="cp-pp-label">{I(T.ppName)}</span>
               <span className="cp-pp-value" style={{ fontSize: "20px", lineHeight: "24px" }}>{I(c.name)}</span>
+              {c.intro ? <span style={{ marginTop: "4px", fontWeight: 500, fontSize: "12.5px", lineHeight: "17px", color: "#5E6A80" }}>{I(c.intro)}</span> : null}
             </div>
             {c.country ? (
               <div style={{ display: "flex", flexDirection: "column" }}>
@@ -197,6 +205,41 @@ function PalsSheet({ v }: { v: Vals }) {
   );
 }
 
+/** the passport, edited: the photo (another picked from the device), the name on it, and a line about the cat */
+function EditSheet({ v }: { v: Vals }) {
+  const e = v.ppEdit; if (!e) return null;
+  return (
+    <div onClick={e.busy ? undefined : e.cancel} style={{ position: "absolute", inset: "0", zIndex: 40, background: "rgba(34,48,74,.32)", display: "flex", alignItems: "flex-end", justifyContent: "center", animation: "cp-fade .2s ease" }}>
+      <div role="dialog" aria-modal="true" aria-label={e.title} onClick={(ev) => ev.stopPropagation()}
+        style={{ width: "100%", maxWidth: "460px", boxSizing: "border-box", background: "#FBF7EE", borderRadius: "26px 26px 0 0", boxShadow: "0 -8px 30px rgba(40,30,20,.16)", padding: "10px 20px 28px", display: "flex", flexDirection: "column", alignItems: "center", animation: "cp-sheet .3s cubic-bezier(.2,.8,.2,1)" }}>
+        <div style={{ width: "38px", height: "4px", borderRadius: "2px", background: "#E7E2D8" }} />
+        <span style={{ marginTop: "14px", alignSelf: "flex-start", fontWeight: 700, fontSize: "var(--fs-title)", lineHeight: "24px", fontFamily: "var(--font-heading)", letterSpacing: "var(--ls-heading)", color: INK }}>{I(e.title)}</span>
+        {/* the photo: tap to pick another */}
+        <label style={{ marginTop: "16px", position: "relative", width: "128px", height: "128px", borderRadius: "18px", overflow: "hidden", background: "#EFE7DB", boxShadow: "0 6px 16px rgba(40,30,20,.14)", cursor: e.busy ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {e.photo ? <img src={e.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : <span style={{ fontSize: "40px" }}>🐈</span>}
+          <span style={{ position: "absolute", left: "0", right: "0", bottom: "0", padding: "6px 0", background: "rgba(34,48,74,.6)", color: "#fff", fontWeight: 700, fontSize: "12px", textAlign: "center" }}>{I(e.change)}</span>
+          <input type="file" accept="image/*" disabled={e.busy} onChange={(ev) => { e.pick(ev.target.files && ev.target.files[0]); ev.target.value = ""; }} style={{ position: "absolute", inset: "0", opacity: 0, cursor: "inherit" }} />
+        </label>
+        <label style={{ marginTop: "18px", alignSelf: "stretch", display: "flex", flexDirection: "column", gap: "6px" }}>
+          <span className="cp-pp-label">{I(e.nameLabel)}</span>
+          <input value={e.name} onChange={e.setName} maxLength={24} disabled={e.busy}
+            style={{ height: "46px", padding: "0 14px", borderRadius: "14px", border: "1px solid #DDD3C2", background: "#fff", fontSize: "16px", fontWeight: 600, color: INK, outline: "none" }} />
+        </label>
+        <label style={{ marginTop: "12px", alignSelf: "stretch", display: "flex", flexDirection: "column", gap: "6px" }}>
+          <span className="cp-pp-label">{I(e.introLabel)}</span>
+          <textarea value={e.intro || ""} onChange={e.setIntro} placeholder={e.introPh} maxLength={120} rows={2} disabled={e.busy}
+            style={{ minHeight: "64px", padding: "11px 14px", borderRadius: "14px", border: "1px solid #DDD3C2", background: "#fff", fontSize: "15px", lineHeight: "21px", fontFamily: "inherit", color: INK, outline: "none", resize: "none" }} />
+        </label>
+        {e.err ? <span role="alert" style={{ marginTop: "10px", alignSelf: "stretch", fontWeight: 500, fontSize: "13px", color: "#D9442F" }}>{I(e.err)}</span> : null}
+        <div style={{ marginTop: "18px", alignSelf: "stretch", display: "flex", gap: "10px" }}>
+          <div onClick={e.busy ? undefined : e.cancel} role="button" className="dc-hover-8" style={{ flex: "1", height: "50px", borderRadius: "25px", boxShadow: "inset 0 0 0 1.5px " + INK, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "15px", color: INK, cursor: e.busy ? "default" : "pointer", opacity: e.busy ? 0.5 : 1 }}>{I(e.cancelLabel)}</div>
+          <div onClick={e.busy ? undefined : e.go} role="button" aria-busy={e.busy} className="dc-hover-8" style={{ flex: "1.4", height: "50px", borderRadius: "25px", background: INK, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "15px", color: "#fff", cursor: e.busy ? "default" : "pointer", opacity: e.busy ? 0.7 : 1 }}>{I(e.save)}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PassportScreen({ v }: { v: Vals }) {
   if (!v.sPassport) return null;
   const T = v.ppT || {};
@@ -217,6 +260,7 @@ export default function PassportScreen({ v }: { v: Vals }) {
     </div>
     <CountrySheet v={v} />
     <PalsSheet v={v} />
+    <EditSheet v={v} />
     </>
   );
 }

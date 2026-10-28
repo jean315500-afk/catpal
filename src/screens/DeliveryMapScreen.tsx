@@ -12,6 +12,11 @@ const hasWebGL = () => {
   return webgl;
 };
 const ll = (p: [number, number]) => ({ lon: p[0], lat: p[1] });
+/** the card over the globe that asks something (no one free; only someone at home): one button, small links under it */
+const dlg = { position: "absolute", left: "22px", right: "22px", bottom: "34px", maxWidth: "380px", margin: "0 auto", boxSizing: "border-box", padding: "20px 20px 14px", borderRadius: "24px", background: "rgba(255,255,255,.95)", boxShadow: "0 12px 30px rgba(34,48,74,.14)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) both" } as const;
+const dlgBtn = { marginTop: "16px", width: "100%", height: "50px", borderRadius: "25px", background: "#22304A", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 10px 22px rgba(34,48,74,.2)", transition: "transform .15s ease" } as const;
+const dlgBtnText = { fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "var(--fs-button)", color: "#fff" } as const;
+const dlgLink = { padding: "8px 10px", fontWeight: 500, fontSize: "var(--fs-caption)", color: "#5E6A80", textDecoration: "underline", textUnderlineOffset: "3px", cursor: "pointer" } as const;
 
 /** "To", as a slot machine: it spins through countries while a cat pal is being found; once there's a destination it
  *  slows down over a few more and stops on it (a little pop), then tells the card (`onLand`) */
@@ -60,23 +65,37 @@ export default function DeliveryMapScreen({ v }: { v: Vals }) {
             </div>
           ) : <LetterFlight key={v.flightKey} from={v.flightFrom} to={v.flightTo || null} fromLabel={v.flightFromLabel} toLabel={v.flightToLabel} />) : null}
           {" "}
-          {!v.dmNoPal ? <span style={{ position: "absolute", left: "20px", right: "20px", top: "52px", textAlign: "center", fontWeight: 700, fontSize: "var(--fs-h2)", color: "#22304A", fontFamily: "var(--font-heading)", letterSpacing: "var(--ls-heading)", lineHeight: "var(--lh-heading)" }}>
+          {!v.dmNoPal && !v.dmHomeAsk ? <span style={{ position: "absolute", left: "20px", right: "20px", top: "52px", textAlign: "center", fontWeight: 700, fontSize: "var(--fs-h2)", color: "#22304A", fontFamily: "var(--font-heading)", letterSpacing: "var(--ls-heading)", lineHeight: "var(--lh-heading)" }}>
             {I(v.dmTitle)}
           </span> : null}
-          {/* no one to send to yet: nothing was sent. The globe stays over your country, the letter waiting on it; it can
-              go to a friend by link, or wait for later — kept as it is */}
+          {/* no one to send to yet: nothing was sent. The globe stays over your country, the letter waiting on it: look
+              again, or keep it for later (as it is) — or, if you like, send it to a friend by link */}
           {v.dmNoPal ? (
-            <div role="dialog" aria-label={v.dmNoPalT?.npTitle} style={{ position: "absolute", left: "22px", right: "22px", bottom: "34px", maxWidth: "380px", margin: "0 auto", boxSizing: "border-box", padding: "20px 20px 14px", borderRadius: "24px", background: "rgba(255,255,255,.95)", boxShadow: "0 12px 30px rgba(34,48,74,.14)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) both" }}>
+            <div role="dialog" aria-label={v.dmNoPalT?.npTitle} style={dlg}>
               <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "var(--fs-title)", lineHeight: "24px", letterSpacing: "var(--ls-heading)", color: "#22304A" }}>{I(v.dmNoPalT?.npTitle)}</span>
               <span style={{ marginTop: "6px", fontWeight: 400, fontSize: "var(--fs-caption)", lineHeight: "20px", color: "#4C5562", maxWidth: "290px" }}>{I(v.dmNoPalT?.npDesc)}</span>
-              <div className="dc-hover-8" onClick={v.npInvite} role="button" style={{ marginTop: "16px", width: "100%", height: "50px", borderRadius: "25px", background: "#22304A", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 10px 22px rgba(34,48,74,.2)", transition: "transform .15s ease" }}>
-                <span style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "var(--fs-button)", color: "#fff" }}>{I(v.dmNoPalT?.npInvite)}</span>
+              <div className="dc-hover-8" onClick={v.npRetry} role="button" style={dlgBtn}>
+                <span style={dlgBtnText}>{I(v.dmNoPalT?.npRetry)}</span>
               </div>
-              <span onClick={v.npSave} role="button" style={{ marginTop: "6px", padding: "8px 12px", fontWeight: 500, fontSize: "var(--fs-caption)", color: "#5E6A80", textDecoration: "underline", textUnderlineOffset: "3px", cursor: "pointer" }}>{I(v.dmNoPalT?.npSave)}</span>
+              <div style={{ marginTop: "6px", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "2px 6px" }}>
+                <span onClick={v.npSave} role="button" style={dlgLink}>{I(v.dmNoPalT?.npSave)}</span>
+                <span onClick={v.npInvite} role="button" style={dlgLink}>{I(v.dmNoPalT?.npInvite)}</span>
+              </div>
+            </div>
+          ) : null}
+          {/* no one abroad just now, only someone in your own country: asked before anything is sent */}
+          {v.dmHomeAsk ? (
+            <div role="dialog" aria-label={v.dmHomeAsk.title} style={dlg}>
+              <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "var(--fs-title)", lineHeight: "24px", letterSpacing: "var(--ls-heading)", color: "#22304A", textWrap: "balance" } as any}>{I(v.dmHomeAsk.title)}</span>
+              <span style={{ marginTop: "6px", fontWeight: 400, fontSize: "var(--fs-caption)", lineHeight: "20px", color: "#4C5562", maxWidth: "290px" }}>{I(v.dmHomeAsk.desc)}</span>
+              <div className="dc-hover-8" onClick={v.dmHomeAsk.send} role="button" style={dlgBtn}>
+                <span style={dlgBtnText}>{I(v.dmHomeAsk.go)}</span>
+              </div>
+              <span onClick={v.dmHomeAsk.save} role="button" style={{ ...dlgLink, marginTop: "6px" }}>{I(v.dmHomeAsk.later)}</span>
             </div>
           ) : null}
           {/* where it's going: from your country to theirs, how far, and how far along — the running cat (tap to go on once it has landed) */}
-          {!v.dmNoPal ? <div className="dc-hover-6" onClick={v.tapDeliveryCard} role="button" aria-label={v.dRouteFrom + " → " + v.dRouteTo}
+          {!v.dmNoPal && !v.dmHomeAsk ? <div className="dc-hover-6" onClick={v.tapDeliveryCard} role="button" aria-label={v.dRouteFrom + " → " + v.dRouteTo}
             style={{ position: "absolute", left: "22px", right: "22px", bottom: "34px", maxWidth: "380px", margin: "0 auto", boxSizing: "border-box", padding: "16px 20px 18px", borderRadius: "24px", background: "rgba(255,255,255,.95)", boxShadow: "0 12px 30px rgba(34,48,74,.14)", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px", cursor: "pointer", transition: "transform .2s ease", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) .2s both" }}>
             <div style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "2px" }}>
               <span style={{ fontWeight: 500, fontSize: "12px", color: "#8E8A84" }}>{I(v.dmFrom)}</span>

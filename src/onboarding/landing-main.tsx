@@ -1,8 +1,9 @@
-// /landing-preview — the original onboarding UI: one screen, no scrolling, the story plays by itself
-// (the same page as /onboarding-preview).
+// /landing-preview — a first visit's first page: the words and "Send your first letter", beside an example of a letter
+// exchange that plays by itself (Landing.tsx). The earlier story page stays at /onboarding-preview.
 import { createRoot } from 'react-dom/client';
-import OnboardingPreview from './OnboardingPreview';
+import Landing from './Landing';
 import '../typography.css';
 import './onboarding.css';
+import './landing.css';
 
-createRoot(document.getElementById('root')!).render(<OnboardingPreview />);
+createRoot(document.getElementById('root')!).render(<Landing />);

@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEven
 import { geoCentroid, geoGraticule10, geoInterpolate, geoNaturalEarth1, geoPath } from 'd3-geo';
 import { feature, mesh } from 'topojson-client';
 
-export type MapGroup = { cc: string; lon: number; lat: number; count: number; photo: string; id?: string; kind?: 'pal' | 'active' | 'place'; active?: boolean };
+export type MapGroup = { cc: string; lon: number; lat: number; count: number; photo: string; id?: string; kind?: 'pal' | 'active' | 'place'; /** someone there has the app open right now (the red dot) */ active?: boolean; /** an example profile (not a real person): marked so */ example?: unknown; /** letters from them not read yet (the red badge) */ badge?: number; /** you */ mine?: boolean };
 export type MapRoute = { lon: number; lat: number; dir: string };
 /** how long the letter takes on the Map's globe, from your place to theirs (s) */
 export const FLIGHT_S = 6;

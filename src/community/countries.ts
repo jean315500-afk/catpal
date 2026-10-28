@@ -90,6 +90,15 @@ export function distanceKm(a: string, b: string): number | null {
   return Math.round(6371 * 2 * Math.asin(Math.sqrt(h)));
 }
 
+/** How long a letter flies between two countries: its bird keeps a steady pace — an hour for every 1,000 km — so the
+ *  farther, the longer it is on its way (and the longer before it can be opened). At least 30 minutes (the same
+ *  country, or one not placed), at most a day. */
+export const TRAVEL_KM_PER_H = 1000;
+export function travelMs(a: string, b: string): number {
+  const d = distanceKm(a, b), h = d == null ? 0.5 : d / TRAVEL_KM_PER_H;
+  return Math.round(Math.min(24, Math.max(0.5, h)) * 3600e3);
+}
+
 /** "lon:lat" token understood by public/globe.html. */
 export const globePoint = (cc: string) => (COUNTRY_COORDS[cc] ? COUNTRY_COORDS[cc].join(':') : '');
 

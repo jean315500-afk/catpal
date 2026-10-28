@@ -1,4 +1,4 @@
-// HOME — one thing to do: send a letter. A slim pill with the red country mailbox at the top (new letters → Mailbox), then a big
+// HOME — one thing to do: send a letter (and, under it, the latest letters each way). A slim pill with the red country mailbox at the top (new letters → Mailbox), then a big
 // red envelope, open, a letter part way out of it (a hello in the letter serif and your cat's photo taped on); tapping it (or
 // the button) slides the letter out and goes on to writing a letter to a random real cat lover. (The world map, the feed and its Top 10 live in the World tab.)
 import { useEffect, useRef, useState } from 'react';
@@ -62,7 +62,7 @@ export default function HomeMailScreen({ v }: { v: Vals }) {
               <span style={{ position: "absolute", right: "-8px", top: "2px", minWidth: "20px", height: "20px", padding: "0 5px", boxSizing: "border-box", borderRadius: "10px", background: RED, border: "2px solid #FBF5EA", color: "#fff", fontWeight: 700, fontSize: "11px", display: "flex", alignItems: "center", justifyContent: "center", animation: "cp-pop .4s cubic-bezier(.34,1.56,.64,1) 1.35s both", zIndex: 2 }}>{I(v.mbCount)}</span>
             ) : null}
           </div>
-          <span style={{ minWidth: "0", fontWeight: 700, fontSize: "var(--fs-caption)", lineHeight: "18px", color: v.mbHasNew ? RED : v.mbTurn ? "var(--hand-ink)" : "#6F6A63", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(v.mbTitle)}</span>
+          <span style={{ minWidth: "0", fontWeight: 700, fontSize: "var(--fs-caption)", lineHeight: "18px", color: v.mbHasNew ? RED : v.mbComing ? "#A0682E" : v.mbTurn ? "var(--hand-ink)" : "#6F6A63", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(v.mbTitle)}</span>
           <span aria-hidden="true" style={{ flex: "none", fontSize: "16px", color: "#C6BBA8" }}>›</span>
         </div>
 
@@ -96,6 +96,42 @@ export default function HomeMailScreen({ v }: { v: Vals }) {
             <span style={btnText}>{I(v.hmCta)}</span>
           </div>
           {v.hmTurn ? <span onClick={v.hmNewPalGo} role="button" style={{ marginTop: "10px", padding: "6px 12px", fontWeight: 500, fontSize: "var(--fs-caption)", color: "#5E6A80", textDecoration: "underline", textUnderlineOffset: "3px", cursor: "pointer" }}>{I(v.hmNewPal)}</span> : null}
+          {/* the latest letters, each way: on their way to you first, then the last of each exchange — how each stands */}
+          {v.hmRecent ? (
+            <div style={{ alignSelf: "stretch", maxWidth: "340px", width: "100%", margin: "30px auto 0", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) .3s both" }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "0 4px 8px" }}>
+                <span style={{ fontWeight: 700, fontSize: "15px", color: INK }}>{I(v.hmRecent.title)}</span>
+                <span onClick={v.hmRecent.go} role="button" style={{ fontWeight: 600, fontSize: "12.5px", color: "#5E6A80", cursor: "pointer" }}>{I(v.hmRecent.all)}{" ›"}</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {each(v.mbInbound || [], (x: any) => (
+                  <div key={x.key} onClick={v.hmRecent.go} role="button" className="dc-hover-2" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 12px 8px 8px", borderRadius: "16px", background: "rgba(255,252,244,.94)", boxShadow: "0 1px 2px rgba(60,40,20,.08), inset 0 0 0 1px rgba(160,104,46,.14)", cursor: "pointer" }}>
+                    <span aria-hidden="true" style={{ flex: "none", width: "42px", height: "42px", borderRadius: "12px", background: "#FFF1DC", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <img src="./assets/map/bird-letter-still.webp" alt="" style={{ width: "30px", transform: "scaleX(-1)" }} />
+                    </span>
+                    <span style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "1px" }}>
+                      <b style={{ fontWeight: 700, fontSize: "13.5px", lineHeight: "18px", color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(x.flag)}{" "}{I(x.text)}</b>
+                      <span style={{ fontWeight: 500, fontSize: "12px", lineHeight: "16px", color: "#A0682E", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(x.eta)}</span>
+                    </span>
+                  </div>
+                ))}
+                {each(v.hmRecent.rows, (r: any) => (
+                  <div key={r.key} onClick={r.open} role="button" className="dc-hover-2" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 12px 8px 8px", borderRadius: "16px", background: "rgba(255,255,255,.9)", boxShadow: "0 1px 2px rgba(60,40,20,.08)", cursor: "pointer" }}>
+                    <span style={{ flex: "none", width: "42px", height: "42px", borderRadius: "12px", overflow: "hidden", background: "#EFE7DB", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px" }}>
+                      {r.photo ? <img src={r.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : "✉️"}
+                    </span>
+                    <span style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "1px" }}>
+                      <b style={{ fontWeight: 700, fontSize: "14px", lineHeight: "18px", color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(r.who)}{r.sample ? <span style={{ marginLeft: "6px", padding: "1px 6px", borderRadius: "8px", background: "#F3E7D3", fontWeight: 700, fontSize: "10px", color: "#8A6A4E", verticalAlign: "2px" }}>{I(r.sample)}</span> : null}</b>
+                      <span style={{ fontWeight: 500, fontSize: "12px", lineHeight: "16px", color: "#7A8091", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(r.flag)}{" "}{I(r.country)}</span>
+                    </span>
+                    <span style={{ flex: "none", display: "inline-flex", alignItems: "center", gap: "5px", padding: "3px 9px", borderRadius: "999px", background: r.stBg, color: r.stColor, fontWeight: 700, fontSize: "11px", lineHeight: "15px", whiteSpace: "nowrap" }}>
+                      <i aria-hidden="true" style={{ width: "6px", height: "6px", borderRadius: "3px", background: r.stColor === "#fff" ? "#fff" : r.stDot }} />{I(r.status)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
