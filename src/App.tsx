@@ -19,6 +19,8 @@ import PassportScreen from './screens/PassportScreen';
 import InviteScreen from './screens/InviteScreen';
 import PalInviteScreen from './screens/PalInviteScreen';
 import BackButton from './screens/BackButton';
+import PlusSheet from './screens/PlusSheet';
+import HomeBoxScreen from './screens/HomeBoxScreen';
 import BottomNav from './screens/BottomNav';
 import PhotoSheet from './screens/PhotoSheet';
 import TopBar from './screens/TopBar';
@@ -61,14 +63,14 @@ function PhoneFrame({ children }: { children: ReactNode }) {
 
 /** Coming from the onboarding's end (its globe has sunk away below the screen): on the same sky, Home builds itself
  *  up — the red envelope rising from where the globe went, the mailbox dropping in, the words and the button, the
- *  nav sliding up (`cp-arrive` on the page, see styles.css) — and the address loses its "?start=home". */
+ *  nav sliding up (`cp-arrive` on the page, see styles.css) — and the address loses its "?start=home" / "?start=app". */
 function EnterFromOnboarding() {
   const [on, setOn] = useState(() => { try { return !!sessionStorage.getItem('cp-enter'); } catch { return false; } });
   useEffect(() => {
     if (!on) return;
     try { sessionStorage.removeItem('cp-enter'); } catch { /* private mode */ }
     const root = document.documentElement; root.classList.add('cp-arrive');
-    try { const u = new URL(location.href); if (u.searchParams.get('start') === 'home') { u.searchParams.delete('start'); history.replaceState(history.state, '', u.pathname + u.search + u.hash); } } catch { /* leave the address */ }
+    try { const u = new URL(location.href); if (u.searchParams.get('start') === 'home' || u.searchParams.get('start') === 'app') { u.searchParams.delete('start'); history.replaceState(history.state, '', u.pathname + u.search + u.hash); } } catch { /* leave the address */ }
     // (`cp-arrive` stays until you leave Home — see HomeMailScreen — so the build-up never replays as it's taken off)
     const t = setTimeout(() => setOn(false), 900);
     return () => clearTimeout(t);
@@ -89,6 +91,7 @@ export default function App() {
             <IntroScreen v={v} />
             <OnboardScreen v={v} />
             <HomeMailScreen v={v} />
+            <HomeBoxScreen v={v} />
             <ShareScreen v={v} />
             <ComposeScreen v={v} />
             <CatMapScreen v={v} />
@@ -104,6 +107,7 @@ export default function App() {
             <PalInviteScreen v={v} />
             <BackButton v={v} />
             <BottomNav v={v} />
+            <PlusSheet v={v} />
             <PhotoSheet v={v} />
             <TopBar v={v} />
             <OpenLetter v={v} />

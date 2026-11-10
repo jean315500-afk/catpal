@@ -8,6 +8,7 @@
 // "?ppSample=1" (or the Map's / Mailbox's sample) shows sample stamps, labelled as such.
 import { each, I } from '../dc/runtime';
 import type { Vals } from '../dc/runtime';
+import { TraitChips } from './ComposeScreen';
 
 const INK = "#22304A";
 /** the folder's card stock (the Mailbox's oat) and the sheet behind it (its blue) */
@@ -43,7 +44,11 @@ function Folder({ v }: { v: Vals }) {
           <div style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "10px", paddingTop: "2px" }}>
             <div style={{ display: "flex", flexDirection: "column" }}>
               <span className="cp-pp-label">{I(T.ppName)}</span>
-              <span className="cp-pp-value" style={{ fontSize: "20px", lineHeight: "24px" }}>{I(c.name)}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: "0" }}>
+                <span className="cp-pp-value" style={{ fontSize: "20px", lineHeight: "24px" }}>{I(c.name)}</span>
+                {/* (on Plus) a small badge by the name */}
+                {v.plus?.on ? <span aria-label="CatPal Plus" style={{ flex: "none", padding: "1px 8px", borderRadius: "999px", background: "#22314D", color: "#FFE7B8", fontWeight: 700, fontSize: "10.5px", lineHeight: "17px", letterSpacing: ".02em" }}>✦ {v.plus.badge}</span> : null}
+              </span>
               {c.intro ? <span style={{ marginTop: "4px", fontWeight: 500, fontSize: "12.5px", lineHeight: "17px", color: "#5E6A80" }}>{I(c.intro)}</span> : null}
             </div>
             {c.country ? (
@@ -230,6 +235,12 @@ function EditSheet({ v }: { v: Vals }) {
           <textarea value={e.intro || ""} onChange={e.setIntro} placeholder={e.introPh} maxLength={120} rows={2} disabled={e.busy}
             style={{ minHeight: "64px", padding: "11px 14px", borderRadius: "14px", border: "1px solid #DDD3C2", background: "#fff", fontSize: "15px", lineHeight: "21px", fontFamily: "inherit", color: INK, outline: "none", resize: "none" }} />
         </label>
+        {v.catTraits ? (
+          <div style={{ marginTop: "12px", alignSelf: "stretch", display: "flex", flexDirection: "column", gap: "6px" }}>
+            <span className="cp-pp-label">{I(v.catTraits.label)}</span>
+            <TraitChips t={v.catTraits} />
+          </div>
+        ) : null}
         {e.err ? <span role="alert" style={{ marginTop: "10px", alignSelf: "stretch", fontWeight: 500, fontSize: "13px", color: "#D9442F" }}>{I(e.err)}</span> : null}
         <div style={{ marginTop: "18px", alignSelf: "stretch", display: "flex", gap: "10px" }}>
           <div onClick={e.busy ? undefined : e.cancel} role="button" className="dc-hover-8" style={{ flex: "1", height: "50px", borderRadius: "25px", boxShadow: "inset 0 0 0 1.5px " + INK, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "15px", color: INK, cursor: e.busy ? "default" : "pointer", opacity: e.busy ? 0.5 : 1 }}>{I(e.cancelLabel)}</div>
@@ -251,9 +262,26 @@ export default function PassportScreen({ v }: { v: Vals }) {
         <div style={{ paddingLeft: "4px", display: "flex", flexDirection: "column" }}>
           <span className="cp-pph-emblem">{EMBLEM}{I(T.ppEmblem)}</span>
           <span style={{ marginTop: "10px", fontWeight: 700, fontSize: "var(--fs-h2)", lineHeight: "30px", fontFamily: "var(--font-heading)", letterSpacing: "var(--ls-heading)", color: INK }}>{I(T.ppTitle)}</span>
-          {/* the number: the profile's own, once it has one; until then not issued (dots); the sample's is marked */}
-          <span className="cp-pph-no">{I(T.ppNoLabel)}{" "}<b>{v.ppNo ? I(v.ppNo) : "CP—····"}</b>{v.ppSample ? " · SAMPLE" : ""}</span>
+          {/* (the sample only) marked as such, so its stamps are never taken for real ones */}
+          {v.ppSample ? <span className="cp-pph-no">SAMPLE</span> : null}
         </div>
+        {/* CatPal Plus: where it is, and what you have */}
+        {v.plus ? (
+          <div onClick={v.plus.openIt} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); v.plus.openIt(); } }} className="dc-hover-8"
+            style={{ marginTop: "14px", display: "flex", alignItems: "center", gap: "10px", padding: "11px 14px", borderRadius: "16px", background: "rgba(255,255,255,.85)", boxShadow: "0 2px 8px rgba(40,30,20,.08)", cursor: "pointer" }}>
+            <span aria-hidden="true" style={{ flex: "none", fontSize: "20px", lineHeight: "1", color: "#B8742A" }}>✦</span>
+            {/* on Plus: "CatPal Plus · Active" (to the plan, looked after); not yet: what it brings */}
+            {v.plus.on ? (
+              <b style={{ flex: "1", minWidth: "0", fontWeight: 700, fontSize: "14px", lineHeight: "19px", color: INK }}>{I(v.plus.status)}</b>
+            ) : (
+              <span style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column" }}>
+                <b style={{ fontWeight: 700, fontSize: "14px", lineHeight: "19px", color: INK }}>{I(v.plus.name)}</b>
+                <span style={{ fontWeight: 500, fontSize: "12px", lineHeight: "16px", color: "#5E6A80", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(v.plus.status)}</span>
+              </span>
+            )}
+            <span aria-hidden="true" style={{ flex: "none", fontSize: "16px", color: "#9AA1B0" }}>›</span>
+          </div>
+        ) : null}
         <Folder v={v} />
         <div style={{ marginTop: "26px" }}><PassportPage v={v} /></div>
       </div>

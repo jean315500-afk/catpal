@@ -134,7 +134,7 @@ function Face({ c }: { c: MapCat }) {
       <div style={{ width: 54, height: 54, borderRadius: '50%', overflow: 'hidden', border: '3px solid ' + (c.ring || (c.mine ? '#FF4B3E' : '#fff')), boxSizing: 'border-box', boxShadow: '0 6px 14px rgba(40,30,20,.25)', background: '#EFE7DB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {c.photo ? <img src={c.photo} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : <span style={{ fontSize: 22 }}>🐱</span>}
       </div>
-      {c.active ? <span aria-label="active" className="cp-active-dot" style={{ position: 'absolute', right: 1, top: 1, width: 12, height: 12, borderRadius: 6, background: '#FF4B3E', border: '2px solid #fff', boxSizing: 'border-box' }} /> : null}
+      {c.active ? <span aria-label="active" className="cp-active-dot" style={{ position: 'absolute', right: 1, top: 1, width: 12, height: 12, borderRadius: 6, background: '#2FD36B', border: '2px solid #fff', boxSizing: 'border-box' }} /> : null}
     </div>
   );
 }

@@ -99,6 +99,9 @@ export function travelMs(a: string, b: string): number {
   return Math.round(Math.min(24, Math.max(0.5, h)) * 3600e3);
 }
 
+/** a fast bird (CatPal Plus): four times the pace, at least 15 minutes */
+export const fastMs = (ms: number) => Math.max(15 * 60e3, Math.round(ms / 4));
+
 /** "lon:lat" token understood by public/globe.html. */
 export const globePoint = (cc: string) => (COUNTRY_COORDS[cc] ? COUNTRY_COORDS[cc].join(':') : '');
 

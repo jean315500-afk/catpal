@@ -59,7 +59,28 @@ input,textarea,button{font-family:var(--font-body)}
 @keyframes cp-peek{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
 @keyframes cp-ring{0%{box-shadow:0 0 0 0 rgba(229,72,61,.45)}100%{box-shadow:0 0 0 16px rgba(229,72,61,0)}}
 @keyframes cp-rise2{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-@keyframes cp-ex-zoom{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:none}}
+.cp-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+/* Home's mailbox pill, a new letter in: a red ring going out from it, three times */
+.cp-mb-ring{position:relative}
+.cp-mb-ring::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;animation:cp-mb-ping 1.4s cubic-bezier(.2,.7,.3,1) 1.4s 3}
+@keyframes cp-mb-ping{0%{box-shadow:0 0 0 0 rgba(229,72,61,.42)}100%{box-shadow:0 0 0 14px rgba(229,72,61,0)}}
+@media (prefers-reduced-motion:reduce){.cp-mb-ring::after{animation:none}}
+/* Home's mailbox: the letters not read yet give a little hop now and then; the bird bobs as it flies; landing, it
+   drops the letter in at the door and flies off */
+@keyframes cp-fast-swoop{0%{transform:translate(230px,-230px) scale(.9);opacity:0}12%{opacity:1}62%,70%{transform:translate(-40px,100px) scale(.6);opacity:1}100%{transform:translate(-200px,-160px) scale(.5);opacity:0}}
+@keyframes cp-fast-spark{from{opacity:.4;transform:scale(.8)}to{opacity:1;transform:scale(1.15)}}
+@keyframes cp-rib-wave{0%,100%{transform:skewY(0) scaleX(1)}30%{transform:skewY(-7deg) scaleX(.92)}65%{transform:skewY(5deg) scaleX(1.05)}}
+@keyframes cp-hb-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes cp-hb-nudge{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes cp-hb-sway{0%,66%,100%{transform:none}71%{transform:rotate(-2.2deg)}77%{transform:rotate(1.8deg)}83%{transform:rotate(-1.1deg)}89%{transform:rotate(.5deg)}94%{transform:none}}
+@keyframes cp-hb-hop{0%,78%,100%{transform:none}82%{transform:translateY(-4px) rotate(-2.5deg)}86%{transform:translateY(0) rotate(1deg)}90%{transform:translateY(-2px) rotate(-1deg)}94%{transform:none}}
+@keyframes cp-hb-bob{0%,100%{transform:scaleX(-1) translateY(0)}50%{transform:scaleX(-1) translateY(-4px)}}
+@keyframes cp-hb-land{0%{transform:translate(var(--x),var(--y)) scale(var(--s));opacity:var(--o)}45%,55%{transform:translate(-40px,100px) scale(.7);opacity:1}100%{transform:translate(-280px,-260px) scale(.55);opacity:0}}
+/* the Mailbox: a letter put back in its place, after reading */
+@keyframes cp-file-back{from{transform:translateY(-24px) scale(1.03);opacity:.5}to{transform:none;opacity:1}}
+/* the typewriter: the sheet put in, coming up out of the platen */
+@keyframes cp-tw-feed{from{clip-path:inset(100% -40px 0 -40px)}to{clip-path:inset(0 -40px 0 -40px)}}
+@keyframes cp-tw-roll{from{opacity:0;transform:translateY(14px) scaleY(.5)}to{opacity:1;transform:none}}
 .cp-hand{font-family:"Caveat","Gaegu","Klee One",cursive}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.001ms !important;animation-delay:0s !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important}
@@ -77,6 +98,16 @@ input,textarea,button{font-family:var(--font-body)}
 .cp-pop-in{animation:cp-pop .45s cubic-bezier(.34,1.56,.64,1) .3s both}
 /* a cat pal active lately (Map): its red dot breathes a little */
 .cp-active-dot{animation:cp-active 2.4s ease-in-out infinite}
+/* the Map's quieter places: a soft warm glow where cats are (breathing slowly, each at its own pace); red, someone
+   there right now */
+.cp-glow i{position:absolute;left:50%;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#FFD27A;box-shadow:0 0 0 2px #fff,0 2px 6px rgba(120,70,10,.35),0 0 14px 6px rgba(255,200,110,.7)}
+.cp-glow i::after{content:"";position:absolute;inset:-12px;border-radius:50%;background:radial-gradient(closest-side,rgba(255,214,140,.75),rgba(255,214,140,0));animation:cp-glow 3.2s ease-in-out infinite}
+.cp-glow.is-on i{background:#2FD36B;box-shadow:0 0 0 2px #fff,0 2px 6px rgba(10,90,40,.3),0 0 14px 6px rgba(70,220,120,.55)}
+.cp-glow.is-on i::after{background:radial-gradient(closest-side,rgba(60,215,110,.6),rgba(60,215,110,0))}
+@keyframes cp-glow{0%,100%{transform:scale(.7);opacity:.5}50%{transform:scale(1.5);opacity:1}}
+/* the Map's bottom strip: who's sending now, one at a time, rising in */
+@keyframes cp-tick-in{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){.cp-glow i::after{animation:none}}
 /* the Map's letters on their way (GlobeMap3D journeys): the bird with the red envelope (yours brighter, a soft red glow), and
    the one ripple on the profile where it lands */
 .cp-map-bird img{display:block;user-select:none;-webkit-user-drag:none;filter:drop-shadow(0 3px 4px rgba(40,30,20,.28))}
@@ -84,7 +115,7 @@ input,textarea,button{font-family:var(--font-body)}
 .cp-map-ripple i{position:absolute;left:-30px;top:-30px;width:60px;height:60px;border-radius:50%;box-sizing:border-box;border:2px solid rgba(255,255,255,.95);box-shadow:0 0 0 2px rgba(255,75,62,.35);opacity:0}
 .cp-map-ripple.is-on i{animation:cp-map-ripple 1.3s cubic-bezier(.2,.7,.3,1) both}
 @keyframes cp-map-ripple{0%{transform:scale(.7);opacity:.95}100%{transform:scale(1.9);opacity:0}}
-@keyframes cp-active{0%,100%{box-shadow:0 0 0 0 rgba(255,75,62,.45),0 1px 3px rgba(0,0,0,.25)}50%{box-shadow:0 0 0 5px rgba(255,75,62,0),0 1px 3px rgba(0,0,0,.25)}}
+@keyframes cp-active{0%,100%{box-shadow:0 0 0 0 rgba(47,211,107,.5),0 1px 3px rgba(0,0,0,.25)}50%{box-shadow:0 0 0 5px rgba(47,211,107,0),0 1px 3px rgba(0,0,0,.25)}}
 @media (prefers-reduced-motion:reduce){.cp-active-dot{animation:none}.cp-map-ripple.is-on i{animation:none}}
 @keyframes cp-gift-in{0%{opacity:0;transform:scale(.6) rotate(-4deg)}100%{opacity:1;transform:none}}
 .cp-twinkle{animation:cp-twinkle 1.6s ease-in-out infinite}
@@ -151,6 +182,9 @@ body.cp-sky-page{background:linear-gradient(rgba(255,255,255,.5),rgba(255,255,25
 .cp-seal.is-sealed .cp-seal-back{clip-path:inset(41.1% 0 0 0);transition:clip-path 0s .85s}
 /* the letter's own placeholder: the serif, in italics, faint */
 .cp-letter-input::placeholder{font-family:var(--font-letter);font-style:italic;color:#A9AEBD;opacity:1}
+/* the typewriter's sheet: the example line, faint as a pencil note (not typed: no ink shadow) */
+/* (the prompt, before anything's written: smaller than the words that will be typed) */
+.cp-type-input::placeholder{color:rgba(36,34,31,.26);text-shadow:none;opacity:1;font-size:13px}
 /* …and once the flap is shut, the stamp goes on and the postmark is stamped over it (step 4: as it appears) */
 .cp-seal-post .cp-post-stamp,.cp-seal-post .cp-post-mark{opacity:0}
 .cp-seal.is-sealed .cp-seal-post .cp-post-stamp{animation:cp-stampin .45s cubic-bezier(.34,1.56,.64,1) 1.4s both}
@@ -258,3 +292,10 @@ body.cp-sky-page{background:linear-gradient(rgba(255,255,255,.5),rgba(255,255,25
 
 /* the close-up map's credit: under the language button */
 .maplibregl-ctrl-top-right{top:52px!important}
+
+/* Home's letter button: white, a soft shadow only; pressed, it greys a touch and goes down a little */
+.cp-paper-btn{background-color:#FFFFFF;border:0;box-shadow:0 4px 14px rgba(34,49,77,.12),0 1px 2px rgba(34,49,77,.06);
+  transition:background-color .12s ease,transform .12s ease,box-shadow .12s ease;-webkit-tap-highlight-color:transparent}
+.cp-paper-btn:hover{background-color:#FAFAFB}
+.cp-paper-btn:active{background-color:#F1F3F6;transform:translateY(1px);box-shadow:0 2px 8px rgba(34,49,77,.10),0 1px 2px rgba(34,49,77,.06)}
+.cp-paper-btn:focus-visible{outline:2px solid #22314D;outline-offset:3px}

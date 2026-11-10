@@ -13,19 +13,18 @@ import { drawPostcard } from '../community/postcard';
 const INK = "#22304A", MUTED = "#5E6A80", FAINT = "#8E96A6";
 const MONO = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace";
 
-/** one end of the way: the cat (its photo in a round frame, the country's flag on it), the country, the cat's name */
+/** one end of the way: the cat (its photo in a round frame), where — the country, first — and the cat's name, small */
 function End({ label, flag, photo, country, who, right }: { label: string; flag: string; photo: string; country: string; who: string; right?: boolean }) {
   return (
     <div style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", alignItems: right ? "flex-end" : "flex-start", textAlign: right ? "right" : "left", gap: "2px" }}>
       <span style={{ fontFamily: MONO, fontSize: "9.5px", letterSpacing: ".16em", textTransform: "uppercase", color: FAINT }}>{I(label)}</span>
-      <span style={{ position: "relative", margin: "4px 0 4px", width: "52px", height: "52px", flex: "none" }}>
+      <span style={{ position: "relative", margin: "4px 0 6px", width: "54px", height: "54px", flex: "none" }}>
         <span style={{ position: "absolute", inset: "0", borderRadius: "50%", overflow: "hidden", background: "#F3EEE4", border: "2.5px solid #fff", boxShadow: "0 3px 10px rgba(34,48,74,.18)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px" }}>
           {photo ? <img src={photo} alt="" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} /> : "🐈"}
         </span>
-        <span aria-hidden="true" style={{ position: "absolute", [right ? "left" : "right"]: "-6px", bottom: "-3px", width: "22px", height: "22px", borderRadius: "11px", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,.18)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", lineHeight: "1" }}>{I(flag)}</span>
       </span>
-      <span style={{ maxWidth: "100%", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "15px", lineHeight: "20px", letterSpacing: "var(--ls-heading)", color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(country)}</span>
-      <span style={{ maxWidth: "100%", fontWeight: 500, fontSize: "12px", color: MUTED, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(who)}</span>
+      <span style={{ maxWidth: "100%", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "15px", lineHeight: "19px", letterSpacing: "var(--ls-heading)", color: INK, overflowWrap: "anywhere", textWrap: "balance" } as any}>{I(flag)}{" "}{I(country)}</span>
+      <span style={{ maxWidth: "100%", fontWeight: 500, fontSize: "12px", lineHeight: "16px", color: MUTED, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(who)}</span>
     </div>
   );
 }
@@ -132,31 +131,23 @@ export default function ArrivedScreen({ v }: { v: Vals }) {
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <End label={T.dmFrom} flag={v.arrFromFlag} photo={v.arrFromPhoto} country={v.arrFrom} who={v.arrFromName} />
             {/* the way: a straight dotted arrow, the distance under it */}
-            <div style={{ flex: "none", width: "76px", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
-              <svg width="72" height="12" viewBox="0 0 72 12" aria-hidden="true">
+            <div style={{ flex: "none", width: "84px", display: "flex", flexDirection: "column", alignItems: "center", gap: "3px" }}>
+              <svg width="64" height="12" viewBox="0 0 72 12" aria-hidden="true" style={{ marginBottom: "2px" }}>
                 <path d="M3 6H67" fill="none" stroke="#E5483D" strokeWidth="2" strokeLinecap="round" strokeDasharray="0.1 6" />
                 <path d="M63 2 68 6 63 10" fill="none" stroke="#E5483D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              {v.destKm ? <span style={{ fontWeight: 700, fontSize: "12px", color: "#C9785D", whiteSpace: "nowrap" }}>{I(v.destKm)}{" km"}</span> : null}
-              {/* and how long it flies */}
-              {v.arrEta ? <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontWeight: 600, fontSize: "11.5px", color: "#8A6A4E", whiteSpace: "nowrap" }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: "none" }}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>{I(v.arrEta)}</span> : null}
+              {/* how long it flies */}
+              {v.arrEta ? <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontWeight: 700, fontSize: "13px", lineHeight: "18px", color: "#8A5A2B", whiteSpace: "nowrap" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: "none" }}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>{I(v.arrEta)}</span> : null}
             </div>
             <End label={T.dmTo} flag={v.arrToFlag} photo={v.arrToPhoto} country={v.destCity} who={v.arrToName} right />
           </div>
-          <div style={{ marginTop: "10px", paddingTop: "8px", borderTop: "1px dashed #E2DCD0", textAlign: "center", fontFamily: MONO, fontSize: "10px", letterSpacing: ".14em", textTransform: "uppercase", color: FAINT }}>{I(v.arrDate)}</div>
         </div>
 
         {/* the letter, as it was delivered: in its red envelope, its top peeking out; stamped, and postmarked where it was sent from */}
         {l ? (
-          <div style={{ marginTop: "22px", animation: "cp-letterup .6s cubic-bezier(.2,.9,.3,1) .2s both" }}>
+          <div style={{ marginTop: "40px", zoom: 0.84, animation: "cp-letterup .6s cubic-bezier(.2,.9,.3,1) .2s both" } as any}>
             <LetterInEnvelope v={{ cmpPhoto: l.photo, cmpText: l.text, cmpSign: l.sign, cmpFlag: l.flag, cmpCountryName: l.country, cmpStamp: v.stampMotif, cmpPm: v.myPm, cpT: T }} deep={DEEP_IN} />
           </div>
-        ) : null}
-        {/* when it lands (only then can it be opened) */}
-        {v.arrLandsIn ? (
-          <span role="status" style={{ marginTop: "16px", display: "inline-flex", alignItems: "center", gap: "7px", padding: "8px 16px", borderRadius: "999px", background: "rgba(255,241,220,.92)", boxShadow: "0 4px 12px rgba(160,104,46,.12)", fontWeight: 700, fontSize: "var(--fs-caption)", lineHeight: "18px", color: "#8A5A2B", animation: "cp-rise2 .45s cubic-bezier(.2,.8,.2,1) .35s both" }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flex: "none" }}><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>{I(v.arrLandsIn)}
-          </span>
         ) : null}
 
         {/* a reply that went: the country's postmark, stamped into the passport the first time (a short press, then on) —

@@ -10,6 +10,7 @@ import { COMMUNITY_STRINGS } from './community/strings';
 import { supabaseConfigured } from './community/supabase';
 import * as api from './community/api';
 import type { FeedItem, Letter, MomentCard, Profile, Thread } from './community/api';
+import { nextRenewal, PLAN, PLUS_SAMPLE, readPlan, TRAITS, writePlan, type Plan } from "./community/plan";
 import { COUNTRY_COORDS, countryName, countryOptions, distanceKm, travelMs, flagOf, globePoint, guessCountry, POSTMARK_COUNTRIES, POSTMARK_FILES, postmarkOf, stampOf } from './community/countries';
 import { dataUrlToBlob, toUploadJpeg } from './community/image';
 import { enableReplyNotifications, REPLY_NOTIFY_OFFERED, replyNotifyState } from './community/notify';
@@ -39,10 +40,11 @@ const optCache: Record<string, { cc: string; label: string }[]> = {};
 
 // ---- the letter from Home: its draft (kept across reloads), the cat's name
 const CP_KEYS = ["cpSealing", "cpS1Title", "cpS1Sub", "cpAddPhoto", "cpPhotoSlot", "cpChangePhoto", "cpMsgPh", "cpContinue", "cpS2Title", "cpS2Sub", "cpCatName", "cpCatNamePh", "cpFrom", "cpPickCountry",
-  "cpS3Title", "cpS3Sub", "cpEditLetter", "cpEditCat", "cpSend", "cpSending", "cpDear", "cpWaitTitle", "cpWaitSub", "cpTryAgain", "cpBackHome", "cpBack",
-  "cpKindAsk", "cpGuideHead", "cpGuideEg", "cpFirstTitle", "cpExTag", "cpExClose", "cpCatIntro", "cpCatIntroPh", "cpS2MetTitle", "cpS2MetSub", "cpPenName", "cpPenNamePh", "cpEditMet", "cpInviting",
+  "cpS3Title", "cpS3Sub", "cpSend", "cdEdit", "cpSending", "cpDear", "cpWaitTitle", "cpWaitSub", "cpTryAgain", "cpBackHome", "cpBack",
+  "cpFirstTitle", "cpToDone", "cpPhotoShort", "cpCatIntro", "cpCatIntroPh", "cpTypeSoundOn", "cpTypeSoundOff", "cpUnroll", "cpRollUp", "cpCloseTheirs", "cpBackToMine", "cpS2MetTitle", "cpS2MetSub", "cpPenName", "cpPenNamePh", "cpInviting",
   "ivReadyTitle", "ivReadySub", "ivShare", "ivCopy", "ivCopied", "ivDone", "ivCancel", "ivNotYet", "ivOpened", "ivPublicNote"];
-const DRAFT = "cp-letter-draft", CAT_NAME = "cp-cat-name", NICK_IS_CAT = "cp-nick-is-cat", CAT_INTRO = "cp-cat-intro";
+const DRAFT = "cp-letter-draft", CAT_NAME = "cp-cat-name", NICK_IS_CAT = "cp-nick-is-cat", CAT_INTRO = "cp-cat-intro", CAT_TRAITS = "cp-cat-traits";
+const readTraits = (): string[] => { try { const t = JSON.parse(localStorage.getItem(CAT_TRAITS) || "[]"); return Array.isArray(t) ? t.filter((x) => TRAITS.includes(x)) : []; } catch { return []; } };
 /** my cat's short intro: the profile's (once its column is there), else the one kept on this device */
 const myIntro = (me: Profile | null) => { if (me && me.intro != null) return me.intro; try { return localStorage.getItem(CAT_INTRO) || ""; } catch { return ""; } };
 /** a reply being written to a letter that came by a link (kept, with the link's token, until it's sent) */
@@ -53,21 +55,34 @@ const dropInviteParam = () => { try { const u = new URL(location.href); if (u.se
 /** a friend's "be my cat pal" link (?pal=…, kept by main.tsx through a first visit's story), and the way in from the
  *  landing story's Start (?start=home) — where the "start with a friend?" step comes first */
 const PAL_KEY = "cp-pal-token";
+// the friend whose link I accepted, till our first letter: who they are, so a new letter goes to them from the start
+// (and they're in "To" even before our thread exists — it's made with my first letter)
+const PAL_PENDING = "cp-pal-pending";
+type PendingPal = { id: string; name: string; cc: string; photo: string };
+const readPending = (): PendingPal | null => { try { return JSON.parse(localStorage.getItem(PAL_PENDING) || "null"); } catch { return null; } };
+const dropPending = () => { try { localStorage.removeItem(PAL_PENDING); } catch { /* fine */ } };
+/** a letter of mine has gone from here: Home opens straight on the mailbox, without the first-letter page showing first */
+const HAS_MAIL = "cp-has-mail";
+const readHasMail = () => { try { return !!localStorage.getItem(HAS_MAIL); } catch { return false; } };
 const palToken = () => { try { return localStorage.getItem(PAL_KEY); } catch { return null; } };
 const dropPal = () => { try { localStorage.removeItem(PAL_KEY); const u = new URL(location.href); if (u.searchParams.has("pal")) { u.searchParams.delete("pal"); history.replaceState(history.state, "", u.pathname + u.search + u.hash); } } catch { /* fine */ } };
 const FROM_STORY = (() => { try { return new URLSearchParams(location.search).get("start") === "home"; } catch { return false; } })();
+/** the landing story played to its end: on to Home (a letter left open stays saved, for next time) */
+const FROM_STORY_END = (() => { try { return new URLSearchParams(location.search).get("start") === "app"; } catch { return false; } })();
 /** the landing's "Send your first letter": straight on to the letter paper */
 const FROM_LETTER = (() => { try { return new URLSearchParams(location.search).get("start") === "letter"; } catch { return false; } })();
-const palUrl = (token: string) => { try { return location.origin + "/?pal=" + token; } catch { return "/?pal=" + token; } };
+// (testing, face to face) "?quick=1": letters land at once on this device — kept for the tab (through the story and
+// links), carried on the invite link so the friend's side does the same; "?quick=0" ends it. Nothing changes in the database.
+// On the dev server it's on unless "?quick=0" (testing face to face, letters shouldn't wait); the live site, only by asking.
+const QUICK = (() => { try { const q = new URLSearchParams(location.search).get("quick"); if (q === "1" || q === "0") sessionStorage.setItem("cp-quick", q); const k = sessionStorage.getItem("cp-quick"); return k === "1" || (!!import.meta.env.DEV && k !== "0"); } catch { return false; } })();
+const palUrl = (token: string) => { const q = "/?pal=" + token + (QUICK ? "&quick=1" : ""); try { return location.origin + q; } catch { return q; } };
 const inviteUrl = (token: string) => { try { return location.origin + "/?letter=" + token; } catch { return "/?letter=" + token; } };
 const newId = () => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c: any) => (c ^ (Math.random() * 16) >> (c / 4)).toString(16)));
 /** whether a letter is in progress (something on it), known without re-reading the stored photo on every render */
 let draftStarted: boolean | null = null;
-/** the first letter's ideas, each as an example letter: a sample cat (the app's own pictures) and where it went */
-const GUIDE_EX: [string, string, string][] = [["./assets/cats/cat-3.jpg", "KR", "CA"], ["./assets/cats/cat-1.jpg", "JP", "FR"], ["./assets/cats/cat-2.jpg", "TH", "AU"]];
-/** the Map's view (World / My letters), as last picked on this device */
+/** the Map's view (World / My CatPals), as last picked on this device */
 const MAP_VIEW = "cp-map-view";
-const mapView = () => { try { return localStorage.getItem(MAP_VIEW) === "mine" ? "mine" : "world"; } catch (_) { return "world"; } };
+const mapView = () => { try { const v = localStorage.getItem(MAP_VIEW); return v === "mine" || v === "world" ? v : ""; } catch (_) { return ""; } };
 const saveMapView = (v: string) => { try { localStorage.setItem(MAP_VIEW, v); } catch (_) { /* private mode */ } };
 /** the Map's example cat lovers (only on this device, never in the database, labelled "Example" wherever they show):
  *  a cat's name, its country, a photo (the app's own sample cats, and the landing's) — and the example deliveries
@@ -93,10 +108,14 @@ const MB_SAMPLE = typeof location !== "undefined" && new URLSearchParams(locatio
 const MAP_SAMPLE = typeof location !== "undefined" && new URLSearchParams(location.search).has("mapSample");
 /** "?arrSample=1": the Arrived page after a first reply to France (stamp, postcard to share) — a sample, labelled as such */
 const ARR_SAMPLE = typeof location !== "undefined" && new URLSearchParams(location.search).has("arrSample");
+/** "?replySample=1": a reply to a sample letter (Léa's, from Paris), already written — its photo and its words on —
+ *  to send as if for real: the globe, then the Arrived page (nothing is sent; said so) */
+const REPLY_SAMPLE = typeof location !== "undefined" && new URLSearchParams(location.search).has("replySample");
 /** "?arriveSample=1": the Mailbox's sample, with one more sample letter flying in that lands ~30 s after the page opens */
 const ARRIVE_SAMPLE = typeof location !== "undefined" && new URLSearchParams(location.search).has("arriveSample");
 /** when it lands: "?arriveSample=3h" (or 90m, 45s; a bare number is seconds) after the page opens — 30 s by default */
-const ARRIVE_AT = Date.now() + (() => {
+const ARRIVE_FROM = Date.now(), ARRIVE_AT = ARRIVE_FROM + (() => {
+  if (PLUS_SAMPLE) return 4000;   // (as a Plus member sees it: letters land at once — this one a few seconds in)
   const m = (typeof location !== "undefined" && new URLSearchParams(location.search).get("arriveSample") || "").match(/^(\d+(?:\.\d+)?)\s*([smh]?)$/i);
   return m ? Number(m[1]) * ({ h: 3600e3, m: 60e3 }[m[2].toLowerCase()] || 1000) : 30e3;
 })();
@@ -144,6 +163,7 @@ export default class CatPalLogic extends DCLogic {
     // a first letter makes the profile as it's sent, so the old intro (nickname + country first) isn't needed up front
     screen: "home", prev: "home", lang: APP_LANG, langOpen: false, sheet: null, camErr: false, introStep: 0,
     // auth
+    plan: readPlan(), plusOpen: false, myTraits: readTraits(), fastTrip: false,
     authReady: false, me: null, onbNick: "", onbCountry: guessCountry(), onbBusy: false, onbErr: "",
     // feed
     feed: [], feedState: "idle", feedErr: "", top: [], likeFx: null, todayIdx: 0, openFx: null, mapMoments: [], cmSel: null, viewMoment: null, todayMode: false, pal: null, exTab: "latest", exSort: "top", exItems: { top: [], recent: [], ranking: [] }, exState: "idle", exCc: null, myPosts: [], draftPublic: false,
@@ -177,12 +197,14 @@ export default class CatPalLogic extends DCLogic {
     if (INVITE_TOKEN) this.setState({ screen: "invite" });
     else if (ARR_SAMPLE) this.setState({ screen: "arrived" });
     else if (ARRIVE_SAMPLE) this.setState({ screen: "home" });
+    else if (REPLY_SAMPLE) this.sampleWriteBack({ name: "Léa", cc: "FR", photo: "./assets/cats/cat-1.jpg", dateLong: "",
+      body: this.tx("rsSaid") }, { text: this.tx("rsText"), photo: "./assets/cats/cat-3.jpg", catName: this.tx("rsCat") });
     // a friend's link (once the story, if any, is done): who invited you, and "Accept"
     else if (palToken()) this.setState({ screen: "palAccept", palInv: { token: palToken(), phase: "loading", d: null } });
     // just in from the story's Start: "start with a friend?" first (once there), then Home as before
-    else if (FROM_STORY && !(draft && draft.open)) { this.setState({ screen: "palStart", palShare: { phase: "idle" } }); loadKakao(); }
+    else if (FROM_STORY && !(draft && draft.open)) { this.setState({ screen: "palStart", palShare: { phase: "idle" } }); loadKakao(); try { const u = new URL(location.href); u.searchParams.delete("start"); history.replaceState(history.state, "", u.pathname + u.search + u.hash); } catch { /* leave the address */ } }
     else if (FROM_LETTER && !(draft && draft.open)) { this.openCompose(); try { const u = new URL(location.href); u.searchParams.delete("start"); history.replaceState(history.state, "", u.pathname + u.search + u.hash); } catch { /* fine */ } }
-    else if (draft && draft.open && (!this.state.screen || this.state.screen === "home")) { this.setState({ screen: "compose", cmp: { ...draft, busy: false, err: "" } }); this.pushLetterStep(); }
+    else if (draft && draft.open && !FROM_STORY_END && (!this.state.screen || this.state.screen === "home")) { this.setState({ screen: "compose", cmp: { ...draft, busy: false, err: "" } }); this.pushLetterStep(); }
     // the browser's back button steps back through the letter (and out of it to Home)
     this.onPop = () => {
       if (this.state.screen !== "compose") return;
@@ -194,7 +216,7 @@ export default class CatPalLogic extends DCLogic {
     // Mail refresh: every 5 s while a thread is open, otherwise every 20 s (only when the tab is visible).
     this.poll = setInterval(() => {
       if (!this.state.me || document.visibilityState !== "visible") return;
-      const every = this.cur === "letters" ? 5000 : 20000;
+      const every = QUICK ? 4000 : this.cur === "letters" ? 5000 : 20000;   // (letters landing at once: looked for every few seconds)
       if (Date.now() - (this.lastMail || 0) >= every) this.refreshMail();
     }, 2500);
     this.syncCam();
@@ -296,7 +318,23 @@ export default class CatPalLogic extends DCLogic {
   }
 
   // ---------------------------------------------------------------- feed & likes
-  loadAll() { this.loadFeed(); this.loadTop(); this.refreshMail(); this.loadMine(); this.loadMap(); this.loadExplore(); this.loadMyPosts(); this.loadPpPhoto(); }
+  /** the plan (test-only for now: kept on this device) */
+  setPlan(patch: Partial<Plan>) { const plan = { ...(this.state.plan as Plan), ...patch }; writePlan(plan); this.setState({ plan }); }
+  /** what my cat is like: on this device, and on the profile once there is one */
+  setMyTraits(myTraits: string[]) {
+    try { localStorage.setItem(CAT_TRAITS, JSON.stringify(myTraits)); } catch (_) { /* this visit only */ }
+    this.setState({ myTraits });
+    if (this.state.me) api.saveCatTraits(this.state.me.id, myTraits).catch(() => { /* not set up yet: kept here */ });
+  }
+  loadTraits() {
+    const me = this.state.me; if (!me) return;
+    api.getCatTraits(me.id).then((t) => {
+      const kept = (t || []).filter((x) => TRAITS.includes(x)), here = this.state.myTraits as string[];
+      if (kept.length) { this.setState({ myTraits: kept }); try { localStorage.setItem(CAT_TRAITS, JSON.stringify(kept)); } catch (_) {} }
+      else if (here.length) api.saveCatTraits(me.id, here).catch(() => { /* not set up yet */ });   // (picked before there was a profile)
+    });
+  }
+  loadAll() { this.loadTraits(); this.loadFeed(); this.loadTop(); this.refreshMail(); this.loadMine(); this.loadMap(); this.loadExplore(); this.loadMyPosts(); this.loadPpPhoto(); }
   /** the passport's photo, if one was picked (else it shows the first photo saved) */
   async loadPpPhoto() { const me = this.state.me; if (!me) return; try { this.setState({ ppPhoto: await api.myProfilePhoto(me.id) }); } catch (_) { /* the first photo, as before */ } }
   /** the passport, edited: its photo (a new one picked) and the name on it */
@@ -385,6 +423,9 @@ export default class CatPalLogic extends DCLogic {
     api.myPalThreads().then((palThreads) => this.setState({ palThreads })).catch(() => { /* not set up yet */ });
     try {
       const [threads, letters] = await Promise.all([api.listThreads(), api.listLetters()]);
+      // (the friend whose link I accepted) a letter between us now: they're a cat pal like any other
+      const pend = readPending(), meId = this.state.me?.id;
+      if (pend && meId && letters.some((l) => { const t = threads.find((x) => x.id === l.thread_id); return !!t && (t.starter_id === pend.id || t.owner_id === pend.id); })) dropPending();
       // Signed URLs for letter photos (re-signed every 50 min).
       const fresh = this.urlsAt && Date.now() - this.urlsAt < 50 * 60e3;
       const urls = fresh ? this.state.urls : {};
@@ -394,6 +435,7 @@ export default class CatPalLogic extends DCLogic {
       // a letter to me is still on its way until its bird gets here (the farther, the longer): held back till then
       const { arrived, inbound } = this.byArrival(threads, letters);
       this.setState({ threads, letters: arrived, inbound, urls: { ...urls, ...got }, mailReady: true });
+      try { if (arrived.some((l) => l.sender_id === this.state.me?.id)) localStorage.setItem(HAS_MAIL, "1"); else localStorage.removeItem(HAS_MAIL); } catch (_) { /* found out again next time */ }
       // the next one to land: looked for again just as it does
       clearTimeout(this.landT);
       const next = Math.min(...inbound.map((x) => x.at));
@@ -402,11 +444,21 @@ export default class CatPalLogic extends DCLogic {
     } catch (_) { /* keep what we have; the next tick retries */ }
     finally { this.mailBusy = false; }
   }
-  /** when a letter gets there: sent, plus its bird's time between the two countries (the same both ways in a thread) */
+  /** when a letter gets there: sent, plus its bird's time between the two countries (the same both ways in a thread) —
+   *  at once by Fast Bird (sent by a Plus member, or with a fast bird), and to a Plus member, every letter at once */
   arriveAt(l: Letter, threads = this.state.threads) {
     const me = this.state.me, th = threads.find((t) => t.id === l.thread_id);
     const o = th && me ? this.otherOf(th) : null;
-    return new Date(l.created_at).getTime() + (o && me ? travelMs(o.country, me.country) : 0);
+    const ms = o && me ? travelMs(o.country, me.country) : 0;
+    return new Date(l.created_at).getTime() + (l.fast || (this.state.plan as Plan).plus || QUICK ? 0 : ms);
+  }
+  /** new letters sent today (the first of a thread; replies don't count) — Plus sends a few a day */
+  newLettersToday() {
+    const me = this.state.me; if (!me) return 0;
+    const day0 = new Date(); day0.setHours(0, 0, 0, 0);
+    const first = new Map<string, Letter>();
+    for (const l of [...(this.state.letters as Letter[])].sort((a, b) => (a.created_at < b.created_at ? -1 : 1))) if (!first.has(l.thread_id)) first.set(l.thread_id, l);
+    return [...first.values()].filter((l) => l.sender_id === me.id && new Date(l.created_at) >= day0).length;
   }
   /** the letters to show (mine, and theirs that have landed), and theirs still on the way (when each lands) */
   byArrival(threads: Thread[], letters: Letter[]) {
@@ -477,9 +529,9 @@ export default class CatPalLogic extends DCLogic {
     this.pushLetterStep();
   }
   /** the Mailbox's sample letters (?mbSample=1): the reply paper, to try — sending it only says it's a sample */
-  sampleWriteBack(c) {
+  sampleWriteBack(c, written?: { text: string; photo: string; catName?: string }) {
     const me = this.state.me, cat = catInfo(me, this.state.mine);
-    const cmp = { step: 1, text: "", photo: "", catName: cat.name || me?.nickname || "", country: me?.country || guessCountry() || "", stamp: Math.floor(Math.random() * STAMPS.length), waiting: false, open: true, busy: false, err: "",
+    const cmp = { step: 1, text: written?.text || "", photo: written?.photo || "", catName: cat.name || me?.nickname || written?.catName || "", country: me?.country || guessCountry() || "", stamp: Math.floor(Math.random() * STAMPS.length), waiting: false, open: true, busy: false, err: "",
       reply: { sample: true, threadId: null, name: c.name, cc: c.cc, photo: c.photo, said: (c.body || "").trim(), at: null, dateText: c.dateLong || "" } };
     this.go("compose", { sheet: null, cmp });
     this.pushLetterStep();
@@ -504,6 +556,12 @@ export default class CatPalLogic extends DCLogic {
     this.go("compose", { sheet: null, cmp });
     this.pushLetterStep();
   }
+  /** (Plus, from the Map) writing to the cat lover a moment is theirs: our letters if we've any, else a new one to them */
+  writeToMoment(m: MomentCard) {
+    const me = this.state.me; if (!me || m.user_id === me.id) { if (!me) this.openCompose(); return; }
+    const t = (this.state.threads as Thread[]).find((x) => this.otherOf(x).id === m.user_id);
+    this.setState({ threadId: t ? t.id : null, pendingMoment: t ? null : m }, () => this.writeIn());
+  }
   /** "Send a Cat Letter" on a moment: continue our thread about it, or start a new one on first send. */
   letterTo(m: MomentCard) {
     const me = this.state.me; if (!me || m.user_id === me.id) return;
@@ -522,7 +580,9 @@ export default class CatPalLogic extends DCLogic {
       const isNew = !s.threadId;
       const threadId = s.threadId || (await api.openThread(me.id, pm));
       const firstOfThread = isNew && !s.letters.some((l) => l.thread_id === threadId);
-      const letter = await api.sendLetter(me.id, threadId, text || null, photo, s.stamp);
+      const letter = await api.sendLetter(me.id, threadId, text || null, photo, s.stamp, this.sendExtras);
+      this.sendExtras = null; this.setState({ fastTrip: !!letter.fast });
+      if (letter.fast && !(this.state.plan as Plan).plus) this.setPlan({ birds: Math.max(0, (this.state.plan as Plan).birds - 1) });   // (only once it has really gone by one)
       markFlown(letter.id);   // its flight plays now, on the delivery globe — the Map doesn't show it again
       const urls = letter.photo_path && s.draftPhoto ? { ...this.state.urls, [letter.photo_path]: s.draftPhoto } : this.state.urls;
       this.draftBlob = null;
@@ -545,6 +605,19 @@ export default class CatPalLogic extends DCLogic {
     } catch (e) {
       this.setState({ sending: false, sendErr: api.errorText(e) });
     }
+  }
+  /** A reply to a sample letter: nothing is sent (there's no one to send it to) — its trip is shown all the same, over
+   *  the globe to the sample cat lover's country, then the Arrived page (both said to be a sample) */
+  sampleReply(c) {
+    const r = c.reply, from = this.state.me?.country || c.country || guessCountry() || "KR";
+    if (!globePoint(from) || !globePoint(r.cc)) { this.setCmp({ err: this.tx("mbSampleReply") }); return; }
+    this.setState((p) => ({ cmp: null, sampleSend: { from, text: (c.text || "").trim(), photo: c.photo || "", sign: this.cmpSignName(c) || this.tx("cpYourCat") },
+      dest: { uid: "sample", name: r.name, cc: r.cc, photo: r.photo || "" }, dmKnown: { name: r.name, cc: r.cc }, isNewPal: false, replyReward: null, fastTrip: (this.state.plan as Plan).plus || (!!c.fast && (this.state.plan as Plan).birds > 0), firstTrip: false,
+      screen: "deliveryMap", prev: "compose", mapDone: false, sendCount: p.sendCount + 1, langOpen: false }));
+    this.timers.push(
+      setTimeout(() => { if (this.state.screen === "deliveryMap") this.setState({ mapDone: true }); }, 7000),
+      setTimeout(() => { if (this.state.screen === "deliveryMap") this.setState({ screen: "arrived", prev: "deliveryMap" }); }, 7600),
+    );
   }
   /** The prototype's delivery: the cat runs along the bar while the letter flies over the globe, then "arrived". */
   playDelivery(to: { uid: string; name: string; cc: string; photo: string }, isNew: boolean) {
@@ -639,7 +712,7 @@ export default class CatPalLogic extends DCLogic {
     const me = this.state.me, saved = readDraft();
     const cat = catInfo(me, this.state.mine);
     const cmp = saved && !saved.sent ? { kind: "my_cat", penName: "", ...saved, route: undefined, inviting: false, ...(saved.step === 4 ? { step: 3 } : {}), clientId: saved.clientId || newId(), waiting: false, open: true, busy: false, err: "" }
-      : { step: 1, text: "", photo: "", catName: cat.name, penName: "", kind: "my_cat", clientId: newId(), country: me?.country || guessCountry() || "", stamp: Math.floor(Math.random() * STAMPS.length), waiting: false, open: true, busy: false, err: "" };
+      : { step: 1, text: "", photo: "", catName: cat.name, penName: "", kind: "my_cat", clientId: newId(), to: readPending()?.id || null, country: me?.country || guessCountry() || "", stamp: Math.floor(Math.random() * STAMPS.length), waiting: false, open: true, busy: false, err: "" };
     writeDraft(cmp);
     this.setState({ replyReward: null, noPal: false });
     this.go("compose", { sheet: null, cmp });
@@ -663,7 +736,8 @@ export default class CatPalLogic extends DCLogic {
    *  (and can still be edited) */
   cmpKnowsCat() { const c = this.state.cmp; return !!this.state.me && (c?.kind === "met_cat" || !!(c?.catName || "").trim()); }
   /** who signs the letter: your cat, or — a cat you met — you */
-  cmpSignName(c) { return c.kind === "met_cat" ? (c.penName || "").trim() || this.state.me?.nickname || "" : (c.catName || "").trim(); }
+  /** who signs the letter: your cat's name — or, a cat you met, the nickname you gave it (none: "a cat I met") */
+  cmpSignName(c) { return c.kind === "met_cat" ? (c.penName || "").trim() || this.tx("cpACatIMet") : (c.catName || "").trim(); }
   cmpNext() {
     const c = this.state.cmp; if (!c) return;
     if (c.step === 1) {
@@ -689,21 +763,21 @@ export default class CatPalLogic extends DCLogic {
     if (c && c.invite) { this.go("mailbox", { sheet: null, mbTab: "sent", cmp: null }); return; }
     this.go(c && c.reply ? "mailbox" : "home", { sheet: null, ...(c && c.reply ? { mbTab: "received", cmp: null } : {}) });
   }
-  /** your session and profile, made (or brought up to date) as a letter goes: the profile's name is your cat's — or,
-   *  for a cat you met, yours (that cat isn't kept as your cat) */
+  /** your session and profile, made (or brought up to date) as a letter goes: the profile's name is your cat's. A cat
+   *  you met doesn't rename you (it isn't kept as your cat) — only, with no profile yet, it starts with that cat's nickname */
   async ensureMe(c) {
     const met = c.kind === "met_cat", name = (met ? (c.penName || "").trim() : (c.catName || "").trim()).slice(0, 24), cc = c.country;
     let me = this.state.me;
     const uid = me?.id || (await api.currentUserId()) || (await api.signInAnonymously());
     const nameIsCat = !me || localStorage.getItem(NICK_IS_CAT) === uid;
-    const nick = met ? name || me?.nickname || "" : nameIsCat ? name : me.nickname;
+    const nick = met ? me?.nickname || name || this.tx("cpACatIMet") : nameIsCat ? name : me.nickname;
     // (the intro: with your own cat only — a cat you met is signed with your name, and has none)
     const intro = met ? undefined : (c.catIntro ?? myIntro(me)).trim().slice(0, 120);
     const introChanged = intro !== undefined && intro !== myIntro(me);
     if (intro !== undefined) try { localStorage.setItem(CAT_INTRO, intro); } catch (_) {}
     if (!me || me.country !== cc || me.nickname !== nick || introChanged) {
       me = await api.saveProfile(uid, nick, cc, intro);
-      try { if (met && name) localStorage.removeItem(NICK_IS_CAT); else if (!met && nameIsCat) localStorage.setItem(NICK_IS_CAT, uid); } catch (_) {}
+      try { if (!this.state.me || (!met && nameIsCat)) localStorage.setItem(NICK_IS_CAT, uid); } catch (_) {}
       const first = !this.state.me;
       this.setState({ me: { ...(this.state.me || {}), ...me } });
       if (first) this.loadAll();
@@ -716,8 +790,14 @@ export default class CatPalLogic extends DCLogic {
   async cmpSend() {
     const c = this.state.cmp;
     if (!c || c.busy || this.cmpSending) return;          // one letter, however many taps
-    if (c.reply && c.reply.sample) { this.setCmp({ err: this.tx("mbSampleReply") }); return; }   // a sample's reply: not sent
+    if (c.reply && c.reply.sample) { this.sampleReply(c); return; }   // a sample's reply: its trip shown, nothing sent
     this.cmpSending = true;
+    // what the plan adds to this letter (if it's still yours when it goes)
+    const plan = this.state.plan as Plan;
+    // (Plus) a few new letters a day — replies are always open
+    if (plan.plus && !c.reply && this.newLettersToday() >= PLAN.newPerDay) { this.cmpSending = false; this.setCmp({ err: this.tx("plLeftNone", { of: PLAN.newPerDay }) }); return; }
+    // (Plus) every letter goes by Fast Bird; otherwise, a fast bird if one's picked
+    this.sendExtras = { fast: plan.plus || (!!c.fast && plan.birds > 0), chosen_stamp: plan.plus && c.stampChosen ? c.stamp || 0 : null };
     // the letter is already sealed in its envelope: off to the map at once, which waits over your country (the cat
     // running) while a cat pal is found and the letter goes out; then it flies (playDelivery)
     // who it's going to, when that's already known (a reply, or a cat pal picked): shown on the map at once, by name
@@ -765,7 +845,14 @@ export default class CatPalLogic extends DCLogic {
       if (c.to) {
         const ths = (this.state.threads as Thread[]).filter((t) => this.otherOf(t).id === c.to);
         const lastOf = (t: Thread) => (this.state.letters as Letter[]).filter((l) => l.thread_id === t.id).slice(-1)[0]?.created_at || t.created_at;
-        const th = ths.sort((a, b) => (lastOf(a) < lastOf(b) ? 1 : -1))[0];
+        let th = ths.sort((a, b) => (lastOf(a) < lastOf(b) ? 1 : -1))[0];
+        // (the friend whose link I accepted) our thread isn't there yet: made now that I have a profile
+        if (!th && readPending()?.id === c.to) {
+          try { await api.linkMyPals(); } catch (_) { /* below says it */ }
+          await this.refreshMail();
+          th = (this.state.threads as Thread[]).find((t) => !t.moment_id && this.otherOf(t).id === c.to);
+          if (!th) { back({ step: 3, err: this.tx("palNotReady", { name: readPending()?.name || this.tx("palAFriend") }) }); return; }
+        }
         if (!th) { back({ step: 3, err: this.tx("cpToGone") }); return; }
         const o = this.otherOf(th), firstMark = !this.wroteBackTo(o.country);
         this.draftBlob = dataUrlToBlob(c.photo);
@@ -788,13 +875,17 @@ export default class CatPalLogic extends DCLogic {
       // (letters still on their way to me count: whoever sent one is someone I know already)
       const letters = [...(this.state.letters as Letter[]), ...(this.state.inbound || []).map((x) => x.l)], palThreads: string[] = this.state.palThreads || [];
       const known = new Set((this.state.threads as Thread[]).filter((t) => palThreads.includes(t.id) || letters.some((l) => l.thread_id === t.id)).map((t) => this.otherOf(t).id));
-      const byId = new Map<string, { id: string; cc: string; m: MomentCard | null; at: string }>();
-      for (const p of people as (Profile & { created_at?: string })[]) if (p.id !== me.id) byId.set(p.id, { id: p.id, cc: p.country, m: null, at: p.created_at || "" });
+      const byId = new Map<string, { id: string; cc: string; m: MomentCard | null; at: string; traits: string[] }>();
+      for (const p of people as (Profile & { created_at?: string; cat_traits?: string[] | null })[]) if (p.id !== me.id) byId.set(p.id, { id: p.id, cc: p.country, m: null, at: p.created_at || "", traits: p.cat_traits || [] });
       for (const m of moments) {
         const x = byId.get(m.user_id), at = x && x.at > m.created_at ? x.at : m.created_at;
-        byId.set(m.user_id, { id: m.user_id, cc: x?.cc || m.author_country, m: x?.m || m, at });
+        byId.set(m.user_id, { id: m.user_id, cc: x?.cc || m.author_country, m: x?.m || m, at, traits: x?.traits || [] });
       }
-      const all = [...byId.values()], fresh = all.filter((x) => !known.has(x.id));
+      // (the plan) who you asked for: a country, a cat like yours — no one like that yet: nothing is sent, and it says so
+      const want = plan.plus ? c.match || {} : {}, mineAre = this.state.myTraits as string[];
+      const all = [...byId.values()].filter((x) => (!want.country || x.cc === want.country) && (!want.similar || x.traits.some((t) => mineAre.includes(t))));
+      if ((want.country || want.similar) && !all.length) { back({ step: 3, err: this.tx("cpNoMatch") }); return; }
+      const fresh = all.filter((x) => !known.has(x.id));
       const lately = new Date(Date.now() - 30 * 864e5).toISOString();
       const pick = (l: typeof all) => { const act = l.filter((x) => x.at >= lately), from = act.length ? act : l; return from[Math.floor(Math.random() * from.length)]; };
       const tiers = [fresh.filter((x) => x.cc !== cc), fresh, all.filter((x) => x.m && x.cc !== cc), all.filter((x) => x.m)];
@@ -803,7 +894,7 @@ export default class CatPalLogic extends DCLogic {
       // was) for later — or, if you like, send it to a friend by link
       if (!to) { this.setState((p) => ({ noPal: true, cmp: p.cmp && { ...p.cmp, busy: false, step: 3 } })); return; }
       // no one abroad, only someone in your own country: asked first (nothing is sent until you say so)
-      if (to.cc === cc && !this.homeOk) { this.setState((p) => ({ homeAsk: { cc }, cmp: p.cmp && { ...p.cmp, busy: false, step: 3 } })); return; }
+      if (to.cc === cc && !this.homeOk && !want.country) { this.setState((p) => ({ homeAsk: { cc }, cmp: p.cmp && { ...p.cmp, busy: false, step: 3 } })); return; }
       this.homeOk = false;
       // your very first letter: its trip is "your first letter" (the globe's title and the page after it)
       this.setState({ firstTrip: !(this.state.letters as Letter[]).some((l) => l.sender_id === me.id) });
@@ -824,6 +915,7 @@ export default class CatPalLogic extends DCLogic {
     } catch (e) {
       back({ err: api.errorText(e) });
     } finally {
+      this.sendExtras = null;
       this.cmpSending = false;
     }
   }
@@ -933,12 +1025,17 @@ export default class CatPalLogic extends DCLogic {
     if (p.phase === "making") return;
     let url = p.url;
     if (!url) {
+      // no profile yet: your cat's name and country first — made with the link, so a friend who accepts it can write
+      // to you at once (a thread needs both of you to have one)
+      const needMe = !this.state.me, name = (p.name || "").trim(), cc = p.cc || guessCountry() || "";
+      if (needMe && (!name || !cc)) { this.setState({ palShare: { ...p, err: this.tx("palNeedName") } }); return; }
       this.setState({ palShare: { ...p, phase: "making", err: "" } });
       try {
         if (!(await api.currentUserId())) await api.signInAnonymously();
+        if (needMe) await this.ensureMe({ kind: "my_cat", catName: name, country: cc });
         url = palUrl(await api.myPalInvite());
       } catch (e) {
-        this.setState({ palShare: { phase: "idle", err: api.isMissingFeature(e) ? this.tx("palMissing") : api.errorText(e) } });
+        this.setState({ palShare: { ...p, phase: "idle", err: api.isMissingFeature(e) ? this.tx("palMissing") : api.errorText(e) } });
         return;
       }
     }
@@ -963,7 +1060,7 @@ export default class CatPalLogic extends DCLogic {
     this.setState({ palShare: { ...p, copied: ok, sent: p.sent || ok, err: ok ? "" : this.tx("ivCopyFail") } });
   }
   /** on to Home (as from the story before) */
-  palStartDone() { const back = this.state.palShare?.back; this.go(back === "mailbox" ? "mailbox" : "home", { sheet: null, palShare: null }); }
+  palStartDone() { const back = this.state.palShare?.back; this.go(back === "compose" && this.state.cmp ? "compose" : back === "mailbox" ? "mailbox" : "home", { sheet: null, palShare: null }); }
 
   /** a friend's link: who invited you (their cat's name and country, once they have them) */
   async loadPalInvite() {
@@ -982,6 +1079,9 @@ export default class CatPalLogic extends DCLogic {
     try {
       if (!(await api.currentUserId())) await api.signInAnonymously();
       const thread = await api.acceptPalInvite(inv.token);
+      const d = inv.d;
+      // (only when they have a profile: else there's no one to write to yet — "still getting ready")
+      if (d && d.inviter_id && d.ready) try { localStorage.setItem(PAL_PENDING, JSON.stringify({ id: d.inviter_id, name: d.nickname || "", cc: d.country || "", photo: d.photo_path ? api.momentPhotoUrl(d.photo_path) : "" })); } catch (_) { /* fine */ }
       dropPal();
       this.setState({ palInv: { ...this.state.palInv, busy: false, phase: "accepted", thread } });
       if (this.state.me) await this.refreshMail();
@@ -1051,8 +1151,9 @@ export default class CatPalLogic extends DCLogic {
     const cur = st.screen ?? "home";
     this.cur = cur;
     const me: Profile | null = st.me;
-    const myName = me ? me.nickname : "";
-    const myCC = me ? me.country : "";
+    // (a sample's reply, signed out: the country and the name it was written with)
+    const myName = me ? me.nickname : st.sampleSend ? st.sampleSend.sign : "";
+    const myCC = me ? me.country : st.sampleSend ? st.sampleSend.from : "";
     const photoOf = (m) => (m && m.photo_path ? api.momentPhotoUrl(m.photo_path) : "");
 
     // ---- letters, derived
@@ -1065,9 +1166,9 @@ export default class CatPalLogic extends DCLogic {
     const otherOf = (t) => (t.starter_id === me.id ? t.owner : t.starter);
     const unreadOf = (t) => (byThread[t.id] || []).filter((l) => l.sender_id !== me.id && !l.read_at).length;
     const unread = me ? letters.filter((l) => l.sender_id !== me.id && !l.read_at) : [];
-    // "?mbSample=1": the Mailbox's sample letters, one of them new — so Home's mailbox and the nav show it too
     const landedSample = ARRIVE_SAMPLE && Date.now() >= ARRIVE_AT;
-    const unreadN = (MB_SAMPLE ? Math.max(1, unread.length) : unread.length) + (landedSample ? 1 : 0);
+    // "?mbSample=1": the Mailbox's sample letters, three of them new — so Home's mailbox and the nav say so too
+    const unreadN = (MB_SAMPLE || MAP_SAMPLE || ARRIVE_SAMPLE ? Math.max(3, unread.length) : unread.length) + (landedSample ? 1 : 0);   // (the samples: the Mailbox's three new ones)
     const threadById = Object.fromEntries(threads.map((t) => [t.id, t]));
     // People I've exchanged letters with, newest activity first.
     const pals: { p: Profile; threads: Thread[]; last: string; first: string; wroteMe: Letter | null; iWrote: boolean; n: number; photo: string }[] = [];
@@ -1120,12 +1221,16 @@ export default class CatPalLogic extends DCLogic {
 
     // ---- nav
     const backMap = { onboard: st.prev === "home" ? "home" : "intro", share: "home", catmap: st.prev === "explore" ? "explore" : "home", mailbox: st.prev === "passport" ? "passport" : "home", map: "passport", camera: st.photoFor === "compose" ? "compose" : st.photoFor === "letter" ? "letters" : st.sharePhoto ? "share" : "home", letters: st.prev && !["letters", "camera", "arrived", "deliveryMap"].includes(st.prev) ? st.prev : "mailbox" };
-    // Home (send a letter) · Map (the globe, countries, the feed and its Top 10) · Mailbox (letters) · Passport (your cat, stamps, records)
-    const navActive = { home: "home", catmap: "world", explore: "world", mailbox: "mailbox", passport: "mycat", map: "mycat" }[cur];
+    // Home is the first-letter page until a first letter has gone; from then on it's the mailbox (and through it your
+    // letters: the Mailbox has no tab of its own). Till the mail is in, as it was last time here (so that page doesn't flash up first)
+    const mailKnown = st.authReady && (!me || st.mailReady);
+    // (once a letter of mine has really gone — by a cat pal's way or by link; a letter begun, or kept for later, isn't one)
+    const hmMail = MB_SAMPLE || MAP_SAMPLE || ARRIVE_SAMPLE || (!!me && letters.some((l) => l.sender_id === me.id)) || !!(st.invites || []).length || (!mailKnown && readHasMail());
+    // Home (your first letter, then your letters) · Map (the globe, countries, the feed and its Top 10) · Passport (your cat, stamps, records)
+    const navActive = { home: "home", catmap: "world", explore: "world", mailbox: "home", passport: "mycat", map: "mycat" }[cur];
     const tabs = [
-      { id: "home", label: tx("navHome"), tap: () => { this.go("home", { sheet: null }); if (cur === "home") { this.loadFeed(); this.loadMap(); } } },
-      { id: "world", label: tx("navWorld"), tap: () => { this.go("catmap", { sheet: null, cmSel: null, cmRoute: null, cmList: null, cmJourney: null, cmMineSel: null }); this.loadMap(); this.loadExplore(); } },
-      { id: "mailbox", label: tx("navMailbox"), count: unreadN, tap: () => { this.go("mailbox", { sheet: null, mbTab: "received" }); this.refreshMail(); } },
+      { id: "home", label: tx("navMail"), count: unreadN, tap: () => { this.go("home", { sheet: null, mbTab: "received" }); this.refreshMail(); if (cur === "home") { this.loadFeed(); this.loadMap(); } } },
+      { id: "world", label: tx("navWorld"), tap: () => { this.go("catmap", { sheet: null, cmSel: null, cmRoute: null, cmList: null, cmJourney: null, cmMineSel: null, cmTrip: null }); this.loadMap(); this.loadExplore(); } },
       { id: "mycat", label: tx("navMyCat"), tap: () => { this.go("passport", { sheet: null }); this.loadMine(); this.refreshMail(); this.loadMyPosts(); } },
     ].map((n) => ({ ...n, on: navActive === n.id, badge: !!n.count }));
     const navItems = [
@@ -1156,14 +1261,14 @@ export default class CatPalLogic extends DCLogic {
     const mailOf = (l: Letter, mine: boolean) => {
       const th = threadById[l.thread_id], o = otherOf(th), lp = l.photo_path ? st.urls[l.photo_path] || "" : "";
       return {
-        key: l.id, name: o.nickname, flag: flagOf(o.country), country: cName(o.country), date: shortDate(l.created_at),
+        key: l.id, name: o.nickname, flag: flagOf(o.country), country: cName(o.country), date: shortDate(l.created_at), at: l.created_at,
         photo: lp || (mine ? photoOf(st.mine[0]) : latestMomentOf(o.id)) || (th.moment && th.owner_id === o.id ? photoOf(th.moment) : ""),
-        stamp: mine ? STAMPS[l.stamp] || STAMPS[0] : stampOf(o.country), pm: postmarkOf(mine ? myCC : o.country),
+        stamp: mine ? STAMPS[l.stamp] || STAMPS[0] : l.chosen_stamp != null ? STAMPS[l.chosen_stamp] || stampOf(o.country) : stampOf(o.country), pm: postmarkOf(mine ? myCC : o.country),
         // mine still on its way: when it lands (then delivered, then read)
-        isNew: !mine && !l.read_at, status: mine ? (l.read_at ? "read" : left(l) > 0 ? "flying" : "delivered") : "",
+        isNew: !mine && !l.read_at, status: mine ? (l.read_at ? "read" : left(l) > 0 ? "flying" : "delivered") : "", leftMs: mine ? left(l) : 0,
         statusLabel: mine ? (l.read_at ? tx("stRead") : left(l) > 0 ? tx("stFlying", { t: eta(left(l)) }) : tx("stDelivered")) : "",
         // to read it (received): the words, when, where from
-        id: l.id, cc: o.country, body: l.body || "", dateLong: day(l.created_at),
+        id: l.id, cc: o.country, body: l.body || "", dateLong: day(l.created_at), pal: o.id, palPhoto: latestMomentOf(o.id),
         open: mine ? () => this.openThread(l.thread_id) : () => this.openLetter(l),
       };
     };
@@ -1172,11 +1277,15 @@ export default class CatPalLogic extends DCLogic {
     const mbInbound = me ? (st.inbound as { l: Letter; at: number }[]).slice().sort((a, b) => a.at - b.at).map(({ l, at }) => {
       const th = st.threads.find((t: Thread) => t.id === l.thread_id); if (!th) return null;
       const o = otherOf(th), known = !!byThread[th.id];
-      return { key: l.id, flag: flagOf(o.country), text: known ? tx("mbInboundFrom", { name: o.nickname }) : tx("mbInboundNew", { country: cName(o.country) }), eta: tx("mbInboundEta", { t: eta(at - Date.now()) }) };
+      return { key: l.id, flag: flagOf(o.country), country: cName(o.country), stamp: stampOf(o.country), pm: postmarkOf(o.country), pal: o.id, name: known ? o.nickname : "", palPhoto: known ? latestMomentOf(o.id) : "",
+        text: known ? tx("mbInboundFrom", { name: o.nickname }) : tx("mbInboundNew", { country: cName(o.country) }), eta: tx("mbInboundEta", { t: eta(at - Date.now()) }), soon: tx("mbInboundSoon", { t: eta(at - Date.now()) }), leftMs: at - Date.now() };
     }).filter(Boolean) : [];
     // (?arriveSample=1) the sample letter, on its way till it lands (counted down)
-    if (ARRIVE_SAMPLE && !landedSample) mbInbound.unshift({ key: "s0", flag: flagOf(ARRIVE_LETTER.cc), text: tx("mbInboundFrom", { name: ARRIVE_LETTER.name }),
-      eta: tx("mbInboundEta", { t: ARRIVE_AT - Date.now() < 60e3 ? tx("tmS", { s: Math.max(0, Math.ceil((ARRIVE_AT - Date.now()) / 1000)) }) : eta(ARRIVE_AT - Date.now()) }) });
+    if (ARRIVE_SAMPLE && !landedSample) {
+      const t = ARRIVE_AT - Date.now() < 60e3 ? tx("tmS", { s: Math.max(0, Math.ceil((ARRIVE_AT - Date.now()) / 1000)) }) : eta(ARRIVE_AT - Date.now());
+      mbInbound.unshift({ key: "s0", flag: flagOf(ARRIVE_LETTER.cc), country: cName(ARRIVE_LETTER.cc), stamp: stampOf(ARRIVE_LETTER.cc), pm: postmarkOf(ARRIVE_LETTER.cc), pal: "", name: ARRIVE_LETTER.name, palPhoto: "",
+        text: tx("mbInboundFrom", { name: ARRIVE_LETTER.name }), eta: tx("mbInboundEta", { t }), soon: tx("mbInboundSoon", { t }), leftMs: ARRIVE_AT - Date.now() });
+    }
     const sentLetters = me ? sentL.filter((l) => threadById[l.thread_id]).map((l) => mailOf(l, true)) : [];
     // letters gone as links, not delivered yet (no friend has written back): "link shared", or "opened" once looked at
     const linkCards = (st.invites as api.Invite[]).filter((x) => !x.claimed_at && !x.revoked_at && new Date(x.expires_at).getTime() > Date.now()).map((x) => ({
@@ -1304,7 +1413,7 @@ export default class CatPalLogic extends DCLogic {
 
     // ---- delivery
     const dest = st.dest;
-    const destKm = dest && me ? distanceKm(myCC, dest.cc) : null;
+    const destKm = dest && myCC ? distanceKm(myCC, dest.cc) : null;
     const sharePhoto = st.sharePhoto;
     const opts = optCache[LOC] || (optCache[LOC] = countryOptions(LOC));
 
@@ -1354,7 +1463,7 @@ export default class CatPalLogic extends DCLogic {
       mapStats: tx("cMapStats", { c: palCountries, n: pals.length, l: letters.length, cw: tx(palCountries === 1 ? "wCountry" : "wCountries"), nw: tx(pals.length === 1 ? "wPal" : "wPals"), lw: tx(letters.length === 1 ? "wLetter" : "wLetters") }),
       passportTitle: tx("passportTitle", { name: myName }), passportSub: tx("cPassportSub"),
       month: new Intl.DateTimeFormat(LOC, { year: "numeric", month: "long" }).format(new Date(Y, M, 1)).toLocaleUpperCase(LOC),
-      deliveryCard: dest ? (st.mapDone ? tx("cDelLands", { city: cName(dest.cc), t: eta(travelMs(myCC, dest.cc), 10) }) : tx("cDelGoing", { city: cName(dest.cc) })) : "",
+      deliveryCard: dest ? (st.mapDone ? (st.fastTrip ? tx("plInstantCard", { city: cName(dest.cc) }) : tx("cDelLands", { city: cName(dest.cc), t: eta(travelMs(myCC, dest.cc), 10) })) : tx("cDelGoing", { city: cName(dest.cc) })) : "",
       toShort: dest ? dest.name : "",
       arr1: dest ? tx("cArr1", { name: myName, country: cName(dest.cc) }) + " " + flagOf(dest.cc) : "",
       newPalTitle: dest ? tx("newPal", { name: dest.name, city: cName(dest.cc) }) : "",
@@ -1460,6 +1569,13 @@ export default class CatPalLogic extends DCLogic {
       // Home's mailbox chip: the mailbox's own state — new mail; else one on its way (when it lands: only then can it
       // be opened); or none yet
       mbTitle: unreadN ? tx("mbNew") : soonest ? tx("mbComing", { t: soonest }) : tx("mbNone"), mbComing: !unreadN && !!soonest,
+      // who the newest is from (and how many more), under it
+      mbNewFrom: (() => {
+        if (!unreadN) return "";
+        const l = unread[unread.length - 1], th = l ? threadById[l.thread_id] : null, o = th ? otherOf(th) : null;
+        const who = landedSample ? flagOf(ARRIVE_LETTER.cc) + " " + ARRIVE_LETTER.name : MB_SAMPLE && !o ? flagOf("FR") + " Léa" : o ? flagOf(o.country) + " " + o.nickname : "";
+        return !who ? "" : unreadN > 1 ? tx("mbNewFromMore", { who, n: unreadN - 1 }) : tx("mbNewFrom", { who });
+      })(),
       mbTurn: false,
       mbSub: unreadN ? tx("mbNewSub", { n: unreadN, lw: tx(unreadN === 1 ? "wLetter" : "wLetters") }) : tx("mbNoneSub"),
       mtSub: cmGroups.length ? tx("mtSub", { c: cmGroups.length, cw: tx(cmGroups.length === 1 ? "wCountry" : "wCountries") }) : tx("mtEmpty"),
@@ -1471,7 +1587,7 @@ export default class CatPalLogic extends DCLogic {
       gmCards: byPopular.slice(0, 8).map(mini), hasGm: byPopular.length > 0, goExplore: () => { this.go("explore", { sheet: null }); this.loadExplore(); },
       goLetters: () => { this.go("mailbox", { sheet: null, mbTab: "received" }); this.refreshMail(); },
       goLetterMap: () => this.go("map", { sheet: null }),
-      hmHead: tx("hmHead"), hmSub: tx("hmSub"), hmCta: draftOpen ? tx("hmCtaDraft") : homeTurn ? tx("mbWriteBack", { name: homeTurn.name }) : tx(sentL.length ? "hmCta" : "hmCtaFirst"),
+      hmHead: tx("hmHead"), hmSub: tx("hmSub"), hmCta: draftOpen ? tx("hmCtaDraft") : homeTurn ? tx("mbWriteBack", { name: homeTurn.name }) : tx(hmMail ? "hmCta" : "hmCtaFirst"),
       // your turn with a cat pal (their letter read, not answered yet): Home's button writes back; a new cat pal is one link below
       hmTurn: !draftOpen && !!homeTurn, hmLetterToName: !draftOpen && homeTurn ? tx("cpDearName", { name: homeTurn.name }) : "", hmNewPal: tx("hmNewPal"), hmNewPalGo: () => this.openCompose(), hmEnvelope: tx("hmEnvelope"), hmLetterTo: tx("hmLetterTo"), hmLetterLine: tx("hmLetterLine"), startLetter: () => (!draftOpen && homeTurn ? this.writeBack(homeTurn.letter) : this.openCompose()),
       cmFeedLink: tx("cmFeedLink"), dmTitle: !dest ? tx("cpSending") : st.firstTrip ? tx("arrFirstTitle") : tx("dmTitle"),
@@ -1482,7 +1598,12 @@ export default class CatPalLogic extends DCLogic {
     };
 
     // my cat pals, for "Send to" on the letter's preview (most recent first)
+    const planNow = st.plan as Plan, wantNow: { country?: string | null; similar?: boolean } = (planNow.plus && st.cmp?.match) || {};
+    const newLeft = Math.max(0, PLAN.newPerDay - this.newLettersToday());
     const homePals = me ? [...pals].sort((a, b) => (a.last < b.last ? 1 : -1)).map((e) => ({ id: e.p.id, name: e.p.nickname, cc: e.p.country, flag: flagOf(e.p.country), photo: e.photo || latestMomentOf(e.p.id) })) : [];
+    // (the friend whose link I accepted) first in "To", even before our thread exists — or before I have a profile
+    const pendingPal = readPending();
+    if (pendingPal && !homePals.some((x) => x.id === pendingPal.id)) homePals.unshift({ id: pendingPal.id, name: pendingPal.name || tx("palAFriend"), cc: pendingPal.cc, flag: pendingPal.cc ? flagOf(pendingPal.cc) : "🔗", photo: pendingPal.photo });
     const myLatest = st.mine[0];
     // the first photo I saved: my first moment, or the photo on my first letter, whichever came first
     const myFirstPhoto = (() => {
@@ -1502,23 +1623,66 @@ export default class CatPalLogic extends DCLogic {
       cmpCanNext: c.step === 1 ? !!c.photo && !!c.text.trim() : c.step === 2 ? !!this.cmpSignName(c) && !!cCC : true,
       // whose cat it is (asked once there's a photo, and only lightly): yours, or one you met — that one needs no profile
       cmpMet: c.kind === "met_cat",
-      cmpKinds: [["my_cat", tx("cpKindMine")], ["met_cat", tx("cpKindMet")]].map(([id, label]) => ({ id, label, on: (c.kind || "my_cat") === id, tap: () => this.setCmp({ kind: id, err: "" }) })),
+      // (the plan) the stamp this letter wears: picked, with the plan; otherwise one comes by itself
+      // (Plus) every stamp ready to use: "Selected" on the one it wears, "Use" on the rest
+      cmpStamps: c.reply && c.reply.sample ? null : { label: tx("cpStampPick"), locked: !planNow.plus, lockText: tx("cpPlusTag"), plus: planNow.plus,
+        items: STAMPS.map((src, i) => ({ src, on: (c.stamp || 0) === i, state: planNow.plus ? tx((c.stamp || 0) === i ? "plSelected" : "plUse") : "", tap: () => { if (planNow.plus) this.setCmp({ stamp: i, stampChosen: true }); else this.setState({ plusOpen: true }); } })) },
+      // (the cat's page) not your cat — a cat you met: then it's signed with your name, and it has no intro
+      cmpMetCheck: { label: tx("cpMetCheck"), sub: tx("cpMetCheckSub"), on: c.kind === "met_cat", tap: () => this.setCmp({ kind: c.kind === "met_cat" ? "my_cat" : "met_cat", err: "" }) },
       cmpPenName: c.penName || "", setCmpPen: (e) => this.setCmp({ penName: e.target.value.slice(0, 24), err: "" }),
       // who it goes to (a new letter, once you have cat pals): a new cat pal at random (as before), or one you have
-      cmpTo: c.reply || !homePals.length ? null : {
-        label: tx("cpSendTo"),
-        options: [{ id: "", name: tx("cpToRandom"), photo: "", flag: "🎲", on: !c.to, tap: () => this.setCmp({ to: null, err: "" }) },
-          ...homePals.map((p) => ({ id: p.id, name: p.name, photo: p.photo, flag: p.flag, on: c.to === p.id, tap: () => this.setCmp({ to: p.id, err: "" }) }))],
+      cmpTo: c.reply ? null : {
+        label: tx("cpSendTo"), locked: !planNow.plus, lockTap: () => this.setState({ plusOpen: true }), done: tx("cpToDone"),
+        pickLabel: tx("cpToPick"), palsLabel: homePals.length ? tx("cpPlacePals") : "",
+        // (the plan) a country (anywhere, as it starts), and / or a cat like yours; "like yours" asks what yours is like first
+        country: { label: tx("cpToCountry"), any: tx("cpToAnyCountry"), value: wantNow.country || "", options: countryOptions(LOC),
+          set: (e) => this.setCmp({ to: null, err: "", match: { ...wantNow, country: e.target.value || null } }) },
+        similar: { name: tx("cpToSimilar"), on: !!wantNow.similar, hint: tx("cpTraitsAsk"), showTraits: !!wantNow.similar && !(st.myTraits as string[]).length, tap: () => this.setCmp({ to: null, err: "", match: { ...wantNow, similar: !wantNow.similar } }) },
+        options: [{ id: "", name: tx("cpToRandomName"), photo: "", flag: "🎲", on: !c.to && !wantNow.country && !wantNow.similar, tap: () => this.setCmp({ to: null, match: null, err: "" }) },
+          ...homePals.map((p) => ({ id: p.id, name: p.name, photo: p.photo, flag: p.flag, on: c.to === p.id, tap: () => this.setCmp({ to: p.id, match: null, err: "" }) }))],
+        invite: { label: tx("arrInvite"), sub: tx("cpToInviteSub"), tap: () => this.openPalInvite() },
         sendLabel: c.to ? tx("cpSendToName", { name: (homePals.find((p) => p.id === c.to) || { name: "" }).name }) : "", busyLabel: c.to ? tx("cpSendingPal") : "",
       },
+      // who it goes to, on the sheet from the start ("To."): the one written back to, the cat pal picked, or a random
+      // CatPal (only one cat lover gets it); with cat pals (not a reply), tapped to change — from the cmpTo choices
+      cmpToLine: (() => {
+        const pal = !c.reply && c.to ? homePals.find((p) => p.id === c.to) : null;
+        const who = c.reply ? { name: c.reply.name, flag: flagOf(c.reply.cc), photo: c.reply.photo || "" } : pal ? { name: pal.name, flag: pal.flag, photo: pal.photo } : null;
+        // (the plan) who you asked for, in place of "random"
+        const asked = !who && planNow.plus && (wantNow.country || wantNow.similar) ? [wantNow.country ? cName(wantNow.country) : "", wantNow.similar ? tx("cpToSimilarShort") : ""].filter(Boolean).join(" · ") : "";
+        return { label: tx("cpToLabel"), name: who ? who.name : asked || tx("cpToRandomName") + " 🌏", flag: who ? who.flag : wantNow.country ? flagOf(wantNow.country) : asked ? "🐾" : "", photo: who ? who.photo : "", note: who ? "" : tx("cpToRandomOnly"),
+          change: !c.reply ? tx("cpToChange") : "",
+          // (Plus) new letters left today — replies don't count
+          quota: planNow.plus && !c.reply ? tx("plLeft", { n: newLeft, of: PLAN.newPerDay }) : "", quotaOut: planNow.plus && !c.reply && newLeft <= 0 };
+      })(),
       // the last step, when it's going to someone you know (a reply, or a cat pal picked): not "a new Cat Pal"
       // before it goes: a bird carries it, and the farther, the longer (to someone known: how long exactly)
       cmpFly: (() => {
         const p = c.reply ? { name: c.reply.name, cc: c.reply.cc } : c.to ? homePals.find((x) => x.id === c.to) : null;
-        const from = myCC || c.country || "", t = p && p.cc ? eta(travelMs(from, p.cc), 10) : "";
+        const from = myCC || c.country || "", fastOn = planNow.plus || (!!c.fast && planNow.birds > 0), ms = p && p.cc ? travelMs(from, p.cc) : 0, t = ms ? eta(ms, 10) : "";
+        // (Plus) it goes by Fast Bird, at once — said so, nothing to buy; the send is still yours to tap
+        if (planNow.plus) return { title: tx("cpFlyTitle"), body: tx("plInstantBody"), go: tx("cpFlyGo"), back: tx("cpFlyBack"),
+          fast: { name: tx("plFastName"), on: true, applied: true, sub: tx("plInstant"), left: "", tap: () => {} },
+          line: !p || !p.cc ? tx("plInstantLine") : tx("plInstantTo", { country: cName(p.cc) }), route: p && p.cc ? flagOf(from) + "  →  " + flagOf(p.cc) : "" };
         return { title: tx("cpFlyTitle"), body: tx("cpFlyBody"), go: tx("cpFlyGo"), back: tx("cpFlyBack"),
+          // a fast bird: there at once, one used up as it goes; none left: the way to some
+          fast: { name: tx("cpFastName"), on: fastOn, left: planNow.birds ? tx("cpFastLeft", { n: planNow.birds }) : tx("cpFastNone"), sub: tx("plInstant"),
+            tap: () => { if (planNow.birds > 0) this.setCmp({ fast: !c.fast }); else this.setState({ plusOpen: true }); } },
           line: !p || !p.cc ? tx("cpFlyRandom") : km(from, p.cc) ? tx("cpFlyTo", { country: cName(p.cc), km: km(from, p.cc), t }) : tx("cpFlyToNear", { name: p.name, t }),
           route: p && p.cc ? flagOf(from) + "  →  " + flagOf(p.cc) : "" };
+      })(),
+      // (the last step) back to the letter, its photo and words as they are
+      cmpEditLetter: () => this.setCmp({ step: 1, err: "" }),
+      // (the last step) how it'll be delivered, over the button: Plus — at once by Fast Bird; otherwise, to someone known,
+      // about how long (the real distance); to a random CatPal, not known yet — said so, no made-up time
+      cmpDelivery: (() => {
+        if (c.reply && c.reply.sample) return null;
+        if (planNow.plus) return { text: tx("cdPlus"), plus: true, bird: null };
+        if (QUICK) return { text: tx("quickTag"), plus: false, bird: null };
+        const p = c.reply ? { cc: c.reply.cc } : c.to ? homePals.find((x) => x.id === c.to) : null;
+        const fastOn = !!c.fast && planNow.birds > 0, from = myCC || c.country || "";
+        const text = fastOn ? tx("cdPlus") : p && p.cc && from ? tx("cdEta", { t: eta(travelMs(from, p.cc), 10) }) : tx("cdVaries");
+        return { text, plus: fastOn, bird: planNow.birds > 0 ? { on: fastOn, label: fastOn ? tx("cdBirdOn") : tx("cdBirdUse", { n: planNow.birds }), tap: () => this.setCmp({ fast: !c.fast }) } : null };
       })(),
       cmpS3: (() => { const p = c.reply ? { name: c.reply.name, cc: c.reply.cc } : c.to ? homePals.find((x) => x.id === c.to) : null;
         return p && p.name ? { title: tx("cpS3ToTitle", { name: p.name }), sub: tx("cpS3ToSub", { name: p.name }) } : null; })(),
@@ -1529,7 +1693,8 @@ export default class CatPalLogic extends DCLogic {
         share: () => this.shareInvite(), copy: () => this.copyInvite(), cancel: () => this.revokeInvite(), done: () => this.cmpClose() } : null,
       // a reply: to whom, and their letter (to keep in view while writing back)
       cmpReply: c.reply ? { ...c.reply, flag: flagOf(c.reply.cc), country: cName(c.reply.cc), stamp: c.reply.cc ? stampOf(c.reply.cc) : "", pm: c.reply.cc ? postmarkOf(c.reply.cc) : "",
-        date: c.reply.dateText || (c.reply.at ? day(c.reply.at) : ""), again: tx("cpReadAgain", { name: c.reply.name }), title: tx(c.reply.pal ? "palWriteTitle" : c.reply.mode === "write" ? "lWriteTo" : "cpReplyTitle", { name: c.reply.name }), sub: tx(c.reply.pal ? "palWriteSub" : "cpReplySub", { name: c.reply.name }), re: tx("cpReplyRe", { name: c.reply.name }) } : null,
+        date: c.reply.dateText || (c.reply.at ? day(c.reply.at) : ""), again: tx("cpReadAgain", { name: c.reply.name }),
+        see: tx("cpSeeTheirs", { name: c.reply.name }), from: tx("fromPrefix", { name: c.reply.name }), title: tx(c.reply.pal ? "palWriteTitle" : c.reply.mode === "write" ? "lWriteTo" : "cpReplyTitle", { name: c.reply.name }), sub: tx(c.reply.pal ? "palWriteSub" : "cpReplySub", { name: c.reply.name }), re: tx("cpReplyRe", { name: c.reply.name }) } : null,
       cmpSign: this.cmpSignName(c) || tx(c.kind === "met_cat" ? "cpACatLover" : "cpYourCat"),
       cmpFromLine: tx("cpFromLine", { name: this.cmpSignName(c) || tx("cpYourCat"), flag: cCC ? flagOf(cCC) : "", country: cCC ? cName(cCC) : "" }),
       setCmpText: (e) => this.setCmp({ text: e.target.value.slice(0, 500), err: "" }),
@@ -1541,22 +1706,58 @@ export default class CatPalLogic extends DCLogic {
       cmpPickPhoto: () => this.setState({ sheet: "photo", photoFor: "compose" }),
       // a few ideas, if wanted: each with an example to write from (the words on the letter are always yours); the
       // first letter shows each as an example letter: a cat's photo — the app's own sample cats — and where it went
-      cmpGuides: [1, 2, 3].map((n) => {
-        const ex = tx("cpGuide" + n + "Ex"), [photo, a, b] = GUIDE_EX[n - 1];
-        return { label: tx("cpGuide" + n), ex, photo, route: flagOf(a) + " " + cName(a) + " → " + flagOf(b) + " " + cName(b) };
-      }),
-      // every new letter (not a reply): example letters turning at the top, then yours — "Write your first letter" the
+      // a new letter's ideas, rolling by at the top (questions to write from)
+      // every new letter (not a reply): ideas rolling by at the top, then yours — "Write your first letter" the
       // very first time (nothing sent yet), "Write a letter" after
       cmpFirst: !c.reply,
       cmpTitle: tx(me && (st.letters as Letter[]).some((l) => l.sender_id === me.id) ? "cpNewTitle" : "cpFirstTitle"),
       // a letter to whoever it finds (not a reply, not to a cat pal picked): to one person — not posted anywhere
-      cmpRandom: !c.reply && !c.to ? { note: tx("cpRandomNote"), send: tx("cpSendRandom") } : null,
       cmpNext: () => this.cmpNext(), cmpBack: () => this.cmpBack(), cmpClose: () => this.cmpClose(), cmpSend: () => this.cmpSend(),
-      cmpEditLetter: () => this.setCmp({ step: 1, err: "" }), cmpEditCat: () => this.setCmp({ step: 2, editCat: true, err: "" }),
     };
     return {
       t, myName,
-      sIntro: cur === "intro", sOnboard: cur === "onboard", sFeed: cur === "home", sShare: cur === "share", sCamera: cur === "camera",
+      // what my cat is like (a few words, on its profile): for "a cat like mine" — theirs and yours
+      catTraits: { label: tx("cpTraits"), items: TRAITS.map((id) => { const mine = st.myTraits as string[], on = mine.includes(id); return { id, label: tx("tr_" + id), on, tap: () => this.setMyTraits(on ? mine.filter((x) => x !== id) : [...mine, id]) }; }) },
+      // CatPal Plus: its three things, and joining (test-only: nothing is charged, kept on this device)
+      // (on Plus: no joining again — the sheet is where the plan is looked after: when it renews, or that it's for good)
+      plus: (() => {
+        const renew = nextRenewal(planNow), dateText = renew.toLocaleDateString(LOC, { year: "numeric", month: "long", day: "numeric" });
+        const pickJoin = (kind: "annual" | "lifetime") => this.setPlan({ plus: true, kind, since: new Date().toISOString(), renews: kind === "annual" });
+        return { open: !!st.plusOpen, close: () => this.setState({ plusOpen: false }), openIt: () => this.setState({ plusOpen: true }), on: planNow.plus, birds: planNow.birds,
+          name: "CatPal Plus", tagline: tx("plTagline"), badge: "Plus",
+          status: planNow.plus ? tx("plActive") : planNow.birds ? tx("plBirds", { n: planNow.birds }) : tx("plOff"),
+          perks: [["🌏", tx("plPick"), tx("plPickSub")], ["🎟️", tx("plStamps"), tx("plStampsSub")], ["✦", tx("plFast"), tx("plFastSub")]].map(([icon, title, sub]) => ({ icon, title, sub })),
+          // looking after it (on Plus)
+          manage: planNow.plus ? { title: tx("plManageTitle"), kind: tx(planNow.kind === "lifetime" ? "plLifetime" : "plAnnual"),
+            line: planNow.kind === "lifetime" ? tx("plLifetimeLine") : planNow.renews ? tx("plRenewsOn", { d: dateText }) : tx("plEndsOn", { d: dateText }),
+            renewLabel: planNow.kind === "lifetime" ? "" : tx(planNow.renews ? "plManageRenew" : "plResumeRenew"), toggleRenew: () => this.setPlan({ renews: !planNow.renews }) } : null,
+          // joining (not on Plus): a year, or for good
+          joins: planNow.plus ? [] : [{ id: "annual", label: tx("plJoinAnnual"), price: L === "ko" ? PLAN.annual.ko : PLAN.annual.en, tap: () => pickJoin("annual") },
+            { id: "lifetime", label: tx("plJoinLifetime"), price: L === "ko" ? PLAN.lifetime.ko : PLAN.lifetime.en, tap: () => pickJoin("lifetime") }],
+          priceNote: tx("plPriceNote"), leave: tx("plLeave"), testNote: tx("plTest"), closeLabel: tx("plClose"), sample: PLUS_SAMPLE,
+          pack: tx("plPack", { n: PLAN.birdsInPack }), packPrice: L === "ko" ? PLAN.packPrice.ko : PLAN.packPrice.en,
+          leaveIt: () => this.setPlan({ plus: false }), buyPack: () => this.setPlan({ birds: planNow.birds + PLAN.birdsInPack }) };
+      })(),
+      // Home, once letters have gone or come: the red mailbox — the letters kept in it (0 / 1 / more poking out), the
+      // ones not read yet (its badge), the ones on their way to me (a bird far off, nearer as it gets close; the soonest
+      // one's time left), and the way in to them
+      hmBox: hmMail ? (() => {
+        const sample = MB_SAMPLE || MAP_SAMPLE || ARRIVE_SAMPLE, landed = ARRIVE_SAMPLE && Date.now() >= ARRIVE_AT;
+        const way = [...(st.inbound || []).map(({ l, at }: { l: Letter; at: number }) => {
+          const th = (st.threads as Thread[]).find((t) => t.id === l.thread_id), o = th ? this.otherOf(th) : null;
+          return { key: l.id, at, total: Math.max(60e3, at - new Date(l.created_at).getTime()), flag: o ? flagOf(o.country) : "", country: o ? cName(o.country) : "" };
+        }), ...(ARRIVE_SAMPLE && !landed && !planNow.plus ? [{ key: "s0", at: ARRIVE_AT, total: ARRIVE_AT - ARRIVE_FROM, flag: flagOf(ARRIVE_LETTER.cc), country: cName(ARRIVE_LETTER.cc) }] : [])].sort((a, b) => a.at - b.at);
+        return {
+          stored: sample ? 5 + (landed ? 1 : 0) : me ? letters.filter((l) => l.sender_id !== me.id).length : 0,
+          unread: sample ? 3 + (landed ? 1 : 0) : unread.length, way, sample: sample ? tx(ARRIVE_SAMPLE ? "mbArriveSampleNote" : "mbSampleNote") : "",
+          open: () => { this.go("mailbox", { sheet: null, mbTab: "received" }); this.refreshMail(); }, plus: planNow.plus,
+          // the letter button: a new one — or the one you were writing (its photo and words kept), or your turn to reply
+          cta: draftOpen ? tx("hbContinue") : homeTurn ? tx("mbReply") : tx("hbNew"),
+          T: Object.fromEntries(["hbOpen", "hbContinue", "hbAllRead", "hbCheckOne", "hbCheckMany", "hbSampleTag", "hbNewOne", "hbNewMany", "hbOnWay", "hbMoreWay", "hbArriving", "hbBadge", "hbHM", "tmMin", "tmSec"].map((k) => [k, tx(k)])),
+        };
+      })() : null,
+      mbHome: () => this.go("home", { sheet: null }),
+      sIntro: cur === "intro", sOnboard: cur === "onboard", sFeed: cur === "home" && !hmMail, sHomeBox: cur === "home" && hmMail, sShare: cur === "share", sCamera: cur === "camera",
       sInvite: cur === "invite",
       // after the story's Start: "start with a friend?" (my personal link) — and a friend's link to accept
       sPalStart: cur === "palStart", sPalAccept: cur === "palAccept",
@@ -1569,6 +1770,10 @@ export default class CatPalLogic extends DCLogic {
         return {
           T,
           share: { phase: p.phase || "idle", url: p.url || "", sent: !!p.sent, copied: !!p.copied, err: p.err || "", canShare: kakaoConfigured || (typeof navigator !== "undefined" && !!(navigator as any).share),
+            // (no profile yet) your cat's name and country, asked here — made with the link
+            me: !me && !p.url ? { nameLabel: tx("palNameLabel"), namePh: tx("palNamePh"), name: p.name || "", setName: (e: any) => this.setState({ palShare: { ...this.state.palShare, name: e.target.value.slice(0, 24), err: "" } }),
+              ccLabel: tx("palCountryLabel"), cc: p.cc || guessCountry() || "", ccOptions: countryOptions(LOC), setCc: (e: any) => this.setState({ palShare: { ...this.state.palShare, cc: e.target.value, err: "" } }) } : null,
+            quick: QUICK ? tx("quickTag") : "",
             go: () => this.palInviteShare(), copy: () => this.palCopy(), skip: () => this.palStartDone(), done: () => this.palStartDone() },
           accept: inv ? {
             phase: inv.phase, busy: !!inv.busy, err: inv.err || "", ready: !!d?.ready,
@@ -1623,11 +1828,6 @@ export default class CatPalLogic extends DCLogic {
 
       // home (cat mail)
       homeFeatured, journey, recentLetters, hasRecent: recentLetters.length > 0,
-      // Home's recent letters: the latest few (on their way to you first), "See all" → the Mailbox
-      hmRecent: ARRIVE_SAMPLE || (me && (recentLetters.length || (st.inbound || []).length)) ? { title: tx("hRecent"), all: tx("hSeeAll"),
-        rows: [...(landedSample ? [{ key: "s0", photo: ARRIVE_LETTER.photo, who: "From. " + ARRIVE_LETTER.name, flag: flagOf(ARRIVE_LETTER.cc), country: cName(ARRIVE_LETTER.cc), sample: tx("mbSampleTag"),
-          status: tx("stNew"), stBg: "#C9785D", stColor: "#fff", stDot: "#C9785D", open: () => this.go("mailbox", { sheet: null, mbTab: "received" }) }] : []), ...recentLetters].slice(0, 3),
-        go: () => { this.go("mailbox", { sheet: null, mbTab: "received" }); this.refreshMail(); } } : null,
       ...(() => {
         // home map: CatPals' countries with the direction letters have travelled
         const routes = pals.map((e) => {
@@ -1676,7 +1876,7 @@ export default class CatPalLogic extends DCLogic {
           cmSub2: groups.length ? tx("cmSub", { n, c: groups.length, nw: tx(n === 1 ? "wMoment" : "wMoments"), cw: tx(groups.length === 1 ? "wCountry" : "wCountries") }) : tx("cmEmpty"),
           cmSel2: !sel ? null : useEx ? { cc: sel, flag: flagOf(sel), name: cName(sel), countText: tx("cmCount", { n: selItems.length, nw: tx(selItems.length === 1 ? "wMoment" : "wMoments") }),
             cards: selItems.map((it) => ({ id: it.kind + it.id, photo: api.feedPhotoUrl(it), caption: it.message || "", who: it.author_nickname, whoFlag: flagOf(it.author_country), mine: !!me && it.author_id === me.id,
-              likes: it.like_count, liked: it.liked_by_me, like: () => this.toggleFeedLike(it), isLetter: it.kind === "letter", open: it.kind === "moment" ? () => this.openMoment(asMoment(it)) : null })) } : null,
+              likes: it.like_count, liked: it.liked_by_me, like: () => this.toggleFeedLike(it), isLetter: it.kind === "letter", moment: it.kind === "moment" ? asMoment(it) : null, cc: it.author_country, country: cName(it.author_country), open: it.kind === "moment" ? () => this.openMoment(asMoment(it)) : null })) } : null,
         };
       })(),
       // the latest letter's journey, shown on the globe like the original delivery card
@@ -1695,7 +1895,7 @@ export default class CatPalLogic extends DCLogic {
       // the World's birds (GlobeMap3D journeys): other people's letters only as far as they made them public (a letter
       // shared on the Map, its recipient's country shown only with their consent) — country to country, never the letter
       // itself; a bird landing changes nothing about a letter. With no public ones, examples (EXAMPLE_WAYS, between the
-      // example profiles), said so. (Yours fly in My letters: the latest letter's own flight.) ?mapSample=1: samples
+      // example profiles), said so. (Yours fly in My CatPals: the latest letter's own flight.) ?mapSample=1: samples
       ...(() => {
         const at = (cc: string) => (COUNTRY_COORDS[cc] ? { lon: COUNTRY_COORDS[cc][0], lat: COUNTRY_COORDS[cc][1] } : null);
         const out: any[] = [], seen = new Set<string>();
@@ -1704,7 +1904,7 @@ export default class CatPalLogic extends DCLogic {
         const add = (key: string, a: string, b: string, mine: boolean, info: { kind: string; status: string; at?: string }, who?: { id: string; name: string; photo: string; more?: any }) => {
           const pa = at(a), pb = at(b); if (!pa || !pb || a === b || seen.has(key)) return;
           seen.add(key); out.push({ key, a: pa, b: pb, mine, onTap: () => this.setState({ cmJourney: { ...info, from: a, to: b } }) });
-          if (who && !sent.has(who.id)) { sent.add(who.id); senders.push({ key: who.id, name: who.name, photo: who.photo, cc: a, flag: flagOf(a), country: cName(a), toFlag: flagOf(b), km: (() => { const d = distanceKm(a, b); return d == null ? "" : fmt(d) + " km"; })(), route: flagOf(a) + " " + cName(a) + "  →  " + flagOf(b) + " " + cName(b), ...who.more }); }
+          if (who && !sent.has(who.id)) { sent.add(who.id); senders.push({ key: who.id, name: who.name, photo: who.photo, cc: a, flag: flagOf(a), country: cName(a), toFlag: flagOf(b), toCountry: cName(b), km: (() => { const d = distanceKm(a, b); return d == null ? "" : fmt(d) + " km"; })(), route: flagOf(a) + " " + cName(a) + "  →  " + flagOf(b) + " " + cName(b), ...who.more }); }
         };
         let examples = false;
         if (MAP_SAMPLE) {
@@ -1733,8 +1933,29 @@ export default class CatPalLogic extends DCLogic {
             examples = out.length > 0;
           }
         }
+        // letters on the way, the world over (the chip at the top and its list — one count, one list): the public ones
+        // (shared on the Map) not landed yet by the app's own clock (sent + the bird's time between the two countries),
+        // and mine — going out or coming in — still in the air. Landed ones are left out; examples never count
+        const transit: any[] = [], tSeen = new Set<string>(), now0 = Date.now();
+        const tRow = (key: string, a: string, b: string, at: number, fromName: string, photo: string, toName: string, act: any) => {
+          if (tSeen.has(key) || at <= now0 || !COUNTRY_COORDS[a] || !COUNTRY_COORDS[b]) return; tSeen.add(key);
+          transit.push({ key, name: fromName, photo, flag: flagOf(a), toFlag: flagOf(b), toName: toName || cName(b), at, left: tx("trLeft", { t: eta(at - now0) }), act });
+        };
+        if (me && !MAP_SAMPLE) {
+          for (const l of sentL) { const th = threadById[l.thread_id]; if (!th) continue; const o = otherOf(th); tRow(l.id, myCC, o.country, this.arriveAt(l), tx("nwMe"), photoOf(st.mine[0]) || "", o.nickname, { pal: o.id }); }
+          for (const x of (st.inbound || []) as { l: Letter; at: number }[]) { const th = threadById[x.l.thread_id]; if (!th) continue; const o = otherOf(th); tRow(x.l.id, o.country, myCC, x.at, o.nickname, latestMomentOf(o.id), tx("nwMe"), { pal: o.id }); }
+          if (st.exState === "ready") for (const it of exAll as FeedItem[]) {
+            if (it.kind !== "letter" || !it.recipient_country) continue;
+            tRow(it.id, it.author_country, it.recipient_country, new Date(it.created_at).getTime() + travelMs(it.author_country, it.recipient_country), it.author_nickname || it.cat_name || "", api.feedPhotoUrl(it), it.recipient_nickname || "",
+              { journey: { kind: "public", status: "delivered", at: it.created_at, from: it.author_country, to: it.recipient_country } });
+          }
+        }
+        transit.sort((x, y) => x.at - y.at);
         const j = st.cmJourney;
         return {
+          cmTransit: { n: transit.length, list: transit, chip: transit.length === 1 ? tx("trChipOne") : transit.length ? tx("trChip", { n: transit.length }) : tx("trNone"),
+            title: tx("trTitle", { n: transit.length }), close: tx("cmClose"), me: tx("nwMe"),
+            show: (r: any) => { if (r.act?.pal) this.setState((p2) => ({ cmRoute: r.act.pal, cmSel: null, cmList: null, cmFrom: p2.cmFrom || "pals" })); else if (r.act?.journey) this.setState({ cmJourney: r.act.journey }); } },
           cmJourneys: out, cmJourneyEx: examples ? tx("jExNote") : "", cmExamplesOn: examples,
           // the senders strip (collapsed: two faces and a count, "Sending letters"; open: each of them, to see on the map)
           cmSenders: senders.length ? { list: senders, example: examples, n: senders.length, title: tx(examples ? "snTitle" : "snTitlePublic"), tag: examples ? tx("exTag") : "",
@@ -1802,7 +2023,7 @@ export default class CatPalLogic extends DCLogic {
         // the Map's two views. The World: one marker for each place people who shared something publicly are placed at
         // (their country — nothing finer is made up; a moment, or a letter shared on the Map), never you; tapped, that
         // place's cats. With no public exchange to show yet, the example cat lovers too (where no one real is placed; their
-        // own markers, "Example"). My letters: you and your cat pals only, a red badge for letters from them not read yet,
+        // own markers, "Example"). My CatPals: you and your cat pals only, a red badge for letters from them not read yet,
         // one way to each (however many letters went)
         // here right now (Realtime presence): the red dot on their marker — you aren't on the World, so never yours
         const online = new Set<string>((st.online || []).filter((id: string) => !me || id !== me.id));
@@ -1813,32 +2034,99 @@ export default class CatPalLogic extends DCLogic {
         };
         for (const m of st.mapMoments as MomentCard[]) addPublic(m.user_id, m.country, photoOf(m));
         if (st.exState === "ready") for (const it of exAll) addPublic(it.author_id, it.author_country, api.feedPhotoUrl(it));
-        const cmPlaces: any[] = MAP_SAMPLE ? list.filter((x) => x.placed).map((x) => ({ id: "place-" + x.cc, cc: x.cc, lon: x.lon, lat: x.lat, count: 1, photo: x.photo, pals: [], others: 1,
-          country: x.country, flag: x.flag, othersText: "", momentsLabel: tx("cmPlaceMoments", { country: x.country }) }))
+        const cmPlaces: any[] = MAP_SAMPLE ? []
           : Object.entries(worldBy).map(([cc, g]) => ({ id: "place-" + cc, cc, ...at(cc)!, count: g.ids.size, photo: g.photo, pals: [], others: g.ids.size, active: [...g.ids].some((id) => online.has(id)),
             country: cName(cc), flag: flagOf(cc), othersText: tx("cmPlaceOthers", { n: g.ids.size, w: tx(g.ids.size === 1 ? "wLover" : "wLovers") }), momentsLabel: tx("cmPlaceMoments", { country: cName(cc) }) }));
         const publicWays = st.exState === "ready" && (exAll as FeedItem[]).some((it) => it.kind === "letter" && it.recipient_country && it.recipient_country !== it.author_country && at(it.author_country) && at(it.recipient_country));
-        if (!MAP_SAMPLE && !publicWays) for (const [cc, name, photo] of EXAMPLE_PROFILES) {
-          if (worldBy[cc] || !at(cc)) continue;
+        // (?mapSample=1: the examples too, around your sample cat pals — not where one of them is)
+        const palCC = new Set(MAP_SAMPLE ? list.filter((x) => x.placed).map((x) => x.cc) : []);
+        if (MAP_SAMPLE || !publicWays) for (const [cc, name, photo] of EXAMPLE_PROFILES) {
+          if (worldBy[cc] || palCC.has(cc) || !at(cc)) continue;
           cmPlaces.push({ id: "ex-" + cc, cc, ...at(cc)!, count: 1, photo, pals: [], others: 0, example: { name, photo }, active: EXAMPLE_ACTIVE.includes(cc), country: cName(cc), flag: flagOf(cc), othersText: "", momentsLabel: "" });
         }
+        // the World at a glance (its headline): how many cats, in how many countries, and how many here right now — the
+        // real ones; none yet, the examples' (said so)
+        const realPl = cmPlaces.filter((p) => !p.example), statOf = realPl.length ? realPl : cmPlaces;
+        const nCats = statOf.reduce((a, p) => a + (p.count || 1), 0), nCC = new Set(statOf.map((p) => p.cc)).size;
+        // (who's here right now: the real ones only — none known, no number at all)
+        const nNow = realPl.length && !MAP_SAMPLE ? online.size : 0;
+        const cmStat = statOf.length ? { text: tx("cmStat", { n: nCats, c: nCC, cats: tx(nCats === 1 ? "wCat" : "wCats"), countries: tx(nCC === 1 ? "wCountry" : "wCountries") }),
+          online: nNow ? tx("cmOnlineN", { n: nNow }) : "", tag: realPl.length && !MAP_SAMPLE ? "" : tx("exTag"), activity: tx("nwWorld") } : null;
         const placedPals = list.filter((x) => x.placed);
+        // letters with my cat pals still on their way (mine going, theirs coming): a bird flying each one's way, again
+        // and again till it lands — a picture of it on its way, not where it is (the World and My CatPals both)
+        const home = homeCC ? at(homeCC) : null, palAt = (id: string) => placedPals.find((x) => x.id === id) || null;
+        // (tapped, a letter's bird says how its trip goes: when it lands, how long it is in all, how far)
+        const fly = (key: string, palId: string, toMe: boolean, trip?: { sent: number; lands: number }) => {
+          const x = palAt(palId); if (!home || !x || x.cc === homeCC) return null;
+          return { key, a: toMe ? { lon: x.lon, lat: x.lat } : home, b: toMe ? home : { lon: x.lon, lat: x.lat }, mine: true, toMe, palId, trip, cc: x.cc, name: x.name,
+            onTap: () => this.setState({ cmTrip: key, cmJourney: null }) };
+        };
+        const flying = (MAP_SAMPLE ? [fly("sf-fr", "s-fr", false, { sent: Date.now() - 2 * 3600e3, lands: Date.now() + 5 * 3600e3 }), fly("sf-jp", "s-jp", true, { sent: Date.now() - 3600e3, lands: Date.now() + 2 * 3600e3 })]
+          : me ? [...(letters as Letter[]).filter((l) => l.sender_id === me.id && left(l) > 0).map((l) => { const th = threadById[l.thread_id]; return th ? fly(l.id, otherOf(th).id, false, { sent: new Date(l.created_at).getTime(), lands: this.arriveAt(l) }) : null; }),
+            ...(st.inbound as { l: Letter; at: number }[]).map(({ l, at }) => { const th = st.threads.find((t: Thread) => t.id === l.thread_id); return th ? fly(l.id, otherOf(th).id, true, { sent: new Date(l.created_at).getTime(), lands: at }) : null; })] : []).filter(Boolean) as any[];
+        // the trip of the bird tapped
+        const tripOf = flying.find((f: any) => f.key === st.cmTrip);
         const myPlace = homeCC && at(homeCC) ? [{ id: "me", cc: homeCC, ...at(homeCC)!, count: 1, photo: MAP_SAMPLE ? "./assets/cats/cat-1.jpg" : myPhoto, mine: true }] : [];
         const sel = st.cmMineSel ? list.find((x) => x.id === st.cmMineSel) || null : null;
-        const view = st.cmView || mapView();
+        const mapHasMail = MAP_SAMPLE || (!!me && (letters as Letter[]).length > 0);
+        const view = !mapHasMail ? "world" : st.cmView || mapView() || "mine";
         return {
-          cmPals: list.filter((x) => x.placed), cmRoute: route, cmPalCount: MAP_SAMPLE ? list.length : pals.length, cmLang: L, cmPlaces,
-          // the view: the World (at first) or My letters — the last one picked, kept on this device
-          cmView: view, cmSetView: (id: string) => { saveMapView(id); this.setState({ cmView: id, cmMineSel: null, cmSel: null, cmJourney: null }); },
+          cmPals: list.filter((x) => x.placed), cmRoute: route, cmPalCount: MAP_SAMPLE ? list.length : pals.length, cmLang: L, cmPlaces, cmStat,
+          // the top of the Map: my own letters, at a glance — how many CatPals, in how many countries; how many letters
+          // each way (landed ones; the sample's said so) — none yet: said so
+          cmMyStat: (() => {
+            const nPals = list.length, nCC = new Set(list.map((x) => x.cc).filter(Boolean)).size;
+            const sentN = list.reduce((a, x) => a + x.sentN, 0), gotN = list.reduce((a, x) => a + x.gotN, 0);
+            if (!nPals && !sentN) return { text: tx("myNone"), sub: "", tag: "" };
+            return { text: tx("myStat", { p: nPals, pals: tx(nPals === 1 ? "wPal" : "wPals"), c: nCC, countries: tx(nCC === 1 ? "wCountry" : "wCountries") }),
+              sub: tx("mySub", { s: sentN, r: gotN }), sent: tx("mySent", { s: sentN }), got: tx("myGot", { r: gotN }), tag: MAP_SAMPLE ? tx("exTag") : "" };
+          })(),
+          // the view: the World (at first) or My CatPals — the last one picked, kept on this device
+          // All / Mine: Mine first once you've letters with someone; none yet: only All (the live cats), and the way
+          // to a first letter
+          cmHasMail: mapHasMail, cmFirstCta: mapHasMail ? null : { label: tx("hmCtaFirst"), go: () => this.openCompose() },
+          // the live ones (All, at the top): cats here right now (the real ones only; with none real yet, the examples', said so)
+          cmLive: (() => {
+            const realPl = cmPlaces.filter((p: any) => !p.example);
+            const n = realPl.length && !MAP_SAMPLE ? online.size : cmPlaces.filter((p: any) => p.example && p.active).length;
+            return { text: n === 1 ? tx("lvOne") : n ? tx("lvNow", { n }) : tx("lvNone"), tag: realPl.length && !MAP_SAMPLE ? "" : tx("exTag") };
+          })(),
+          // a cat's profile, opened on the map: (Plus) writing to them; otherwise what Plus is — or a random CatPal
+          cmPlus: (st.plan as Plan).plus, cmPlusOpen: () => this.setState({ plusOpen: true }), cmRandom: () => this.openCompose(),
+          cmWriteTo: (m: MomentCard) => { if (!(st.plan as Plan).plus) { this.setState({ plusOpen: true }); return; } this.writeToMoment(m); },
+          cmPfT: { write: tx("pfWrite"), random: tx("pfRandom"), plusNote: tx("pfPlusNote"), live: tx("pfLive"), moment: tx("pfMoment") },
+          cmTrip: tripOf && tripOf.trip ? (() => {
+            const t = tripOf.trip, now0 = Date.now(), total = Math.max(0, t.lands - t.sent), d = myCC ? distanceKm(myCC, tripOf.cc) : null;
+            return { title: tripOf.toMe ? tx("trpGot", { name: tripOf.name }) : tx("trpSent", { name: tripOf.name }),
+              route: tripOf.toMe ? flagOf(tripOf.cc) + " " + cName(tripOf.cc) + "  →  " + flagOf(myCC) + " " + cName(myCC) : flagOf(myCC) + " " + cName(myCC) + "  →  " + flagOf(tripOf.cc) + " " + cName(tripOf.cc),
+              left: total < 60e3 ? tx("trpInstant") : t.lands - now0 < 60e3 ? tx("hbArrivingSoon") : tx("trpLeft", { t: eta(t.lands - now0) }),
+              total: total < 60e3 ? "" : d != null ? tx("trpTotal", { t: eta(total), km: fmt(d) }) : tx("trpTotalNoKm", { t: eta(total) }),
+              progress: total ? Math.min(1, Math.max(0, (now0 - t.sent) / total)) : 1, toMe: tripOf.toMe,
+              pal: () => this.setState({ cmTrip: null, cmMineSel: tripOf.palId }), palLabel: tx("cmViewLetters"), close: () => this.setState({ cmTrip: null }) };
+          })() : null,
+          cmView: view, cmSetView: (id: string) => { saveMapView(id); this.setState({ cmView: id, cmMineSel: null, cmSel: null, cmJourney: null, cmTrip: null }); },
           cmMine: {
             places: [...myPlace, ...placedPals.map((x) => ({ id: "pal-" + x.id, palId: x.id, cc: x.cc, lon: x.lon, lat: x.lat, count: 1, photo: x.photo, active: online.has(x.id), badge: x.unread }))],
-            routes: placedPals.filter((x) => x.cc !== homeCC).map((x) => ({ lon: x.lon, lat: x.lat, dir: x.sentN && x.gotN ? "b" : x.sentN ? "s" : "r" })),
-            pals: placedPals,
+            // the ways letters have come by (landed ones only — one still on its way is drawn by its bird as it flies)
+            routes: placedPals.filter((x) => x.cc !== homeCC).map((x) => {
+              const sentIn = x.sentN - flying.filter((f: any) => f.palId === x.id && !f.toMe).length;
+              return sentIn > 0 || x.gotN ? { lon: x.lon, lat: x.lat, dir: sentIn > 0 && x.gotN ? "b" : sentIn > 0 ? "s" : "r" } : null;
+            }).filter(Boolean),
+            pals: placedPals, flying,
+            // on the World too, picked out: my cat pals (a warm ring; always their photo), where I am, our ways
+            worldPals: placedPals.map((x) => ({ id: "wpal-" + x.id, palId: x.id, cc: x.cc, lon: x.lon, lat: x.lat, count: 1, photo: x.photo, kind: "pal", active: online.has(x.id) })),
             // nothing exchanged yet: where its journey will be, and the way to the first letter
             empty: list.length ? null : { text: tx("cmMineEmpty"), cta: tx("hmCtaFirst"), go: () => this.openCompose() },
             // a cat pal picked: who, how many letters each way (the real ones), their letters
-            sel: sel ? { id: sel.id, name: sel.name, place: sel.flag + " " + sel.country, lon: sel.lon, lat: sel.lat, placed: sel.placed,
-              stat: tx("mtSent") + " " + sel.sentN + " · " + tx("mtRecv") + " " + sel.gotN, open: sel.open, view: tx("cmViewLetters") } : null,
+            sel: sel ? { id: sel.id, name: sel.name, place: sel.flag + " " + sel.country, flag: sel.flag, country: sel.country, photo: sel.photo, lon: sel.lon, lat: sel.lat, placed: sel.placed,
+              km: sel.km, sentN: sel.sentN, gotN: sel.gotN, sentLabel: tx("mtSent"), gotLabel: tx("mtRecv"), flying: (() => {
+                const f = (flying as any[]).filter((x) => x.palId === sel.id && x.trip).sort((a, b) => a.trip.lands - b.trip.lands)[0];
+                if (!f) return flying.some((x: any) => x.palId === sel.id) ? tx("cmPalFlying") : "";
+                const t = f.trip.lands - Date.now() < 60e3 ? tx("hbArrivingSoon") : tx("trpLeft", { t: eta(f.trip.lands - Date.now()) });
+                return (f.toMe ? tx("cmPalComing", { name: sel.name }) : tx("cmPalGoing")) + " · " + t;
+              })(), flyingIn: (flying as any[]).some((x) => x.palId === sel.id && x.toMe),
+              stat: tx("mtSent") + " " + sel.sentN + " · " + tx("mtRecv") + " " + sel.gotN, open: sel.open, view: tx("cmViewLetters"), sampleNote: MAP_SAMPLE ? tx("cmSampleLetters") : "" } : null,
             pick: (id: string) => this.setState({ cmMineSel: id }), unpick: () => this.setState({ cmMineSel: null }),
           },
           // you, on the close-up map (your country, for now)
@@ -1847,12 +2135,12 @@ export default class CatPalLogic extends DCLogic {
           cmPlaceShown: (on: boolean) => { if (!!this.state.cmPlaceOpen !== on) this.setState({ cmPlaceOpen: on }); },
           cmOpenList: (id: string) => this.setState((p2) => ({ cmList: p2.cmList === id ? null : id, cmRoute: null, cmSel: null, cmFrom: id })), cmCloseList: () => this.setState({ cmList: null }),
           cmPick: (id: string, from?: string) => this.setState((p2) => ({ cmRoute: id, cmSel: null, cmList: null, cmFrom: from || p2.cmFrom || "pals" })), cmUnpick: () => this.setState({ cmRoute: null, cmList: null }),
-          cmT: Object.fromEntries(["cmBackGlobe", "cmViewLetters", "cmYou", "cmSampleLetters", "cmWriteLetter", "cmNoPlace", "mtSent", "mtRecv", "cmPalsTab", "cmClose", "cmUnread", "cmPlacePals", "exTag", "exProfiles", "exProfileNote", "cmViewWorld", "cmViewMine"].map((k) => [k, tx(k)])),
+          cmT: Object.fromEntries(["cmBackGlobe", "cmViewLetters", "cmYou", "cmSampleLetters", "cmWriteLetter", "cmNoPlace", "mtSent", "mtRecv", "cmPalsTab", "cmClose", "cmUnread", "cmPlacePals", "exTag", "exProfiles", "exProfileNote", "cmViewWorld", "cmViewMine", "cmSendLetter"].map((k) => [k, tx(k)])),
         };
       })(),
       cmGroups, cmHome: COUNTRY_COORDS[myCC] ? { lon: COUNTRY_COORDS[myCC][0], lat: COUNTRY_COORDS[myCC][1] } : null,
       cmSub: cmGroups.length ? tx("cmSub", { n: st.mapMoments.length, c: cmGroups.length, nw: tx(st.mapMoments.length === 1 ? "wMoment" : "wMoments"), cw: tx(cmGroups.length === 1 ? "wCountry" : "wCountries") }) : tx("cmEmpty"),
-      cmSel: cmSelGroup && { ...cmSelGroup, cards: cmSelGroup.items.map((m) => ({ id: m.id, photo: photoOf(m), caption: m.caption, who: m.nickname, whoFlag: flagOf(m.author_country), mine: !!me && m.user_id === me.id, open: () => this.openMoment(m) })) },
+      cmSel: cmSelGroup && { ...cmSelGroup, cards: cmSelGroup.items.map((m) => ({ id: m.id, photo: photoOf(m), caption: m.caption, who: m.nickname, whoFlag: flagOf(m.author_country), cc: m.author_country, country: cName(m.author_country), mine: !!me && m.user_id === me.id, moment: m, open: () => this.openMoment(m) })) },
       // the flight has landed: "Sent" on the card for a moment; each letter flies only once
       // (you stay on the Map: it's your tab; the move to the Mailbox belongs to sending, from the Arrived page)
       // flown: after its "Sent" / "Arrived" moment, the Map goes back to how it always is (no trace of it left)
@@ -1910,28 +2198,54 @@ export default class CatPalLogic extends DCLogic {
       draftStamp: STAMPS[st.stamp], nextStamp: () => this.setState((p) => ({ stamp: (p.stamp + 1) % STAMPS.length })),
 
       // mailbox
-      mbTabs: [tabDef("received", tx("received"), { badge: unreadThreads > 0 || MB_SAMPLE, count: unreadN }), tabDef("sent", tx("sent")), tabDef("pals", tx("catpals"))],
+      mbTabs: [tabDef("received", tx("received"), { badge: unreadThreads > 0 || MB_SAMPLE, count: unreadN }), tabDef("sent", tx("sent"))],
       mbShowCards: st.mbTab !== "pals", mbShowPals: st.mbTab === "pals",
       mbCards, palRows,
       mbEmpty: st.mailReady && (st.mbTab === "pals" ? !palRows.length : !mbCards.length),
-      mbTab: st.mbTab, mbReady: !me || !!st.mailReady, mbReceived, mbInbound, mbSent, mbPals, arriveAt: ARRIVE_SAMPLE ? ARRIVE_AT : 0,
+      // the Map's "my letters" panel: the one thing that matters most now, and (opened) everything, coming to me / going
+      // out — real letters only (no samples, nothing guessed): new ones; one on its way to me; one of mine on its way;
+      // else the latest one either way; none at all: the first letter
+      mapNews: (() => {
+        if (!me || !mailKnown) return null;
+        const Me = tx("nwMe"), toMail = () => this.go("mailbox", { sheet: null, mbTab: "received" });
+        const coming = (mbInbound as any[]).filter((x) => x.key !== "s0");
+        const newOnes = (mbReceived as any[]).filter((m) => m.isNew);
+        const sentRows = (mbSent as any[]).filter((m) => !m.invite);
+        const comingRows = coming.map((x) => ({ key: "c-" + x.key, dir: "in", flag: x.flag, name: x.name || x.country, photo: x.palPhoto || "", status: x.soon, tone: "way", pal: x.pal, act: "route", leftMs: x.leftMs || 0 }));
+        const gotRows: any[] = (mbReceived as any[]).map((m) => ({ key: "r-" + m.key, dir: "in", flag: m.flag, name: m.name, photo: m.palPhoto || "", status: m.isNew ? tx("stNew") : tx("stRead"), tone: m.isNew ? "new" : "", at: m.at, act: "mail" }));
+        const outRows: any[] = sentRows.map((m) => ({ key: "s-" + m.key, dir: "out", flag: m.flag, name: m.name, photo: m.palPhoto || "", status: m.statusLabel, tone: m.status === "flying" ? "way" : "", pal: m.pal, at: m.at, act: m.status === "flying" ? "route" : "open", open: m.open, leftMs: m.leftMs || 0 }));
+        const latest = [...gotRows, ...outRows].sort((a, b) => ((a.at || "") < (b.at || "") ? 1 : -1))[0];
+        const flyingOut = outRows.find((r) => r.tone === "way");
+        // (on its way) how long till it lands: a badge on the box's top left
+        const etaOf = (r: any) => (r.leftMs > 0 ? (r.leftMs < 60e3 ? tx("hbArrivingSoon") : eta(r.leftMs)) : "");
+        const line = (r: any) => (r.dir === "in" ? r.flag + " " + r.name + " → " + Me : Me + " → " + r.flag + " " + r.name);
+        const top = newOnes.length ? { text: newOnes.length === 1 ? tx("nwNewOne") : tx("nwNewMany", { n: newOnes.length }), icon: "mail", act: "mail" }
+          : comingRows.length ? { text: line(comingRows[0]) + " · " + tx("nwFlying"), icon: "bird", act: "route", pal: comingRows[0].pal, eta: etaOf(comingRows[0]), dir: "in" }
+          : flyingOut ? { text: line(flyingOut) + " · " + tx("nwFlying"), icon: "bird", act: "route", pal: flyingOut.pal, eta: etaOf(flyingOut), dir: "out" }
+          : latest ? { text: line(latest) + " · " + latest.status, icon: "mail", act: latest.act, pal: latest.pal, open: latest.open }
+          : { text: tx("nwFirst"), icon: "pen", act: "write" };
+        return { title: tx("nwTitle"), me: Me, top, recv: [...comingRows, ...gotRows].slice(0, 12), sent: [...outRows.filter((r) => r.tone === "way"), ...outRows.filter((r) => r.tone !== "way")].slice(0, 12),
+          recvLabel: tx("nwRecv"), sentLabel: tx("nwSent"), recvNone: tx("nwRecvNone"), sentNone: tx("nwSentNone"), more: tx("nwMore"), less: tx("nwLess"),
+          toMail, write: () => this.openCompose(), worldLabel: tx("nwWorld") };
+      })(),
+      mbTab: st.mbTab, mbLang: L, mbReady: mailKnown, mbReceived, mbInbound, mbSent, mbPals, arriveAt: ARRIVE_SAMPLE ? ARRIVE_AT : 0,
       // the letter being read (opened from the stack): it, whether it brought a new country's stamp, and on to the reply
       mbReading: (() => {
         const r = st.reading, l = r && me ? (letters as Letter[]).find((x) => x.id === r.id) : null;
         if (!l || !threadById[l.thread_id]) return null;
         const m = mailOf(l, false);
-        return { ...m, firstStamp: !!r.firstStamp, newStampText: tx("mbNewStamp", { country: m.country }), writeBackLabel: tx("mbWriteBack", { name: m.name }),
+        return { ...m, firstStamp: !!r.firstStamp, newStampText: tx("mbNewStamp", { country: m.country }), writeBackLabel: tx("mbReply"),
           // "Write back": to your letters with them (as a Sent letter opens), where the reply is written from
           writeBack: () => { this.setState({ reading: null }); this.writeBack(l); }, close: () => this.setState({ reading: null }) };
       })(),
-      mbT: Object.fromEntries(["mbInboundFrom", "mbInboundEta", "mbLanded", "mbArriveSampleNote", "tmM", "tmS", "mbEmptyRecvT", "mbEmptyRecvD", "mbEmptySentT", "mbEmptySentD", "mbEmptyPalsT", "mbEmptyPalsD", "mbSendCta", "mbNewTag", "mbSentMark", "mbFromLabel", "mbToLabel", "mbSampleNote", "mbCapRecv", "mbCapSent", "mbCapPals", "mbSwipe", "mbClose", "mbSentOn", "mbSampleReply", "mbOf", "mbWriteBackFor", "mbNewStampFor", "mbTap", "mbYourTurn", "mbSentTo", "mbPalsSum", "wPal", "wPals", "wCountry", "wCountries", "stDelivered", "stRead", "cpDearName", "mbSampleWrite", "arrInviteQ", "arrInvite"].map((k) => [k, tx(k)])),
+      mbT: Object.fromEntries(["mbNewN", "mbInboundSoon", "mbInboundFrom", "mbInboundEta", "mbLanded", "mbArriveSampleNote", "tmM", "tmS", "mbEmptyRecvT", "mbEmptyRecvD", "mbEmptySentT", "mbEmptySentD", "mbEmptyPalsT", "mbEmptyPalsD", "mbSendCta", "mbNewTag", "mbSentMark", "mbFromLabel", "mbToLabel", "mbSampleNote", "mbCapRecv", "mbCapSent", "mbCapPals", "mbSwipe", "mbClose", "mbSentOn", "mbSampleReply", "mbOf", "mbWriteBackFor", "mbNewStampFor", "mbTap", "mbYourTurn", "mbSentTo", "mbPalsSum", "wPal", "wPals", "wCountry", "wCountries", "stDelivered", "stRead", "cpDearName", "mbSampleWrite", "arrInviteQ", "arrInvite", "stNew", "mbReply", "mbWayOk", "mbWayTo", "mbWayGroup", "mbNoBodyYet", "mbBrowse"].map((k) => [k, tx(k)])),
       // a friend by my personal link: always here too (in CatPals), never in the way of a letter
       mbInvite: () => this.openPalInvite(),
       // ?mbSample=1: "Write back" on a sample letter opens the reply paper too (to try; it isn't sent)
       mbSampleWriteBack: (c) => this.sampleWriteBack(c),
 
       // delivery + arrived (prototype animations)
-      globeDeliverySrc: dest && me ? "./globe.html?mode=delivery&from=" + globePoint(myCC) + "&to=" + globePoint(dest.cc) + "&k=" + st.sendCount : "",
+      globeDeliverySrc: dest && myCC ? "./globe.html?mode=delivery&from=" + globePoint(myCC) + "&to=" + globePoint(dest.cc) + "&k=" + st.sendCount : "",
       // the letter's flight on the dotted globe (DeliveryMapScreen → LetterFlight): your country → theirs
       ...(() => {
         const fromCC = myCC || st.cmp?.country || "";   // before the first letter's profile exists: the country picked on the letter
@@ -1944,10 +2258,10 @@ export default class CatPalLogic extends DCLogic {
         };
       })(), dRouteTo: dest ? flagOf(dest.cc) + " " + cName(dest.cc) : "", dmFrom: tx("dmFrom"), dmTo: tx("dmTo"),
       // to a cat pal you chose (or wrote back to): no spinning through countries — their cat's name and country, from the start
-      dmKnown: st.dmKnown ? { name: st.dmKnown.name, place: flagOf(st.dmKnown.cc) + " " + cName(st.dmKnown.cc), from: (st.cmp?.kind === "met_cat" ? myName : (st.cmp?.catName || "").trim()) || myName } : null,
+      dmKnown: st.dmKnown ? { name: st.dmKnown.name, place: flagOf(st.dmKnown.cc) + " " + cName(st.dmKnown.cc), from: (st.cmp?.kind === "met_cat" ? this.cmpSignName(st.cmp) : (st.cmp?.catName || "").trim()) || myName } : null,
       mapDone: st.mapDone, destKm: destKm == null ? "" : fmt(destKm), destCity: dest ? cName(dest.cc) : "", arrFrom: cName(myCC),
       // how long it flies (the farther, the longer): on the way's card, and under the letter — when it lands
-      arrEta: dest ? tx("arrAbout", { t: eta(travelMs(myCC, dest.cc), 10) }) : "", arrLandsIn: dest ? tx("arrLandsIn", { t: eta(travelMs(myCC, dest.cc), 10) }) : "",
+      arrEta: dest ? (st.fastTrip || QUICK ? tx("plInstant") : tx("arrAbout", { t: eta(travelMs(myCC, dest.cc), 10) })) : "", arrLandsIn: dest ? (st.fastTrip || QUICK ? tx("plInstantLanded") : tx("arrLandsIn", { t: eta(travelMs(myCC, dest.cc), 10) })) : "",
       tapDeliveryCard: () => { if (this.state.mapDone) this.go("arrived"); },
       dmNoPal: cur === "deliveryMap" && !!st.noPal, dmNoPalT: Object.fromEntries(["npTitle", "npDesc", "npRetry", "npInvite", "npSave"].map((k) => [k, tx(k)])),
       npInvite: () => this.cmpInvite(), npSave: () => this.saveForLater(), npRetry: () => this.cmpRetry(),
@@ -1961,10 +2275,12 @@ export default class CatPalLogic extends DCLogic {
       ...(() => {
         const l = me ? [...st.letters].reverse().find((x) => x.sender_id === me.id) : null;
         return {
-          arrLetter: l ? { text: l.body || "", photo: l.photo_path ? st.urls[l.photo_path] || "" : "", sign: myName, flag: flagOf(myCC), country: cName(myCC) } : null,
+          arrLetter: st.sampleSend ? { text: st.sampleSend.text, photo: st.sampleSend.photo, sign: st.sampleSend.sign, flag: flagOf(st.sampleSend.from), country: cName(st.sampleSend.from) }
+            : l ? { text: l.body || "", photo: l.photo_path ? st.urls[l.photo_path] || "" : "", sign: myName, flag: flagOf(myCC), country: cName(myCC) } : null,
+          arrSample: st.sampleSend ? tx("arrSampleSent") : "",
           arrT: { ...Object.fromEntries(["cpDear", "cpPhotoSlot", "cpChangePhoto", "cpAddPhoto", "arrTitle", "arrCta", "arrHome", "dmFrom", "dmTo"].map((k) => [k, tx(k)])),
             // as it was written: to them by name once you know each other (not the thread's first letter)
-            ...(l && dest && dest.name && st.letters.some((x) => x.thread_id === l.thread_id && x.id !== l.id) ? { cpDear: tx("cpDearName", { name: dest.name }) } : {}) },
+            ...((st.sampleSend && dest && dest.name) || (l && dest && dest.name && st.letters.some((x) => x.thread_id === l.thread_id && x.id !== l.id)) ? { cpDear: tx("cpDearName", { name: dest.name }) } : {}) },
           // delivered (this page comes only once the letter has really gone): where, and to whom
           arrTitleText: dest ? (st.firstTrip ? tx("arrFirstTitle") : tx("arrTitleIn", { country: cName(dest.cc) })) : tx("arrTitle"), arrGiftOk: tx("arrGiftOk"),
           // the first letter: how it's delivered (as letters are: straight into their mailbox — no waiting made up) and,
@@ -1987,8 +2303,8 @@ export default class CatPalLogic extends DCLogic {
           // the two cats: yours (the photo on this letter, else your latest moment) and theirs (their moment's photo)
           arrFromPhoto: (l && l.photo_path && st.urls[l.photo_path]) || photoOf(st.mine[0]) || "", arrToPhoto: dest ? dest.photo || "" : "",
           arrDate: day(new Date()),
-          arrToMailbox: () => { this.go("mailbox", { sheet: null, mbTab: "sent" }); this.refreshMail(); },
-          arrToHome: () => this.go("home", { sheet: null }),
+          arrToMailbox: () => { this.go("mailbox", { sheet: null, mbTab: st.sampleSend ? "received" : "sent", sampleSend: null }); this.refreshMail(); },
+          arrToHome: () => this.go("home", { sheet: null, sampleSend: null }),
         };
       })(),
       // the first exchange with a country, done (a reply that took its postmark): a postcard to share — your cat, the

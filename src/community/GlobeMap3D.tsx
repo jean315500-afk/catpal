@@ -17,7 +17,7 @@ import { FLIGHT_S, loadWorld, type MapGroup, type MapRoute } from './CatMap';
 import { aim, buildEarth, rad, vec } from './earthScene';
 
 /** a letter's journey to show: country to country (its places stand for the countries), yours a little brighter */
-export type Journey = { key: string; a: { lon: number; lat: number }; b: { lon: number; lat: number }; mine?: boolean; onTap?: () => void };
+export type Journey = { key: string; a: { lon: number; lat: number }; b: { lon: number; lat: number }; mine?: boolean; /** (yours) coming to you: its way blue, as received letters are */ toMe?: boolean; onTap?: () => void };
 
 type Props = {
   groups: MapGroup[];
@@ -61,6 +61,18 @@ type Props = {
   flightBird?: boolean;
   /** a tap on the globe itself (not on a profile or a bird) */
   onBlankTap?: () => void;
+  /** how big the globe is (its radius: min(w, h) × fit × zoom) and how far below the middle it sits (× h): bigger and
+   *  lower, it's a horizon under the sky, running off the bottom; changes ease over (side by side screens: milder) */
+  fit?: number;
+  lower?: number;
+  /** only this many places as cat photos (the liveliest: here right now, then the most cats) — the rest a soft glow —
+   *  till you zoom in (from PHOTOS_AT) or pick one */
+  photoPins?: number;
+  /** (the Map's All) the ones not live — no one here now, not a cat pal of mine — faded, so the live ones stand out */
+  fadeIdle?: boolean;
+  /** how the ways from you (`routes`) look: clear (picked out on the World), or a soft trail (My CatPals: where letters
+   *  went and came — clear only for the one picked) */
+  routeTone?: 'clear' | 'trail';
 };
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -84,9 +96,15 @@ const VIEW = [0.3, 0.7], VIEW_TILT = 8;
  *  (what rides the curve); yours a little bigger */
 const BIRD = { src: './assets/map/bird-letter-slow.webp', still: './assets/map/bird-letter-still.webp', ratio: 127 / 160, at: [0.8074, 0.5393] as const, w: 30, wMine: 38 };
 const reduceMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+/** a cat pal of yours (on the World, among everyone): a warm ring */
+const PAL_RING = '#FF8F6B';
+/** zoomed in this far, every place is its photo */
+const PHOTOS_AT = 1.6;
+/** the size and place asked for, on this screen (wide: no more than half as big, not as low) */
+const shape = (w: number, h: number, fit: number, lower: number) => (h > w * 1.25 ? [fit, lower] : [Math.min(fit, 0.48), lower * 0.6]);
 
 
-export default function GlobeMap3D({ groups, home, routes = [], height, bubble = 50, onSelect, selected, controlsBottom = 12, zoomButtons = true, flight = null, onFlightStart, hover = null, aimAt = null, pins = [], onZoomPast, onCluster, journeys = [], journeyS = 30, maxBirds = 4, exampleTag = 'Example', focus: focusAt = null, flightBird = false, onBlankTap }: Props) {
+export default function GlobeMap3D({ groups, home, routes = [], height, bubble = 50, onSelect, selected, controlsBottom = 12, zoomButtons = true, flight = null, onFlightStart, hover = null, aimAt = null, pins = [], onZoomPast, onCluster, journeys = [], journeyS = 30, maxBirds = 4, exampleTag = 'Example', focus: focusAt = null, flightBird = false, onBlankTap, fit = 0.44, lower = 0, photoPins = Infinity, routeTone = 'clear', fadeIdle = false }: Props) {
   const box = useRef<HTMLDivElement>(null), cv = useRef<HTMLCanvasElement>(null);
   const bubbleEls = useRef<(HTMLDivElement | null)[]>([]), pinEls = useRef<(HTMLDivElement | null)[]>([]);
   const homeEl = useRef<HTMLDivElement>(null), flightEl = useRef<HTMLDivElement>(null);
@@ -97,23 +115,27 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
   const [k, setK] = useState(1);                       // zoom (React state: drives clustering)
   // facing the letter's way when there is one (where the turn starts if it's about to fly, else its middle), else your place
   const mid = flight ? geoInterpolate([flight.a.lon, flight.a.lat], [flight.b.lon, flight.b.lat])(flight.play && !reduceMotion() ? VIEW[0] : 0.5) : null;
-  const st = useRef({ rot: (mid ? [-mid[0], clamp(-(mid[1] - VIEW_TILT), -70, 70)] : hover ? [-hover.lon, clamp(-(hover.lat - VIEW_TILT), -70, 70)] : [-(home ? home.lon : 127), -20]) as [number, number], k: 1, w: 0, h: 0, drag: false, idleAt: 0, tween: null as any });
+  const st = useRef({ rot: (mid ? [-mid[0], clamp(-(mid[1] - VIEW_TILT), -70, 70)] : hover ? [-hover.lon, clamp(-(hover.lat - VIEW_TILT), -70, 70)] : [-(home ? home.lon : 127), -20]) as [number, number], k: 1, w: 0, h: 0, drag: false, idleAt: 0, tween: null as any, fit, low: lower });
 
   useEffect(() => { loadWorld().then(setWorld); }, []);
 
   // Cluster bubbles that would overlap at this zoom — by angular distance, so it doesn't depend on rotation.
   const clusters = useMemo(() => {
-    const r = Math.min(st.current.w || 360, st.current.h || 600) * 0.44 * k;
-    const out: { lon: number; lat: number; count: number; photo: string; active: boolean; members: MapGroup[]; example?: boolean; badge: number; mine: boolean }[] = [];
+    const r = Math.min(st.current.w || 360, st.current.h || 600) * st.current.fit * k;
+    const out: { lon: number; lat: number; count: number; photo: string; active: boolean; members: MapGroup[]; example?: boolean; badge: number; mine: boolean; pal: boolean }[] = [];
     for (const g of [...groups].sort((a, b) => b.count - a.count)) {
       const near = out.find((c) => geoDistance([c.lon, c.lat], [g.lon, g.lat]) * r < bubble * 0.9);
-      if (near) { near.members.push(g); near.count += g.count; if (!near.photo && g.photo) near.photo = g.photo; near.active = near.active || !!g.active; near.example = near.example && !!g.example; near.badge += g.badge || 0; near.mine = near.mine || !!g.mine; }
-      else out.push({ lon: g.lon, lat: g.lat, count: g.count, photo: g.photo, active: !!g.active, members: [g], example: !!g.example, badge: g.badge || 0, mine: !!g.mine });
+      // (a cat pal of yours among them: theirs is the photo shown)
+      const pal = g.kind === 'pal';
+      if (near) { near.members.push(g); near.count += g.count; if (pal && !near.pal) near.photo = g.photo; else if (!near.photo && (pal || !near.pal)) near.photo = g.photo; /* (never someone else's photo on a pal) */ near.active = near.active || !!g.active; near.example = near.example && !!g.example; near.badge += g.badge || 0; near.mine = near.mine || !!g.mine; near.pal = near.pal || pal; }
+      else out.push({ lon: g.lon, lat: g.lat, count: g.count, photo: g.photo, active: !!g.active, members: [g], example: !!g.example, badge: g.badge || 0, mine: !!g.mine, pal });
     }
     return out;
-  }, [groups, k, bubble]);
+  }, [groups, k, bubble, fit]);
+  // the liveliest few, as photos (the rest glow)
+  const photos = useMemo(() => new Set(clusters.map((c, i) => [i, (c.pal || c.mine ? 1e9 : 0) + (c.active ? 1e6 : 0) + c.count] as const).sort((a, b) => b[1] - a[1]).slice(0, photoPins).map(([i]) => i)), [clusters, photoPins]);
   const clustersRef = useRef(clusters); clustersRef.current = clusters;
-  const live = useRef({ routes, home, flight, onFlightStart, hover, aimAt, pins, journeys, journeyS, maxBirds, focus: focusAt }); live.current = { routes, home, flight, onFlightStart, hover, aimAt, pins, journeys, journeyS, maxBirds, focus: focusAt };
+  const live = useRef({ routes, home, flight, onFlightStart, hover, aimAt, pins, journeys, journeyS, maxBirds, focus: focusAt, fit, lower, routeTone }); live.current = { routes, home, flight, onFlightStart, hover, aimAt, pins, journeys, journeyS, maxBirds, focus: focusAt, fit, lower, routeTone };
 
   // a way picked: turn to its middle and zoom so both ends fit (a little south of it, as for the letter's flight);
   // one country at both ends: close in on it. Unpicked: back out to the whole globe. (A drag stops it there.)
@@ -151,17 +173,19 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
       const { routes: rs, home: hm, flight: fl } = live.current;
       const ways = [...(hm ? rs.map((r) => [[hm.lon, hm.lat], [r.lon, r.lat], r.dir]) : []), ...(fl ? [[[fl.a.lon, fl.a.lat], [fl.b.lon, fl.b.lat], 's']] : [])] as [[number, number], [number, number], string][];
       const fo = live.current.focus, near = (p: [number, number]) => !!fo && Math.abs(p[0] - fo.lon) < 0.01 && Math.abs(p[1] - fo.lat) < 0.01;
-      const key = JSON.stringify([ways, fo]); if (key === routeKey) return; routeKey = key;
+      const trail = live.current.routeTone === 'trail';
+      const key = JSON.stringify([ways, fo, trail]); if (key === routeKey) return; routeKey = key;
       if (routeDots) { earth.remove(routeDots); routeDots.dispose(); routeDots = null; }
       const pts: [THREE.Vector3, THREE.Color][] = [];
       flightDots = 0;
       for (const [w, [a, b, dir]] of ways.entries()) {
-        const ip = geoInterpolate(a, b), n = Math.max(8, Math.round(geoDistance(a, b) / 0.03));
-        const last = !!fl && w === ways.length - 1, cv = last ? curve(a, b) : null;   // the letter's way: a curve
+        const n = Math.max(8, Math.round(geoDistance(a, b) / 0.03));
+        // each way a curve, as the letters' birds fly it (the latest letter's too)
+        const last = !!fl && w === ways.length - 1, cv = curve(a, b);
         if (last) flightDots = n + 1;
-        // (a profile picked: the ways not to or from it, pale)
-        const pale = !!fo && !near(a) && !near(b);
-        for (let i = 0; i <= n; i++) { const [lo, la] = ip(i / n), c = dir === 'r' ? BLUE : dir === 'b' && i % 2 ? BLUE : RED; pts.push([cv ? cv(i / n) : vec(lo, la, 1.012 + 0.03 * Math.sin((Math.PI * i) / n)), pale ? c.clone().lerp(PALE, 0.8) : c]); }
+        // (a profile picked: the ways not to or from it, pale; a trail, soft till it's the one picked)
+        const pale = !!fo && !near(a) && !near(b), soft = trail && !last && !(fo && !pale) ? 0.62 : 0;
+        for (let i = 0; i <= n; i++) { const c = dir === 'r' ? BLUE : dir === 'b' && i % 2 ? BLUE : RED; pts.push([cv(i / n), pale ? c.clone().lerp(PALE, 0.8) : soft ? c.clone().lerp(PALE, soft) : c]); }
       }
       if (!pts.length) return;
       routeDots = new THREE.InstancedMesh(dotGeo, dotMat, pts.length);
@@ -170,31 +194,38 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
     };
 
     // letters on their way: a few birds flying them — at different times, each over 20–40 s; landing, a ripple once on
-    // the profile there and the bird fades. Each journey's way (faint, dotted: yours red, others a soft brown) shows only
-    // while its bird is on it, the part behind the bird gone (its dots in order from the far end: drawing `count` of
-    // them leaves out what's been flown) — or, a profile picked, all of each way to and from it
-    const jDotGeo = keep(new THREE.SphereGeometry(0.0042, 8, 6));
-    const MINE = new THREE.Color(0xff4b3e), THEIRS = new THREE.Color(0xb48a6c);
+    // the profile there and the bird fades. Each journey's way (faint, dotted: yours red, others a soft brown) is drawn
+    // out behind its bird as it flies (its dots in order from where it set off: drawing `count` of them shows what's been
+    // flown), and fades once it has landed — or, a profile picked, all of each way to and from it
+    // (yours: as big as the ways' own dots, clearly drawn out behind the bird; others' smaller, fainter)
+    const jDotGeo = keep(new THREE.SphereGeometry(0.0042, 8, 6)), jDotMine = keep(new THREE.SphereGeometry(0.0062, 10, 8));
+    const MINE = new THREE.Color(0xff4b3e), MINE_IN = new THREE.Color(0x4c8fe0), THEIRS = new THREE.Color(0xb48a6c);
     let jWays: THREE.InstancedMesh[] = [], jKey = '', jCurves: ((t: number) => THREE.Vector3)[] = [], jDist: number[] = [], jMid: [number, number][] = [];
     const dropWays = () => { for (const w of jWays) { earth.remove(w); w.dispose(); (w.material as THREE.Material).dispose(); } jWays = []; };
     const atFocus = (p: { lon: number; lat: number }) => { const fo = live.current.focus; return !!fo && Math.abs(p.lon - fo.lon) < 0.01 && Math.abs(p.lat - fo.lat) < 0.01; };
     type Slot = { j: number; t0: number; dur: number; next: number; ang: number; flip: number; ripple: number; at: { lon: number; lat: number } | null };
     let slots: Slot[] = [], clock = 0, turn = 0;
+    /** when each journey's bird last landed (its way fading after) */
+    let landed: Record<number, number> = {};
     const buildJourneys = () => {
       const js = live.current.journeys || [], n = Math.max(1, Math.min(6, live.current.maxBirds || 4));
-      const key = JSON.stringify([n, js.map((j) => [j.key, j.a.lon, j.a.lat, j.b.lon, j.b.lat, !!j.mine])]); if (key === jKey) return; jKey = key;
+      const key = JSON.stringify([n, js.map((j) => [j.key, j.a.lon, j.a.lat, j.b.lon, j.b.lat, !!j.mine, !!j.toMe])]); if (key === jKey) return; jKey = key;
       dropWays();
       jCurves = js.map((j) => curve([j.a.lon, j.a.lat], [j.b.lon, j.b.lat])); jDist = js.map((j) => geoDistance([j.a.lon, j.a.lat], [j.b.lon, j.b.lat]));
       jMid = js.map((j) => geoInterpolate([j.a.lon, j.a.lat], [j.b.lon, j.b.lat])(0.5) as [number, number]);
       jWays = js.map((j, i) => {
         const m = Math.max(10, Math.round(jDist[i] / 0.035));
-        const mesh = new THREE.InstancedMesh(jDotGeo, new THREE.MeshBasicMaterial({ color: j.mine ? MINE : THEIRS, transparent: true, opacity: 0, depthWrite: false }), m - 1);
-        for (let k = 1; k < m; k++) { m4.compose(jCurves[i]((m - k) / m), q.identity(), sc.set(1, 1, 1)); mesh.setMatrixAt(k - 1, m4); }
-        mesh.visible = false; earth.add(mesh); return mesh;
+        const mesh = new THREE.InstancedMesh(j.mine ? jDotMine : jDotGeo, new THREE.MeshBasicMaterial({ color: j.mine ? (j.toMe ? MINE_IN : MINE) : THEIRS, transparent: true, opacity: 0, depthWrite: false }), m - 1);
+        for (let k = 1; k < m; k++) { m4.compose(jCurves[i](k / m), q.identity(), sc.set(1, 1, 1)); mesh.setMatrixAt(k - 1, m4); }
+        // (drawn over the haze and the clouds — under them a trail's dots were lost; the earth itself still hides its far side)
+        // (its bounds measured now, all of it in: measured later, once drawn out from nothing, they'd be empty — and the
+        // whole trail culled, never seen)
+        mesh.computeBoundingSphere();
+        mesh.renderOrder = 4; mesh.visible = false; earth.add(mesh); return mesh;
       });
       // the birds: set off one after another, a second or so apart, the first soon
       slots = Array.from({ length: n }, (_, i) => ({ j: -1, t0: 0, dur: 0, next: clock + 400 + i * 1300, ang: 0, flip: 1, ripple: -1e9, at: null }));
-      birdOf.current = slots.map(() => -1); turn = 0;
+      birdOf.current = slots.map(() => -1); turn = 0; landed = {};
       for (const el of birdEls.current) if (el) el.style.opacity = '0';
     };
     /** which journey a bird takes next: yours and others' in turn (yours first), never one another bird is on — one on
@@ -209,11 +240,13 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
       }
       return -1;
     };
+    /** how far along its way a bird is: soon off (its trail showing behind it from the start), easing a little at both ends */
+    const glide = (u: number) => 0.8 * u + 0.2 * (0.5 - 0.5 * Math.cos(Math.PI * u));
     const placeBird = (i: number) => {
       const node = birdEls.current[i], sl = slots[i], js = live.current.journeys || [];
       if (!node) return;
       if (sl.j < 0 || !js[sl.j]) { node.style.opacity = '0'; node.style.pointerEvents = 'none'; return; }
-      const u = still ? 0.5 : clamp((clock - sl.t0) / sl.dur, 0, 1), e = 0.5 - 0.5 * Math.cos(Math.PI * u), cvj = jCurves[sl.j];
+      const u = still ? 0.5 : clamp((clock - sl.t0) / sl.dur, 0, 1), e = glide(u), cvj = jCurves[sl.j];
       const w = cvj(e), r = w.length(), p = screenAt(w, (1 - r * r) / camera.position.length());
       const p2 = screenAt(cvj(Math.min(1, e + 0.01)), 0), dx = p2.x - p.x, dy = p2.y - p.y;
       const seen = p.front && p.x > -80 && p.x < st.current.w + 80 && p.y > -80 && p.y < st.current.h + 80;
@@ -225,15 +258,21 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
       node.style.opacity = String(fade * (mine ? 1 : 0.88)); node.style.pointerEvents = fade > 0.3 ? 'auto' : 'none';
       node.style.transform = `translate(${p.x}px, ${p.y}px) rotate(${sl.ang}deg) scaleX(${sl.flip})`;
     };
-    /** each journey's way: its bird's (what's still ahead of it), or — a profile picked — all of it if it's to or from there */
+    /** each journey's way: its bird's (what it has flown, drawn out behind it; after it lands, fading), or — a profile
+     *  picked — all of it if it's to or from there */
     const drawWays = (focused: boolean) => {
       const js = live.current.journeys || [];
       jWays.forEach((mesh, j) => {
-        const mat = mesh.material as THREE.MeshBasicMaterial, n = mesh.instanceMatrix.count, sl = slots.find((x) => x.j === j);
+        const mat = mesh.material as THREE.MeshBasicMaterial, n = mesh.instanceMatrix.count, sl = slots.find((x) => x.j === j), op = js[j]?.mine ? 1 : 0.55;   // (yours clearer)
         if (focused) { const on = !!js[j] && (atFocus(js[j].a) || atFocus(js[j].b)); mesh.visible = on; mesh.count = n; mat.opacity = 0.75; return; }
-        if (!sl) { mesh.visible = false; return; }
-        const u = still ? 0 : clamp((clock - sl.t0) / sl.dur, 0, 1), e = 0.5 - 0.5 * Math.cos(Math.PI * u);
-        mesh.visible = true; mesh.count = still ? n : Math.round((1 - e) * n); mat.opacity = 0.5 * (still ? 1 : Math.min(1, u / 0.06));
+        if (!sl) {
+          // landed: the whole way stays a moment, fading
+          const gone = landed[j] == null ? 1 : (clock - landed[j]) / (js[j]?.mine ? 2600 : 1600);
+          if (still || gone >= 1) { mesh.visible = false; return; }
+          mesh.visible = true; mesh.count = n; mat.opacity = op * (1 - gone); return;
+        }
+        const u = still ? 1 : clamp((clock - sl.t0) / sl.dur, 0, 1), e = glide(u);
+        mesh.visible = true; mesh.count = still ? n : Math.round(e * n); mat.opacity = op;
       });
     };
     const flyJourneys = (dt: number) => {
@@ -244,7 +283,7 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
       slots.forEach((sl, i) => {
         if (!still && sl.j >= 0 && clock - sl.t0 >= sl.dur) {
           // landed: a ripple on the profile there, the bird gone; another sets off a little later
-          sl.at = js[sl.j] ? js[sl.j].b : null; sl.ripple = clock; sl.j = -1; birdOf.current[i] = -1;
+          sl.at = js[sl.j] ? js[sl.j].b : null; sl.ripple = clock; landed[sl.j] = clock; sl.j = -1; birdOf.current[i] = -1;
           sl.next = clock + 1500 + Math.random() * 3500;
           const rp = rippleEls.current[i]; if (rp) { rp.classList.remove('is-on'); void rp.offsetWidth; rp.classList.add('is-on'); }
         }
@@ -270,7 +309,7 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
       });
     };
 
-    // size: the globe as big on screen as the 2D one (radius min(w, h) × 0.44 × zoom)
+    // size: radius min(w, h) × fit × zoom (0.44: as big as the 2D one)
     const resize = () => {
       const w = el.offsetWidth, h = el.offsetHeight; st.current.w = w; st.current.h = h;
       renderer.setSize(w, h, false); canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
@@ -312,9 +351,13 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
         s.k = s.tween.k0 + (s.tween.k1 - s.tween.k0) * e;
         if (u >= 1) { s.tween = null; setK(s.k); }
       } else if (!still && !s.drag && now - s.idleAt > 2500 && !flying && !holding && !live.current.aimAt) s.rot = [s.rot[0] + dt * 0.004, s.rot[1]];
-      const { w, h } = s, R = Math.min(w, h) * 0.44 * s.k;
+      const { w, h } = s, [fit1, low1] = shape(w, h, live.current.fit, live.current.lower), ease = still ? 1 : Math.min(1, dt / 160);
+      s.fit += (fit1 - s.fit) * ease; s.low += (low1 - s.low) * ease;
+      const R = Math.min(w, h) * s.fit * s.k;
       const d = Math.sqrt(1 + Math.pow(h / 2 / (Math.tan((FOV / 2) * rad) * R), 2));
       camera.position.set(0, 0, d); camera.lookAt(0, 0, 0); camDir.set(0, 0, 1);
+      // (lower: the view slides up over it, so the globe sits below the middle)
+      if (w && h) camera.setViewOffset(w, h, 0, -s.low * h, w, h);
       aim(earth, s.rot);
       if (!still) for (const vl of veils) vl.m.rotation.y += dt * vl.speed;
       earth.updateMatrixWorld(true);
@@ -386,7 +429,7 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
     const prev = pts.current.get(e.pointerId)!, cur = local(e), s = st.current;
     if (pts.current.size === 1) {
       const dx = cur.x - prev.x, dy = cur.y - prev.y; moved.current += Math.abs(dx) + Math.abs(dy);
-      if (moved.current > 4) { try { e.currentTarget.setPointerCapture?.(e.pointerId); } catch { /* the pointer already went */ } const f = 75 / (Math.min(s.w, s.h) * 0.44 * s.k); s.rot = [s.rot[0] + dx * f, clamp(s.rot[1] - dy * f, -70, 70)]; }
+      if (moved.current > 4) { try { e.currentTarget.setPointerCapture?.(e.pointerId); } catch { /* the pointer already went */ } const f = 75 / (Math.min(s.w, s.h) * s.fit * s.k); s.rot = [s.rot[0] + dx * f, clamp(s.rot[1] - dy * f, -70, 70)]; }
     } else if (pts.current.size === 2) {
       const [a, b] = [...pts.current.entries()].map(([id, p]) => (id === e.pointerId ? cur : p)), [pa, pb] = [...pts.current.values()];
       const d0 = Math.hypot(pa.x - pb.x, pa.y - pb.y), d1 = Math.hypot(a.x - b.x, a.y - b.y); moved.current += 10;
@@ -410,7 +453,7 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
     if (many) {
       let dmin = Infinity;
       for (let i = 0; i < c.members.length; i++) for (let j = i + 1; j < c.members.length; j++) dmin = Math.min(dmin, geoDistance([c.members[i].lon, c.members[i].lat], [c.members[j].lon, c.members[j].lat]));
-      k1 = clamp(Math.max(s.k * 1.8, (bubble * 1.2) / (Math.max(dmin, 0.005) * Math.min(s.w, s.h) * 0.44)), 1, MAX_ZOOM);
+      k1 = clamp(Math.max(s.k * 1.8, (bubble * 1.2) / (Math.max(dmin, 0.005) * Math.min(s.w, s.h) * s.fit)), 1, MAX_ZOOM);
     }
     s.tween = { t0: performance.now(), r0: [...s.rot], r1: [-c.lon, clamp(-c.lat, -70, 70)], k0: s.k, k1 };
     s.idleAt = performance.now() + 4000;
@@ -428,17 +471,25 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
       ) : null}
       {clusters.map((c, i) => {
         const on = !!selected && c.members.some((m) => m.cc === selected), s = on ? bubble + 8 : bubble;
+        const idle = fadeIdle && !on && !c.active && !c.pal && !c.mine;
+        // not one of the liveliest (and not zoomed in, not picked): a soft glow where they are — red, someone here now
+        if (!on && k < PHOTOS_AT && !photos.has(i)) return (
+          <div key={c.members.map((m) => m.id || m.cc).join('-')} ref={(n) => { bubbleEls.current[i] = n; }} onClick={focus(c)} role="button" aria-label={c.members.map((m) => m.cc).join(', ')}
+            style={{ position: 'absolute', left: 0, top: 0, width: 0, height: 0, opacity: 0, willChange: 'transform', zIndex: 1, transition: 'opacity .2s ease' }}>
+            <div className={'cp-glow' + (c.active ? ' is-on' : '')} style={{ position: 'absolute', left: -16, top: -16, width: 32, height: 32, cursor: 'pointer', opacity: idle ? 0.4 : 1 }}><i /></div>
+          </div>
+        );
         return (
           <div key={c.members.map((m) => m.id || m.cc).join('-')} ref={(n) => { bubbleEls.current[i] = n; }} onClick={focus(c)} role="button" aria-label={c.members.map((m) => m.cc).join(', ')}
             style={{ position: 'absolute', left: 0, top: 0, width: 0, height: 0, opacity: 0, willChange: 'transform', zIndex: on ? 3 : 2, transition: 'opacity .2s ease' }}>
-            <div style={{ position: 'absolute', left: -s / 2, top: -s - 9, width: s, height: s, cursor: 'pointer' }}>
-              <div style={{ width: '100%', height: '100%', borderRadius: s * 0.3, overflow: 'hidden', border: '3px solid ' + (c.mine ? '#FF4B3E' : '#fff'), boxSizing: 'border-box', boxShadow: '0 6px 14px rgba(40,30,20,.25)', background: '#EFE7DB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'absolute', left: -s / 2, top: -s - 9, width: s, height: s, cursor: 'pointer', opacity: idle ? 0.55 : 1, filter: idle ? 'saturate(.6)' : 'none' }}>
+              <div style={{ width: '100%', height: '100%', borderRadius: s * 0.3, overflow: 'hidden', border: '3px solid ' + (c.mine ? '#FF4B3E' : c.pal ? PAL_RING : '#fff'), boxSizing: 'border-box', boxShadow: c.pal && !c.mine ? '0 0 0 4px rgba(255,143,107,.28), 0 6px 14px rgba(40,30,20,.25)' : '0 6px 14px rgba(40,30,20,.25)', background: '#EFE7DB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {c.photo ? <img src={c.photo} alt="" loading="lazy" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : <span style={{ fontSize: s * 0.45 }}>🐱</span>}
               </div>
-              <div style={{ position: 'absolute', left: '50%', bottom: -7, marginLeft: -6, width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '8px solid #fff' }} />
-              {/* someone there here right now (the app open — Realtime presence): the small red dot — still, top right (top
-                  left when the unread badge has the right) */}
-              {c.active ? <span aria-label="active" style={{ position: 'absolute', ...(c.badge ? { left: -4 } : { right: -4 }), top: -4, width: 12, height: 12, borderRadius: 6, background: '#FF4B3E', border: '2px solid #fff', boxSizing: 'border-box', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }} /> : null}
+              <div style={{ position: 'absolute', left: '50%', bottom: -7, marginLeft: -6, width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '8px solid ' + (c.pal && !c.mine ? PAL_RING : '#fff') }} />
+              {/* someone there here right now (the app open — Realtime presence): the small red dot — still, top right
+                  (top left when the unread badge has the right) */}
+              {c.active ? <span aria-label="active" style={{ position: 'absolute', ...(c.badge ? { left: -4 } : { right: -4 }), top: -4, width: 12, height: 12, borderRadius: 6, background: '#2FD36B', border: '2px solid #fff', boxSizing: 'border-box', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }} /> : null}
               {/* only example profiles here: said so, under it */}
               {c.example ? <span style={{ position: 'absolute', left: '50%', top: '100%', marginTop: 9, transform: 'translateX(-50%)', padding: '1px 6px', borderRadius: 7, background: 'rgba(255,255,255,.9)', boxShadow: '0 1px 3px rgba(0,0,0,.12)', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 9.5, color: '#8E8A84', whiteSpace: 'nowrap' }}>{exampleTag}</span> : null}
               {/* letters from them not read yet (My letters only: given only there) */}
@@ -456,8 +507,8 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
               <div style={{ width: 50, height: 50, borderRadius: '50%', overflow: 'hidden', border: '3px solid ' + (pn.ring || (pn.mine ? '#FF4B3E' : '#fff')), boxSizing: 'border-box', boxShadow: '0 6px 14px rgba(40,30,20,.25)', background: '#EFE7DB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {pn.photo ? <img src={pn.photo} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : <span style={{ fontSize: 22 }}>🐱</span>}
               </div>
-              {/* active lately: a small red dot on the frame */}
-              {pn.active ? <span aria-label="active" className="cp-active-dot" style={{ position: 'absolute', right: 1, top: 1, width: 12, height: 12, borderRadius: 6, background: '#FF4B3E', border: '2px solid #fff', boxSizing: 'border-box', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }} /> : null}
+              {/* active lately: a small bright-green dot on the frame */}
+              {pn.active ? <span aria-label="active" className="cp-active-dot" style={{ position: 'absolute', right: 1, top: 1, width: 12, height: 12, borderRadius: 6, background: '#2FD36B', border: '2px solid #fff', boxSizing: 'border-box', boxShadow: '0 1px 3px rgba(0,0,0,.25)' }} /> : null}
             </div>
             <span style={{ marginTop: 3, padding: '1px 7px', borderRadius: 8, background: 'rgba(255,255,255,.94)', boxShadow: '0 1px 3px rgba(0,0,0,.12)', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 10.5, color: '#22304A', whiteSpace: 'nowrap' }}>{pn.name}</span>
           </div>

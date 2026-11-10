@@ -11,11 +11,11 @@
 //       going above it (an example cat lover and their cat); two short lines, a little story and a question, under it
 //   5 · the letter goes in the envelope, it's sealed; a little bird comes for it, and carries it slowly over the turning
 //       globe to a cat far away (Korea → Canada, over the top of the world: seen from above the Arctic, from right to left)
-//   6 · it lands in their mailbox (a new-letter mark), and the bird flies on, out of the picture — the end: it stays,
-//       with "Replay" (it never jumps back to the start by itself)
+//   6 · it lands in their mailbox (a new-letter mark), and the bird flies on, out of the picture — the end: it holds a
+//       moment, then the words and the picture fade and Home comes in under the same sky
 //
-// It's labelled as an example throughout (small, in its corner), so it never reads as real people's activity, and the flight is the whole
-// journey in a few seconds, not an instant delivery. The button works at any point (the story needn't be watched).
+// While working on it (dev only): a small "Preview" in its corner, and "Replay" for that moment at the end. The flight is
+// the whole journey in a few seconds, not an instant delivery. The button works at any point (the story needn't be watched).
 // Reduced motion: the phone, still, on her (the clip's frame where it would start). The pieces are the app's own: the
 // pastel globe, the red envelope, the wax seal, stamps and postmarks, the letter paper and type.
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
@@ -173,13 +173,15 @@ function useScale(box: MutableRefObject<HTMLDivElement | null>) {
 }
 
 const seen = () => { try { localStorage.setItem('cp-onboarded', '1'); } catch { /* private mode */ } };
+/** the story's over: how long its last picture holds, then how long it fades (keep with .ln-leaving's transition) */
+const HOLD_MS = 1000, FADE_MS = 650;
 const switchLang = () => { saveLang(KO ? 'en' : 'ko'); location.reload(); };
 
 export default function Landing() {
   const box = useRef<HTMLDivElement>(null), stage = useRef<HTMLDivElement>(null), video = useRef<HTMLVideoElement>(null);
   const k = useScale(box);
   const still = useMemo(() => typeof matchMedia === 'function' && (matchMedia('(prefers-reduced-motion: reduce)').matches || new URLSearchParams(location.search).has('reduce')), []);
-  const [run, setRun] = useState(0), [done, setDone] = useState(false), [step, setStep] = useState(still ? 1 : 0);
+  const [run, setRun] = useState(0), [done, setDone] = useState(false), [leaving, setLeaving] = useState(false), [step, setStep] = useState(still ? 1 : 0);
   const globe = useRef<DottedControl>({ phi: VIEW.phi, theta: VIEW.theta, markers: [] });
   const pins = useMemo(() => CATS.map((c) => onGlobe(c.lat, c.lon)), []);
   // the flight: cobe's own arc from one capital to the other, lifted, as points on the canvas (as the globe first faces)
@@ -376,11 +378,21 @@ export default function Landing() {
     return () => { clearTimeout(waitT); cancelAnimationFrame(raf); v.onended = v.onplaying = v.onloadedmetadata = null; ctx.revert(); };
   }, [run, still, pins, way]);
 
+  // the story's over: on to Home by itself — the sky stays (Home has the same one) and Home builds itself up on it
+  // (cp-enter, in App.tsx). Not from the still picture of reduced motion: there, nothing has played to its end.
+  // ("start=app": comes in, even if the visit can't be remembered here)
+  useEffect(() => {
+    if (!done || still) return;
+    let fade = 0;
+    const hold = window.setTimeout(() => { setLeaving(true); fade = window.setTimeout(() => { seen(); try { sessionStorage.setItem('cp-enter', '1'); } catch { /* private mode: no build-up */ } location.replace('/?start=app'); }, FADE_MS); }, HOLD_MS);
+    return () => { clearTimeout(hold); clearTimeout(fade); setLeaving(false); };
+  }, [done, still]);
+
   const replay = () => { const v = video.current; if (v) { v.pause(); try { v.currentTime = CLIP_FROM; } catch { /* fine */ } } setRun((n) => n + 1); };
   const toApp = (href: string) => (e: { preventDefault: () => void }) => { e.preventDefault(); seen(); location.href = href; };
 
   return (
-    <main className="ln-page">
+    <main className={'ln-page' + (leaving ? ' ln-leaving' : '')}>
       <div className="ln-topbar"><button type="button" className="ob-btn ob-btn-small" onClick={switchLang} lang={KO ? 'en' : 'ko'}>{WORDS.other}</button></div>
       <div className="ln-wrap">
         {/* the words and the way in: there from the first moment, whatever the story is doing */}
@@ -457,9 +469,9 @@ export default function Landing() {
               <span className="ln-routechip">{FROM.flag} {WORDS.from} → {TO.flag} {WORDS.to} <b>({ROUTE_KM}{WORDS.km})</b></span>
               {/* to whom the letter is going (an example): over the letter while it's written */}
               <div className="ln-to"><img src={TO.photo} alt="" /><span><b>To. {TO.flag} {WORDS.toWho}</b><i>{WORDS.toIntro}</i></span></div>
-              <span className="ln-example">{WORDS.example}</span>
+              {import.meta.env.DEV ? <span className="ln-example">{WORDS.example}</span> : null}
               {WORDS.steps[step] ? <p className="ln-step" aria-live="polite">{WORDS.steps[step]}</p> : null}
-              {done && !still ? <button type="button" className="ln-replay" onClick={replay}>↻ {WORDS.replay}</button> : null}
+              {import.meta.env.DEV && done && !still ? <button type="button" className="ln-replay" onClick={replay}>↻ {WORDS.replay}</button> : null}
             </div>
           </div>
         </section>

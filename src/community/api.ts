@@ -17,6 +17,8 @@ export type Thread = {
 export type Letter = {
   id: string; thread_id: string; sender_id: string; body: string | null; photo_path: string | null;
   stamp: number; read_at: string | null; created_at: string;
+  /** (once supabase/fix-2026-11-04-plus.sql has run) carried by a fast bird; the stamp its sender picked */
+  fast?: boolean; chosen_stamp?: number | null;
 };
 
 /** Turns a Supabase/PostgREST/Storage error into a short user-facing message. */
@@ -156,7 +158,21 @@ export async function openThread(uid: string, moment: { id: string; user_id: str
 /** Everyone who can get a letter: anyone with a profile (made with their first letter), newest first. Their nickname,
  *  country and when they joined only — profiles are readable to signed-in people already. */
 export async function listPeople(limit = 500): Promise<(Profile & { created_at?: string })[]> {
-  return must(await supabase.from('profiles').select('id, nickname, country, created_at').order('created_at', { ascending: false }).limit(limit)) || [];
+  const query = (cols: string) => supabase.from('profiles').select(cols).order('created_at', { ascending: false }).limit(limit);
+  const withTraits = await query('id, nickname, country, created_at, cat_traits');
+  // (before supabase/fix-2026-11-04-plus.sql has run: without what the cats are like)
+  if (withTraits.error && /cat_traits/.test(withTraits.error.message || '')) return must(await query('id, nickname, country, created_at')) as any || [];
+  return must(withTraits) as any || [];
+}
+
+/** what my cat is like, as kept (null: nothing kept, or not set up yet) */
+export async function getCatTraits(uid: string): Promise<string[] | null> {
+  const { data, error } = await supabase.from('profiles').select('cat_traits').eq('id', uid).maybeSingle();
+  return error ? null : ((data as any)?.cat_traits ?? null);
+}
+export async function saveCatTraits(uid: string, traits: string[]) {
+  const { error } = await supabase.from('profiles').update({ cat_traits: traits }).eq('id', uid);
+  if (error) throw error;
 }
 
 /** A thread with someone, not about any moment (a cat pal found among everyone who writes). */
@@ -164,13 +180,22 @@ export async function openDirectThread(uid: string, other: string): Promise<stri
   return must(await supabase.from('threads').insert({ moment_id: null, starter_id: uid, owner_id: other }).select('id').single()).id;
 }
 
-export async function sendLetter(uid: string, threadId: string, body: string | null, photo: Blob | null, stamp: number) {
+/** (false: supabase/fix-2026-11-04-plus.sql hasn't run: letters go out without their fast bird or picked stamp) */
+let plusCols = true;
+export async function sendLetter(uid: string, threadId: string, body: string | null, photo: Blob | null, stamp: number, extras?: { fast?: boolean; chosen_stamp?: number | null } | null) {
   let photo_path: string | null = null;
   if (photo) {
     photo_path = `${threadId}/${crypto.randomUUID()}.jpg`;
     must(await supabase.storage.from('letters').upload(photo_path, photo, { contentType: 'image/jpeg', upsert: false }));
   }
-  return must(await supabase.from('letters').insert({ thread_id: threadId, sender_id: uid, body, photo_path, stamp }).select('*').single()) as Letter;
+  const row = { thread_id: threadId, sender_id: uid, body, photo_path, stamp };
+  const plus = plusCols && extras ? { ...(extras.fast ? { fast: true } : {}), ...(extras.chosen_stamp != null ? { chosen_stamp: extras.chosen_stamp } : {}) } : {};
+  const sent = await supabase.from('letters').insert({ ...row, ...plus }).select('*').single();
+  if (sent.error && Object.keys(plus).length && /fast|chosen_stamp/.test(sent.error.message || '')) {
+    plusCols = false;
+    return must(await supabase.from('letters').insert(row).select('*').single()) as Letter;
+  }
+  return must(sent) as Letter;
 }
 
 /** a thread's letters to me not read yet (to see whether any is still on its way before marking the thread read) */

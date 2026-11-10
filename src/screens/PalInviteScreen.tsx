@@ -7,12 +7,16 @@
 //      story first; their cat's name is asked with their first letter, as always.
 import { I } from '../dc/runtime';
 import type { Vals } from '../dc/runtime';
+import { SHEET_BG } from '../community/grain';
 
 const INK = "#22304A", MUTED = "#5E6A80";
 const ENV = { open: "./assets/onboarding-preview/envelope-open.png", front: "./assets/onboarding-preview/envelope-front.png", closed: "./assets/onboarding-preview/envelope-closed.png", frontTop: 551 / 1245, frontH: 374 / 671 };
 const btn = { width: "100%", maxWidth: "340px", height: "54px", borderRadius: "27px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "transform .15s ease" } as const;
 const btnText = { fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "var(--fs-button)", color: "#fff", whiteSpace: "nowrap" } as const;
 const link = { marginTop: "8px", padding: "8px 12px", fontWeight: 500, fontSize: "var(--fs-caption)", color: MUTED, textDecoration: "underline", textUnderlineOffset: "3px", cursor: "pointer" } as const;
+const field = { display: "flex", alignItems: "center", gap: "10px", height: "48px", padding: "0 14px", borderRadius: "14px", background: "rgba(255,252,244,.92)", boxShadow: "inset 0 0 0 1px #E5DCCB", boxSizing: "border-box" } as const;
+const fieldLabel = { flex: "none", width: "92px", fontWeight: 600, fontSize: "13px", color: MUTED } as const;
+const fieldInput = { flex: "1", minWidth: "0", height: "44px", border: "none", outline: "none", background: "transparent", fontFamily: "inherit", fontWeight: 700, fontSize: "15px", color: INK } as const;
 const page = { position: "absolute", inset: "0", background: "transparent", overflowY: "auto", scrollbarWidth: "none", animation: "cp-fade .3s ease" } as const;
 const column = { minHeight: "100%", maxWidth: "400px", margin: "0 auto", boxSizing: "border-box", padding: "60px 22px 40px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", wordBreak: "keep-all" } as const;
 
@@ -45,6 +49,23 @@ export default function PalInviteScreen({ v }: { v: Vals }) {
           <TwoCats />
           <h1 className="cp-h2" style={{ margin: "26px 0 0", color: INK, textWrap: "balance" } as any}>{I(T.palTitle)}</h1>
           <p style={{ margin: "8px 0 0", maxWidth: "300px", fontWeight: 400, fontSize: "var(--fs-body)", lineHeight: "var(--lh-body)", color: MUTED, textWrap: "balance" } as any}>{I(T.palDesc)}</p>
+          {/* (no profile yet) your cat's name and country — made with the link, so a friend who accepts can write to you */}
+          {s.me ? (
+            <div style={{ marginTop: "18px", width: "100%", maxWidth: "340px", display: "flex", flexDirection: "column", gap: "8px", textAlign: "left" }}>
+              <label style={field}>
+                <span style={fieldLabel}>{I(s.me.nameLabel)}</span>
+                <input value={s.me.name} onChange={s.me.setName} placeholder={s.me.namePh} maxLength={24} aria-label={s.me.nameLabel} style={fieldInput} />
+              </label>
+              <label style={field}>
+                <span style={fieldLabel}>{I(s.me.ccLabel)}</span>
+                <select value={s.me.cc} onChange={s.me.setCc} aria-label={s.me.ccLabel} style={{ ...fieldInput, cursor: "pointer" }}>
+                  {s.me.ccOptions.map((o: any) => <option key={o.cc} value={o.cc}>{o.label}</option>)}
+                </select>
+              </label>
+            </div>
+          ) : null}
+          {/* (testing) letters land at once on this device */}
+          {s.quick ? <span style={{ marginTop: "12px", padding: "3px 10px", borderRadius: "999px", background: "#FFF1DC", color: "#8A5A2B", fontWeight: 700, fontSize: "11.5px", lineHeight: "17px" }}>{I(s.quick)}</span> : null}
           {/* the link, once made: shared (or to share / copy here, where the share sheet couldn't open) */}
           {s.url && !s.sent ? (
             <div style={{ marginTop: "18px", width: "100%", maxWidth: "340px", boxSizing: "border-box", display: "flex", alignItems: "center", gap: "8px", padding: "6px 6px 6px 14px", borderRadius: "14px", background: "rgba(255,252,244,.9)", boxShadow: "inset 0 0 0 1px #E5DCCB" }}>
@@ -80,7 +101,7 @@ export default function PalInviteScreen({ v }: { v: Vals }) {
           ) : a.phase === "ready" || a.phase === "accepted" ? (
             <>
               {/* who's inviting: their cat (a polaroid) on their letter paper, stamped from their country */}
-              <div style={{ position: "relative", width: "250px", padding: "18px 18px 16px", background: "#FFFCF4", borderRadius: "3px", boxShadow: "0 1px 2px rgba(60,40,20,.1), 0 14px 30px rgba(60,40,20,.13)", transform: "rotate(-1.5deg)", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) both" }}>
+              <div style={{ position: "relative", width: "250px", padding: "18px 18px 16px", ...SHEET_BG, borderRadius: "3px", boxShadow: "0 1px 2px rgba(60,40,20,.1), 0 14px 30px rgba(60,40,20,.13)", transform: "rotate(-1.5deg)", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) both" }}>
                 {a.ready ? <img src={a.stamp} alt="" style={{ position: "absolute", right: "12px", top: "-12px", width: "40px", transform: "rotate(5deg)", filter: "drop-shadow(0 1px 2px rgba(0,0,0,.22))" }} /> : null}
                 {a.ready && a.pm ? <img src={a.pm} alt="" style={{ position: "absolute", right: "30px", top: "-6px", width: "70px", mixBlendMode: "multiply", opacity: 0.8, transform: "rotate(-8deg)" }} /> : null}
                 <div style={{ margin: "6px auto 0", width: "150px", padding: "6px 6px 20px", background: "#fff", boxShadow: "0 3px 10px rgba(40,25,20,.2)", transform: "rotate(2deg)" }}>

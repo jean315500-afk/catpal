@@ -2,6 +2,7 @@
 // writing more is the usual letter paper (ComposeScreen, in reply), opened from the button at the bottom.
 import { css, each, I, R } from '../dc/runtime';
 import type { Vals } from '../dc/runtime';
+import { SHEET_BG } from '../community/grain';
 
 export default function LettersScreen({ v }: { v: Vals }) {
   return (
@@ -33,7 +34,7 @@ export default function LettersScreen({ v }: { v: Vals }) {
               <>
                 {l?.them ? (
                   <>
-                    <div style={{ flex: "none", alignSelf: "flex-start", position: "relative", width: "270px", minHeight: "92px", background: "#F9F4EB", padding: "14px 62px 14px 16px", boxSizing: "border-box", boxShadow: "0 2px 8px rgba(0,0,0,.07)", transform: "rotate(-1deg)", animation: "cp-pop .45s cubic-bezier(.34,1.56,.64,1) both" }}>
+                    <div style={{ flex: "none", alignSelf: "flex-start", position: "relative", width: "270px", minHeight: "92px", ...SHEET_BG, padding: "14px 62px 14px 16px", boxSizing: "border-box", boxShadow: "0 2px 8px rgba(0,0,0,.07)", transform: "rotate(-1deg)", animation: "cp-pop .45s cubic-bezier(.34,1.56,.64,1) both" }}>
                       <span style={{ display: "block", fontWeight: "700", fontSize: "9px", letterSpacing: ".1em", color: "#a89f8d" }}>
                         {I(l?.who)}
                       </span>
@@ -51,7 +52,7 @@ export default function LettersScreen({ v }: { v: Vals }) {
                 ) : null}
                 {l?.you ? (
                   <>
-                    <div style={{ flex: "none", alignSelf: "flex-end", position: "relative", width: "270px", minHeight: "92px", background: "#fff", border: "1.5px solid #22304A", padding: "14px 62px 14px 16px", boxSizing: "border-box", transform: "rotate(1deg)", animation: "cp-fadeup .35s ease both" }}>
+                    <div style={{ flex: "none", alignSelf: "flex-end", position: "relative", width: "270px", minHeight: "92px", ...SHEET_BG, border: "1.5px solid #22304A", padding: "14px 62px 14px 16px", boxSizing: "border-box", transform: "rotate(1deg)", animation: "cp-fadeup .35s ease both" }}>
                       <span style={{ display: "block", fontWeight: "700", fontSize: "9px", letterSpacing: ".1em", color: "#a89f8d" }}>
                         {I(l?.who)}
                       </span>

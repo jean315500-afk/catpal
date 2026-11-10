@@ -3,6 +3,9 @@
 html, body { height: auto; min-height: 100%; overflow-x: hidden; overflow-y: auto; }
 .ln-page { word-break: keep-all; overflow-wrap: break-word; position: relative; min-height: 100vh; min-height: 100svh; display: flex; align-items: center; justify-content: center; padding: 46px 0 0; overflow: hidden; }
 .ln-topbar { position: fixed; right: 16px; top: 14px; z-index: 60; }
+/* the story's over: the words and the picture fade (the sky is the page's, and Home's too) */
+.ln-page > * { transition: opacity .65s ease; }
+.ln-leaving > * { opacity: 0; pointer-events: none; }
 .ln-wrap { width: 100%; max-width: 1180px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; justify-items: center; }
 
 /* the words, and the way in: short, so the cat is on the first screen too (the title: two lines at most on a phone,
