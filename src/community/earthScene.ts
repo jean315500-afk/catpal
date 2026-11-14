@@ -7,7 +7,7 @@ import { cloudVeil, globeMaps } from './globeTextures';
 
 export const rad = Math.PI / 180;
 /** the clouds (cut from a photo, edges faded): image, its width on the globe (radius units), height/width */
-export const CLOUDS = [{ src: './assets/map/cloud-1.webp', w: 0.34, ratio: 447 / 451 }, { src: './assets/map/cloud-2.webp', w: 0.16, ratio: 88 / 154 }, { src: './assets/map/cloud-3.webp', w: 0.08, ratio: 82 / 66 }];
+export const CLOUDS = [{ src: '/assets/map/cloud-1.webp', w: 0.34, ratio: 447 / 451 }, { src: '/assets/map/cloud-2.webp', w: 0.16, ratio: 88 / 154 }, { src: '/assets/map/cloud-3.webp', w: 0.08, ratio: 82 / 66 }];
 /** a seeded random (the clouds in the same places every time) */
 export const rnd = (seed: number) => () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
 /** a place on the unit sphere, matching three's sphere UVs with an equirectangular texture (lon −180 at u = 0) */
