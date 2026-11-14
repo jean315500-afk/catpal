@@ -1174,6 +1174,14 @@ export default class CatPalLogic extends DCLogic {
     this.setState({ acct: { mode: m, note, email: a?.pendingEmail || "", notify: st ? st.notify_letters : false, match: st ? st.match_opt_in : false,
       origin: me ? originOf(me) : guessCountry() || "", busy: false, err: "", sent: "", after } });
   }
+  /** the letter I sent last (in the last few minutes): its flight as the server set it (deliver_at), or null */
+  lastTripMs(): number | null {
+    const me = this.state.me; if (!me) return null;
+    let last: Letter | null = null;
+    for (const l of this.state.letters as Letter[]) if (l.sender_id === me.id && l.deliver_at && (!last || l.created_at > last.created_at)) last = l;
+    if (!last || Date.now() - new Date(last.created_at).getTime() > 10 * 60e3) return null;
+    return Math.max(0, new Date(last.deliver_at as string).getTime() - new Date(last.created_at).getTime());
+  }
   /** off the wait for a first CatPal, to the mailbox (where the letter waits, in Sent) */
   waitToMailbox() { this.setState({ waitingPal: false }); this.go("mailbox", { sheet: null, mbTab: "sent" }); }
   setAcct(patch: any) { this.setState((p) => ({ acct: p.acct && { ...p.acct, ...patch } })); }
@@ -1786,7 +1794,7 @@ export default class CatPalLogic extends DCLogic {
       hmHead: tx("hmHead"), hmSub: tx("hmSub"), hmCta: draftOpen ? tx("hmCtaDraft") : homeTurn ? tx("mbWriteBack", { name: homeTurn.name }) : tx(hmMail ? "hmCta" : "hmCtaFirst"),
       // your turn with a cat pal (their letter read, not answered yet): Home's button writes back; a new cat pal is one link below
       hmTurn: !draftOpen && !!homeTurn, hmLetterToName: !draftOpen && homeTurn ? tx("cpDearName", { name: homeTurn.name }) : "", hmNewPal: tx("hmNewPal"), hmNewPalGo: () => this.openCompose(), hmEnvelope: tx("hmEnvelope"), hmLetterTo: tx("hmLetterTo"), hmLetterLine: tx("hmLetterLine"), startLetter: () => (!draftOpen && homeTurn ? this.writeBack(homeTurn.letter) : this.openCompose()),
-      cmFeedLink: tx("cmFeedLink"), dmTitle: !dest ? tx("cpSending") : st.firstTrip ? tx("arrFirstTitle") : tx("dmTitle"),
+      cmFeedLink: tx("cmFeedLink"), dmTitle: !dest ? tx(st.dmKnown ? "cpSendingPal" : "cpSending") : st.firstTrip ? tx("arrFirstTitle") : tx("dmTitle"),
       todayMode: !!st.todayMode, skipToday: () => this.go("home", { sheet: null, todayMode: false }),
       exTab: st.exTab, exTabs: [["latest", tx("exLatest")], ["popular", tx("exPopular")]].map(([id, label]) => ({ id, label, on: st.exTab === id, tap: () => this.setState({ exTab: id }) })),
       exCards: (st.exTab === "popular" ? byPopular : (st.mapMoments as MomentCard[])).map(mini),
@@ -2487,7 +2495,11 @@ export default class CatPalLogic extends DCLogic {
       dmKnown: st.dmKnown ? { name: st.dmKnown.name, place: flagOf(st.dmKnown.cc) + " " + cName(st.dmKnown.cc), from: (st.cmp?.kind === "met_cat" ? this.cmpSignName(st.cmp) : (st.cmp?.catName || "").trim()) || myName } : null,
       mapDone: st.mapDone, destKm: destKm == null ? "" : fmt(destKm), destCity: dest ? cName(dest.cc) : "", arrFrom: cName(myCC),
       // how long it flies (the farther, the longer): on the way's card, and under the letter — when it lands
-      arrEta: dest ? (st.fastTrip || QUICK ? tx("plInstant") : tx("arrAbout", { t: eta(travelMs(myCC, dest.cc), 10) })) : "", arrLandsIn: dest ? (st.fastTrip || QUICK ? tx("plInstantLanded") : tx("arrLandsIn", { t: eta(travelMs(myCC, dest.cc), 10) })) : "",
+      // (the letter just sent: how long the server really gives it — instant when the service is set so — else the estimate)
+      ...(() => {
+        const trip = this.lastTripMs(), ms = trip ?? (dest ? travelMs(myCC, dest.cc) : 0), now = st.fastTrip || QUICK || (trip != null && trip < 60e3);
+        return { arrEta: dest ? (now ? tx("plInstant") : tx("arrAbout", { t: eta(ms, 10) })) : "", arrLandsIn: dest ? (now ? tx("plInstantLanded") : tx("arrLandsIn", { t: eta(ms, 10) })) : "" };
+      })(),
       tapDeliveryCard: () => { if (this.state.mapDone) this.go("arrived"); },
       dmNoPal: cur === "deliveryMap" && !!st.noPal, dmNoPalT: Object.fromEntries(["npTitle", "npDesc", "npRetry", "npInvite", "npSave"].map((k) => [k, tx(k)])),
       npInvite: () => this.cmpInvite(), npSave: () => this.saveForLater(), npRetry: () => this.cmpRetry(),
