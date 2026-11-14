@@ -87,19 +87,17 @@ export default function DeliveryMapScreen({ v }: { v: Vals }) {
           {v.dmWaiting ? (
             <div role="dialog" aria-label={v.dmWaiting.title} style={dlg}>
               <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "var(--fs-title)", lineHeight: "24px", letterSpacing: "var(--ls-heading)", color: "#22304A", textWrap: "balance" } as any}>{I(v.dmWaiting.title)}</span>
-              <span style={{ marginTop: "6px", fontWeight: 400, fontSize: "var(--fs-caption)", lineHeight: "20px", color: "#4C5562", maxWidth: "290px" }}>{I(v.dmWaiting.desc)}</span>
+              <span style={{ marginTop: "6px", fontWeight: 600, fontSize: "var(--fs-caption)", lineHeight: "20px", color: v.dmWaiting.emailCta ? "#B5643C" : "#4C5562", maxWidth: "290px" }}>{I(v.dmWaiting.desc)}</span>
               {v.dmWaiting.emailCta ? (
                 <div className="dc-hover-8" onClick={v.dmWaiting.email} role="button" style={dlgBtn}>
                   <span style={dlgBtnText}>{I(v.dmWaiting.emailCta)}</span>
                 </div>
               ) : null}
-              {v.dmWaiting.emailCta && v.dmWaiting.emailHint ? (
-                <span style={{ marginTop: "8px", fontWeight: 600, fontSize: "var(--fs-caption)", lineHeight: "18px", color: "#B5643C" }}>{I(v.dmWaiting.emailHint)}</span>
+              {v.dmWaiting.mailbox ? (
+                <div style={{ marginTop: "6px", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "2px 6px" }}>
+                  <span onClick={v.dmWaiting.toMailbox} role="button" style={dlgLink}>{I(v.dmWaiting.mailbox)}</span>
+                </div>
               ) : null}
-              <div style={{ marginTop: "6px", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "2px 6px" }}>
-                {v.dmWaiting.sameQ ? <span onClick={v.dmWaiting.same} role="button" style={dlgLink}>{I(v.dmWaiting.sameQ)}</span> : null}
-                <span onClick={v.dmWaiting.toMailbox} role="button" style={dlgLink}>{I(v.dmWaiting.mailbox)}</span>
-              </div>
             </div>
           ) : null}
           {/* no one abroad just now, only someone in your own country: asked before anything is sent */}

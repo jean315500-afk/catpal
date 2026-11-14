@@ -1151,12 +1151,15 @@ export default class CatPalLogic extends DCLogic {
     this.openAccount(this.state.account?.confirmed ? "settings" : "signin", this.tx("acOpenNotHere"));
   }
   /** the account sheet: sign up (keep these letters, with an email), sign in (an account from before), or settings */
-  openAccount(mode?: "register" | "signin" | "settings", note = "") {
+  /** `after`: "mailbox" — (from the wait for a first CatPal) once the email's in, or the sheet's closed, on to the mailbox */
+  openAccount(mode?: "register" | "signin" | "settings", note = "", after: "" | "mailbox" = "") {
     const a = this.state.account, st = this.state.settings, me = this.state.me;
     const m = mode || (a?.confirmed ? "settings" : "register");
     this.setState({ acct: { mode: m, note, email: a?.pendingEmail || "", notify: st ? st.notify_letters : false, match: st ? st.match_opt_in : false,
-      origin: me ? originOf(me) : guessCountry() || "", busy: false, err: "", sent: "" } });
+      origin: me ? originOf(me) : guessCountry() || "", busy: false, err: "", sent: "", after } });
   }
+  /** off the wait for a first CatPal, to the mailbox (where the letter waits, in Sent) */
+  waitToMailbox() { this.setState({ waitingPal: false }); this.go("mailbox", { sheet: null, mbTab: "sent" }); }
   setAcct(patch: any) { this.setState((p) => ({ acct: p.acct && { ...p.acct, ...patch } })); }
   async acctSubmit() {
     const a = this.state.acct; if (!a || a.busy) return;
@@ -1179,6 +1182,8 @@ export default class CatPalLogic extends DCLogic {
       await api.linkEmail(email, this.authRedirect());
       await this.loadAccount();
       this.setAcct({ busy: false, sent: this.tx("acSentConfirm", { email }) });
+      // (asked for on the wait for a first CatPal: the email's in — on to the mailbox, "check your email" kept over it)
+      if (a.after === "mailbox") this.waitToMailbox();
     } catch (e: any) {
       const m = String(e?.message || "");
       // an address with an account already: sign in to that one instead
@@ -1932,7 +1937,7 @@ export default class CatPalLogic extends DCLogic {
           switchLabel: a.mode === "signin" ? (me ? tx("acToRegister") : "") : a.mode === "register" ? tx("acToSignIn") : "",
           switchTo: () => this.setAcct({ mode: a.mode === "signin" ? "register" : "signin", err: "", sent: "" }),
           signOut: a.mode === "settings" && acc?.confirmed ? tx("acSignOut") : "", doSignOut: () => this.acctSignOut(),
-          privacy: tx("acPrivacy"), close: () => this.setState({ acct: null }), closeLabel: tx("plClose"),
+          privacy: tx("acPrivacy"), close: () => { const after = this.state.acct?.after; this.setState({ acct: null }); if (after === "mailbox" && this.state.waitingPal) this.waitToMailbox(); }, closeLabel: tx("plClose"),
           donate: a.mode === "settings" && st.cfg?.donation_url ? { label: tx("dnLabel"), url: st.cfg.donation_url } : null,
           set: (e: any) => this.setAcct({ email: e.target.value.slice(0, 120), err: "" }), submit: () => this.acctSubmit(),
           toggleNotify: () => this.acctToggle("notify"), toggleMatch: () => this.acctToggle("match"), setOrigin: (e: any) => this.acctOrigin(e.target.value) };
@@ -2477,12 +2482,11 @@ export default class CatPalLogic extends DCLogic {
       // my address is confirmed and letter emails are on)
       dmWaiting: cur === "deliveryMap" && st.waitingPal ? (() => {
         const a = st.account as api.Account | null, on = !!a?.confirmed && !!st.settings?.notify_letters;
-        return { title: tx("mtWaitTitle"), desc: on ? tx("mtWaitDesc") : a?.pendingEmail ? tx("mtWaitConfirm", { email: a.pendingEmail }) : tx("mtWaitNoEmail"),
-          emailCta: on ? "" : a?.confirmed ? tx("mtWaitNotify") : a?.pendingEmail ? "" : tx("mtWaitEmail"),
-          emailHint: on || a?.pendingEmail ? "" : tx("mtWaitHint"),
-          email: () => this.openAccount(a?.confirmed ? "settings" : "register"),
-          sameQ: st.waiting && !st.waiting.allow_same_country ? tx("mtWaitSame") : "", same: () => api.setWaitingSameCountry(true).then(() => { this.loadWaiting(); this.refreshMail(); }).catch(() => {}),
-          mailbox: tx("mtWaitMailbox"), toMailbox: () => { this.setState({ waitingPal: false }); this.go("mailbox", { sheet: null, mbTab: "sent" }); } };
+        // (no email yet: just that — add it, then on to the mailbox; the mailbox link only once there's nothing to add)
+        const emailCta = on ? "" : a?.confirmed ? tx("mtWaitNotify") : a?.pendingEmail ? "" : tx("mtWaitEmail");
+        return { title: tx("mtWaitTitle"), desc: on ? tx("mtWaitDesc") : a?.pendingEmail ? tx("mtWaitConfirm", { email: a.pendingEmail }) : tx("mtWaitHint"),
+          emailCta, email: () => this.openAccount(a?.confirmed ? "settings" : "register", "", "mailbox"),
+          mailbox: emailCta ? "" : tx("mtWaitMailbox"), toMailbox: () => this.waitToMailbox() };
       })() : null,
       todayDate: day(new Date().toISOString()),
       isNewPal: st.isNewPal, destSlot: dest ? "pal-" + dest.uid : "", destImg: dest ? dest.photo : "", destStamp: STAMPS[st.stamp],
