@@ -102,7 +102,9 @@ export async function welcomeThread(): Promise<string | null> {
 /** a letter's photo before it has a thread: letters/outbox/<me>/<the letter's own id>.jpg (the same letter, the same file) */
 export async function uploadOutboxPhoto(uid: string, clientId: string, photo: Blob): Promise<string> {
   const path = `outbox/${uid}/${clientId}.jpg`;
-  must(await supabase.storage.from('letters').upload(path, photo, { contentType: 'image/jpeg', upsert: true }));
+  // (no upsert — it needs more of Storage than an upload does; the same letter sent again finds its photo already there)
+  const { error } = await supabase.storage.from('letters').upload(path, photo, { contentType: 'image/jpeg', upsert: false });
+  if (error && !/exists|duplicate|409/i.test(`${(error as any).statusCode || ''} ${error.message || ''}`)) throw error;
   return path;
 }
 export type MatchResult = { status: 'matched' | 'waiting' | 'already_waiting' | 'ask_same_country' | 'cancelled'; request_id?: string; thread_id?: string | null;

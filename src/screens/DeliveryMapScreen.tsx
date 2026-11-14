@@ -93,6 +93,9 @@ export default function DeliveryMapScreen({ v }: { v: Vals }) {
                   <span style={dlgBtnText}>{I(v.dmWaiting.emailCta)}</span>
                 </div>
               ) : null}
+              {v.dmWaiting.emailCta && v.dmWaiting.emailHint ? (
+                <span style={{ marginTop: "8px", fontWeight: 600, fontSize: "var(--fs-caption)", lineHeight: "18px", color: "#B5643C" }}>{I(v.dmWaiting.emailHint)}</span>
+              ) : null}
               <div style={{ marginTop: "6px", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "2px 6px" }}>
                 {v.dmWaiting.sameQ ? <span onClick={v.dmWaiting.same} role="button" style={dlgLink}>{I(v.dmWaiting.sameQ)}</span> : null}
                 <span onClick={v.dmWaiting.toMailbox} role="button" style={dlgLink}>{I(v.dmWaiting.mailbox)}</span>

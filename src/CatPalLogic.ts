@@ -822,16 +822,18 @@ export default class CatPalLogic extends DCLogic {
     const introChanged = intro !== undefined && intro !== myIntro(me);
     if (intro !== undefined) try { localStorage.setItem(CAT_INTRO, intro); } catch (_) {}
     if (!me || me.country !== cc || me.nickname !== nick || introChanged) {
-      me = await api.saveProfile(uid, nick, cc, intro);
+      const saved = await api.saveProfile(uid, nick, cc, intro);
       try { if (!this.state.me || (!met && nameIsCat)) localStorage.setItem(NICK_IS_CAT, uid); } catch (_) {}
       const first = !this.state.me;
-      this.setState({ me: { ...(this.state.me || {}), ...me } });
+      // (returned as it is now: this.state.me is set only once React gets to it, which on a slow phone can be after)
+      me = { ...(this.state.me || {}), ...(saved || {}), id: (saved as Profile | null)?.id || uid } as Profile;
+      this.setState({ me });
       if (first) this.loadAll();
       // a friend's link accepted before (or mine, accepted): with this profile their thread can be made now
       try { if (await api.linkMyPals()) await this.refreshMail(); } catch (_) { /* not set up yet */ }
     }
     if (!met) try { localStorage.setItem(CAT_NAME, name); } catch (_) {}
-    return this.state.me as Profile;
+    return (me || this.state.me) as Profile;
   }
   async cmpSend() {
     const c = this.state.cmp;
@@ -956,6 +958,7 @@ export default class CatPalLogic extends DCLogic {
       this.playDelivery({ uid: res.matched_with || "", name: res.nickname || "", cc: res.country || "", photo: theirMoment ? api.momentPhotoUrl(theirMoment.photo_path) : "" }, true);
       if (!this.state.dest) { this.go("mailbox", { sheet: null, mbTab: "sent" }); }
     } catch (e) {
+      console.error("cmpSend", e);   // (where it went wrong: the stack, in the browser's console)
       back({ err: api.errorText(e) });
     } finally {
       this.sendExtras = null;
@@ -2476,6 +2479,7 @@ export default class CatPalLogic extends DCLogic {
         const a = st.account as api.Account | null, on = !!a?.confirmed && !!st.settings?.notify_letters;
         return { title: tx("mtWaitTitle"), desc: on ? tx("mtWaitDesc") : a?.pendingEmail ? tx("mtWaitConfirm", { email: a.pendingEmail }) : tx("mtWaitNoEmail"),
           emailCta: on ? "" : a?.confirmed ? tx("mtWaitNotify") : a?.pendingEmail ? "" : tx("mtWaitEmail"),
+          emailHint: on || a?.pendingEmail ? "" : tx("mtWaitHint"),
           email: () => this.openAccount(a?.confirmed ? "settings" : "register"),
           sameQ: st.waiting && !st.waiting.allow_same_country ? tx("mtWaitSame") : "", same: () => api.setWaitingSameCountry(true).then(() => { this.loadWaiting(); this.refreshMail(); }).catch(() => {}),
           mailbox: tx("mtWaitMailbox"), toMailbox: () => { this.setState({ waitingPal: false }); this.go("mailbox", { sheet: null, mbTab: "sent" }); } };
