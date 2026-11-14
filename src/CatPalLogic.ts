@@ -7,7 +7,7 @@ import React from 'react';
 import { DCLogic } from './dc/DCLogic';
 import { I18N } from './i18n';
 import { COMMUNITY_STRINGS } from './community/strings';
-import { supabaseConfigured } from './community/supabase';
+import { supabaseConfigured, AUTH_LINK_TYPE } from './community/supabase';
 import * as api from './community/api';
 import type { FeedItem, Letter, MomentCard, Profile, Thread } from './community/api';
 import { nextRenewal, PLAN, PLUS_SAMPLE, readPlan, TRAITS, writePlan, type Plan } from "./community/plan";
@@ -334,6 +334,7 @@ export default class CatPalLogic extends DCLogic {
     } catch (e) {
       this.setState({ authReady: true, onbErr: api.errorText(e) });
     }
+    this.afterConfirmLink();
     if (this.state.inv) this.loadInvite();
     if (this.state.palInv) this.loadPalInvite();
     if (this.state.me) api.linkMyPals().then((n) => { if (n) this.refreshMail(); }).catch(() => { /* not set up yet */ });
@@ -1131,6 +1132,21 @@ export default class CatPalLogic extends DCLogic {
   // ---------------------------------------------------------------- the account: email, settings, the letter link
   authSub: any; touchT: any; openDone = false;
   async loadCfg() { const cfg = await api.publicConfig(); this.setState({ cfg }); }
+  /** here from the "confirm your email" link: said so (and whether replies will be emailed), over my letters —
+   *  the ones I've had, or (none yet) the ones I sent, the letter waiting for a CatPal among them. Once. */
+  confirmNoted = false;
+  async afterConfirmLink() {
+    if (this.confirmNoted || !["email_change", "signup"].includes(AUTH_LINK_TYPE) || !this.state.me) return;
+    this.confirmNoted = true;
+    await this.loadAccount();
+    if (!this.state.account?.confirmed) return;
+    await this.loadSettings().catch(() => {});
+    await this.loadWaiting().catch(() => {});
+    await this.refreshMail();
+    const me = this.state.me, got = (this.state.letters as Letter[]).some((l) => l.sender_id !== me?.id);
+    this.go("mailbox", { sheet: null, mbTab: got ? "received" : "sent" });
+    this.openAccount("settings", this.tx(this.state.settings?.notify_letters ? "acConfirmedNotify" : "acConfirmed"));
+  }
   async loadAccount() { try { this.setState({ account: await api.myAccount() }); } catch (_) { /* as it was */ } }
   async loadSettings() { const me = this.state.me; if (!me) return; const settings = await api.mySettings(me.id); this.setState({ settings }); }
   async loadWaiting() { if (!this.state.me) return; this.setState({ waiting: await api.myWaitingLetter() }); }
@@ -1392,7 +1408,7 @@ export default class CatPalLogic extends DCLogic {
     // (once a letter of mine has really gone — by a cat pal's way or by link; a letter begun, or kept for later, isn't one)
     // (any letter either way — or one on its way to me, or a friend by link: Home is the mailbox; someone who's only
     // been written to, e.g. the friend who invited, isn't asked for their "first letter")
-    const hmMail = MB_SAMPLE || MAP_SAMPLE || ARRIVE_SAMPLE || (!!me && (letters.length > 0 || (st.inbound || []).length > 0 || (st.palThreads || []).length > 0)) || !!(st.invites || []).length || (!mailKnown && readHasMail());
+    const hmMail = MB_SAMPLE || MAP_SAMPLE || ARRIVE_SAMPLE || (!!me && (letters.length > 0 || (st.inbound || []).length > 0 || (st.palThreads || []).length > 0)) || !!(st.invites || []).length || !!st.waiting || (!mailKnown && readHasMail());
     // Home (your first letter, then your letters) · Map (the globe, countries, the feed and its Top 10) · Passport (your cat, stamps, records)
     const navActive = { home: "home", catmap: "world", explore: "world", mailbox: "home", passport: "mycat", map: "mycat" }[cur];
     const tabs = [
@@ -2274,7 +2290,7 @@ export default class CatPalLogic extends DCLogic {
         const tripOf = flying.find((f: any) => f.key === st.cmTrip);
         const myPlace = homeCC && at(homeCC) ? [{ id: "me", cc: homeCC, ...at(homeCC)!, count: 1, photo: MAP_SAMPLE ? "./assets/cats/cat-1.jpg" : myPhoto, mine: true }] : [];
         const sel = st.cmMineSel ? list.find((x) => x.id === st.cmMineSel) || null : null;
-        const mapHasMail = MAP_SAMPLE || (!!me && (letters as Letter[]).length > 0);
+        const mapHasMail = MAP_SAMPLE || (!!me && ((letters as Letter[]).length > 0 || !!st.waiting));
         const view = !mapHasMail ? "world" : st.cmView || mapView() || "mine";
         return {
           cmPals: list.filter((x) => x.placed), cmRoute: route, cmPalCount: MAP_SAMPLE ? list.length : pals.length, cmLang: L, cmPlaces, cmStat,
