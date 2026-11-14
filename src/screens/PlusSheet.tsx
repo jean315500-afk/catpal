@@ -52,22 +52,13 @@ export default function PlusSheet({ v }: { v: Vals }) {
           </>
         ) : (
           <>
-            {/* joining: a year, or for good */}
-            {each(p.joins, (j: any, i: number) => (
-              <div className="dc-hover-8" onClick={j.tap} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); j.tap(); } }}
-                style={{ marginTop: i ? "10px" : "16px", height: "54px", padding: "0 20px", borderRadius: "27px", background: i ? "#fff" : INK, boxShadow: i ? "inset 0 0 0 1.5px " + INK : "0 10px 22px rgba(34,48,74,.2)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", cursor: "pointer" }}>
-                <span style={{ fontWeight: 700, fontSize: "15px", color: i ? INK : "#fff" }}>{I(j.label)}</span>
-                <span style={{ fontWeight: 500, fontSize: "13px", color: i ? MUTED : "rgba(255,255,255,.75)" }}>{I(j.price)}</span>
-              </div>
-            ))}
-            {/* fast birds on their own */}
-            <div className="dc-hover-8" onClick={p.buyPack} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); p.buyPack(); } }} style={{ marginTop: "10px", height: "46px", padding: "0 16px", borderRadius: "23px", background: "#fff", boxShadow: "inset 0 0 0 1px rgba(34,48,74,.14)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", cursor: "pointer" }}>
-              <span style={{ fontWeight: 600, fontSize: "14px", color: INK }}>✦ {I(p.pack)}</span>
-              <span style={{ fontWeight: 500, fontSize: "13px", color: MUTED }}>{I(p.packPrice)}</span>
+            {/* not on sale yet: "Coming soon", and nothing to press (no payment is connected) */}
+            <div role="button" aria-disabled="true" style={{ marginTop: "16px", height: "54px", padding: "0 20px", borderRadius: "27px", background: "#DDD5C6", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", cursor: "default" }}>
+              <span style={{ fontWeight: 700, fontSize: "15px", color: "#5C5547" }}>{I(p.comingSoon)}</span>
             </div>
           </>
         )}
-        <span style={{ display: "block", marginTop: "12px", textAlign: "center", fontWeight: 500, fontSize: "11.5px", lineHeight: "16px", color: "#C9785D" }}>{I(p.testNote)}{p.on ? "" : " " + p.priceNote}</span>
+        <span style={{ display: "block", marginTop: "12px", textAlign: "center", fontWeight: 500, fontSize: "12px", lineHeight: "17px", color: MUTED }}>{I(p.freeNote)}</span>
       </div>
     </div>
   );

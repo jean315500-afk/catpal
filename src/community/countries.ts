@@ -1,3 +1,4 @@
+import { PM_DESIGNED, postmarkName, postmarkSvg } from './postmarks';
 // Countries: ISO 3166-1 alpha-2 code -> approximate capital [lon, lat] (for the
 // globe and distances), localized names, flags and postmarks.
 
@@ -105,25 +106,21 @@ export const fastMs = (ms: number) => Math.max(15 * 60e3, Math.round(ms / 4));
 /** "lon:lat" token understood by public/globe.html. */
 export const globePoint = (cc: string) => (COUNTRY_COORDS[cc] ? COUNTRY_COORDS[cc].join(':') : '');
 
-// The design's city postmarks, by country. Other countries get a drawn postmark.
-const PM: Record<string, string> = {
-  KR: 'seoul', JP: 'tokyo', IT: 'roma', TW: 'taipei', GB: 'london', ID: 'bali', FR: 'paris',
-  TH: 'bangkok', AU: 'sydney', US: 'newyork', CA: 'vancouver', SG: 'singapore',
-};
-export const POSTMARK_FILES = Object.values(PM).map((p) => './assets/pm/' + p + '.png');
-/** the countries with a postmark of their own (the stamp book's pages) */
-export const POSTMARK_COUNTRIES = Object.keys(PM);
+// The country postmarks: one template (./postmarks.ts) — five with a symbol of their own (PM_DESIGNED), every other
+// country the shared one with its name.
+/** the countries with a postmark of their own (the stamp book's pages, as it starts) */
+export const POSTMARK_COUNTRIES = PM_DESIGNED;
 /** each country's own stamp (one of the app's stamp designs): the same country, the same stamp, every time */
 const STAMP_OF: Record<string, number> = { KR: 1, JP: 2, FR: 3, US: 4, GB: 5, IT: 6, TW: 7, TH: 8, ID: 2, AU: 5, CA: 6, SG: 3 };
 export const stampOf = (cc: string) => './assets/stamp-' + (STAMP_OF[cc] ?? ((((cc || 'XX').charCodeAt(0) * 31 + (cc || 'XX').charCodeAt(1)) % 8) + 1)) + '.png';
 
 const pmCache: Record<string, string> = {};
-/** Postmark image URL for a country (blob: URL for generated ones; data: URLs break inline styles). */
+/** a country's postmark image URL (a blob: URL — data: URLs break inline styles), made once per country */
 export function postmarkOf(cc: string) {
-  if (PM[cc]) return './assets/pm/' + PM[cc] + '.png';
-  if (pmCache[cc]) return pmCache[cc];
-  const code = /^[A-Z]{2}$/.test(cc || '') ? cc : '··';
-  const waves = [0, 1, 2, 3].map((i) => `<path d="M132 ${44 + i * 11} q10 -6 20 0 t20 0 t20 0 t20 0" fill="none" stroke="#2b2b2b" stroke-width="2.2"/>`).join('');
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="220" height="140" viewBox="0 0 220 140"><g opacity=".85"><circle cx="70" cy="70" r="52" fill="none" stroke="#2b2b2b" stroke-width="3"/><circle cx="70" cy="70" r="40" fill="none" stroke="#2b2b2b" stroke-width="1.6"/><text x="70" y="82" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-weight="700" font-size="34" fill="#2b2b2b">${code}</text><text x="70" y="38" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-weight="700" font-size="10" letter-spacing="2" fill="#2b2b2b">CATPAL</text>${waves}</g></svg>`;
-  return (pmCache[cc] = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })));
+  const code = /^[A-Z]{2}$/.test(cc || '') ? cc : '';
+  if (pmCache[code]) return pmCache[code];
+  const svg = postmarkSvg(code, postmarkName(code, code ? countryName(code) : ''));
+  return (pmCache[code] = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' })));
 }
+/** the designed postmarks' images (the passport's folder, before you've any of your own) */
+export const postmarkFiles = () => POSTMARK_COUNTRIES.map(postmarkOf);

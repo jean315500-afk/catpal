@@ -184,7 +184,7 @@ body.cp-sky-page{background:linear-gradient(rgba(255,255,255,.5),rgba(255,255,25
 .cp-letter-input::placeholder{font-family:var(--font-letter);font-style:italic;color:#A9AEBD;opacity:1}
 /* the typewriter's sheet: the example line, faint as a pencil note (not typed: no ink shadow) */
 /* (the prompt, before anything's written: smaller than the words that will be typed) */
-.cp-type-input::placeholder{color:rgba(36,34,31,.26);text-shadow:none;opacity:1;font-size:13px}
+.cp-type-input::placeholder{color:rgba(36,34,31,.26);text-shadow:none;opacity:1;font-size:12px}
 /* …and once the flap is shut, the stamp goes on and the postmark is stamped over it (step 4: as it appears) */
 .cp-seal-post .cp-post-stamp,.cp-seal-post .cp-post-mark{opacity:0}
 .cp-seal.is-sealed .cp-seal-post .cp-post-stamp{animation:cp-stampin .45s cubic-bezier(.34,1.56,.64,1) 1.4s both}

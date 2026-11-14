@@ -2,7 +2,7 @@
 // Row Level Security does the access control; these helpers just shape the data.
 import { supabase } from './supabase';
 
-export type Profile = { id: string; nickname: string; country: string; /** a line or two about their cat (once supabase/fix-2026-10-28-profile-intro.sql has run) */ intro?: string | null; show_as_recipient?: boolean; /** not in the database yet: the passport number, once issued */ passport_no?: string | null };
+export type Profile = { id: string; nickname: string; country: string; /** a line or two about their cat (once supabase/fix-2026-10-28-profile-intro.sql has run) */ intro?: string | null; /** where they're from (their country of origin), chosen by them — the postmark their letters carry. Not where they are: that's `country`, the map's. Null: the same as `country` (once supabase/fix-2026-11-14-origin-country.sql has run) */ origin_country?: string | null; show_as_recipient?: boolean; /** not in the database yet: the passport number, once issued */ passport_no?: string | null };
 export type Category = 'my_cat' | 'met_cat';
 export type MomentCard = {
   id: string; user_id: string; category: Category; photo_path: string; caption: string;
@@ -19,6 +19,9 @@ export type Letter = {
   stamp: number; read_at: string | null; created_at: string;
   /** (once supabase/fix-2026-11-04-plus.sql has run) carried by a fast bird; the stamp its sender picked */
   fast?: boolean; chosen_stamp?: number | null;
+  /** (fix-2026-11-14-nomad-market.sql) 'welcome': the automatic one from the operator (Sophie & Tori); when it lands, as
+   *  the server says (the same for both of them) */
+  kind?: 'letter' | 'welcome'; deliver_at?: string | null;
 };
 
 /** Turns a Supabase/PostgREST/Storage error into a short user-facing message. */
@@ -44,6 +47,87 @@ export async function currentUserId(): Promise<string | null> {
   return data.session?.user.id ?? null;
 }
 
+// ---------------------------------------------------------------- account: email sign-in (fix-2026-11-14-nomad-market.sql)
+// Everyone starts signed in anonymously (no form). Adding an email keeps that same account — its letters and photos —
+// and makes it one to sign back into from any device: a link is emailed, and only once it's been opened does the
+// address count (alerts go to confirmed addresses only). The address is the sign-in's own; no table holds it, and
+// nobody else ever sees it.
+
+export type Account = { id: string; email: string | null; pendingEmail: string | null; anonymous: boolean; confirmed: boolean };
+export async function myAccount(): Promise<Account | null> {
+  const { data } = await supabase.auth.getUser();
+  const u = data.user; if (!u) return null;
+  const confirmed = !!u.email && !!(u.email_confirmed_at || (u as any).confirmed_at) && !(u as any).is_anonymous;
+  return { id: u.id, email: u.email || null, pendingEmail: (u as any).new_email || null, anonymous: !!(u as any).is_anonymous, confirmed };
+}
+/** this (anonymous) account, with this email: a link to confirm it is emailed; it's the same account afterwards */
+export async function linkEmail(email: string, redirectTo: string) {
+  const { error } = await supabase.auth.updateUser({ email }, { emailRedirectTo: redirectTo });
+  if (error) throw error;
+}
+/** an account I made before (on another device): a sign-in link, emailed. Never makes a new account. */
+export async function sendSignInLink(email: string, redirectTo: string) {
+  const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: redirectTo } });
+  if (error) throw error;
+}
+export async function signOut() { await supabase.auth.signOut(); }
+export const onAuthChange = (fn: (event: string, uid: string | null) => void) => supabase.auth.onAuthStateChange((ev, s) => fn(ev, s?.user?.id ?? null)).data.subscription;
+
+// ---------------------------------------------------------------- settings, the welcome, matching, blocks
+
+export type AppConfig = { operator_id: string | null; welcome_ready: boolean; donation_url: string | null; operator_nickname?: string | null; operator_country?: string | null };
+/** who the operator is, and the donation link (null: the migration hasn't run) */
+export async function publicConfig(): Promise<AppConfig | null> {
+  const { data, error } = await supabase.rpc('public_config');
+  if (error) return null;
+  return ((data as any[]) || [])[0] || null;
+}
+export type Settings = { notify_letters: boolean; match_opt_in: boolean };
+export async function mySettings(uid: string): Promise<Settings | null> {
+  const { data, error } = await supabase.from('member_settings').select('notify_letters, match_opt_in').eq('user_id', uid).maybeSingle();
+  if (error) return null;
+  return (data as any) || { notify_letters: false, match_opt_in: false };
+}
+export async function saveMySettings(p: { notify?: boolean; match?: boolean }): Promise<Settings> {
+  return must(await supabase.rpc('save_my_settings', { p_notify: p.notify ?? null, p_match: p.match ?? null })) as any;
+}
+/** here now (and letters waiting for a CatPal looked at again) */
+export async function touchMe() { await supabase.rpc('touch_me'); }
+/** a first letter: the operator's thread (Sophie & Tori). Null: no operator set, or I've had my welcome already */
+export async function welcomeThread(): Promise<string | null> {
+  const { data, error } = await supabase.rpc('welcome_thread');
+  if (error) { if (isMissingFeature(error)) return null; throw error; }
+  return (data as string) || null;
+}
+/** a letter's photo before it has a thread: letters/outbox/<me>/<the letter's own id>.jpg (the same letter, the same file) */
+export async function uploadOutboxPhoto(uid: string, clientId: string, photo: Blob): Promise<string> {
+  const path = `outbox/${uid}/${clientId}.jpg`;
+  must(await supabase.storage.from('letters').upload(path, photo, { contentType: 'image/jpeg', upsert: true }));
+  return path;
+}
+export type MatchResult = { status: 'matched' | 'waiting' | 'already_waiting' | 'ask_same_country' | 'cancelled'; request_id?: string; thread_id?: string | null;
+  letter_id?: string | null; matched_with?: string | null; nickname?: string | null; country?: string | null; origin_country?: string | null };
+/** "Meet a new CatPal": this letter to a real member who said yes to matching — or kept till there is one. The same
+ *  `clientId` again (a retry) gets back what happened the first time. */
+export async function sendToNewCatpal(clientId: string, body: string | null, photoPath: string | null, stamp: number, allowSameCountry: boolean): Promise<MatchResult> {
+  return must(await supabase.rpc('send_to_new_catpal', { p_client_id: clientId, p_body: body, p_photo_path: photoPath, p_stamp: stamp, p_allow_same: allowSameCountry })) as any;
+}
+export type WaitingLetter = { id: string; body: string | null; photo_path: string | null; stamp: number; allow_same_country: boolean; created_at: string };
+export async function myWaitingLetter(): Promise<WaitingLetter | null> {
+  const { data, error } = await supabase.from('match_requests').select('id, body, photo_path, stamp, allow_same_country, created_at').eq('status', 'waiting').maybeSingle();
+  return error ? null : (data as any) || null;
+}
+export async function setWaitingSameCountry(allow: boolean) { must(await supabase.rpc('set_waiting_same_country', { p_allow: allow })); }
+export async function cancelWaitingLetter() { must(await supabase.rpc('cancel_waiting_letter')); }
+export async function myBlocks(): Promise<string[]> {
+  const { data, error } = await supabase.from('blocks').select('blocked_id');
+  return error ? [] : ((data as any[]) || []).map((r) => r.blocked_id);
+}
+export async function blockUser(uid: string, other: string) {
+  const { error } = await supabase.from('blocks').insert({ blocker_id: uid, blocked_id: other });
+  if (error && error.code !== '23505') throw error;
+}
+
 export async function signInAnonymously(): Promise<string> {
   const { data, error } = await supabase.auth.signInAnonymously();
   if (error) throw error;
@@ -53,23 +137,30 @@ export async function signInAnonymously(): Promise<string> {
 /** the profile's intro column: there once fix-2026-10-28-profile-intro.sql has run; till then (or if it isn't),
  *  profiles are read and saved without it, as before */
 let introCol: boolean | null = null;
-const noIntroCol = (e: any) => /intro/.test(String(e?.message || '')) && /column|schema cache/i.test(String(e?.message || ''));
-const PROFILE_COLS = () => (introCol === false ? 'id, nickname, country' : 'id, nickname, country, intro');
+const noIntroCol = (e: any) => /\bintro\b/.test(String(e?.message || '')) && /column|schema cache/i.test(String(e?.message || ''));
+/** likewise the origin_country column (fix-2026-11-14-origin-country.sql): without it, everyone's origin is where they are */
+let originCol: boolean | null = null;
+const noOriginCol = (e: any) => /origin_country/.test(String(e?.message || '')) && /column|schema cache/i.test(String(e?.message || ''));
+const PROFILE_COLS = () => ['id, nickname, country', introCol === false ? '' : 'intro', originCol === false ? '' : 'origin_country'].filter(Boolean).join(', ');
 
 export async function getProfile(id: string): Promise<Profile | null> {
   const { data, error } = await supabase.from('profiles').select(PROFILE_COLS()).eq('id', id).maybeSingle();
   if (error && introCol !== false && noIntroCol(error)) { introCol = false; return getProfile(id); }
+  if (error && originCol !== false && noOriginCol(error)) { originCol = false; return getProfile(id); }
   if (error) throw error;
   if (introCol === null) introCol = true;
+  if (originCol === null) originCol = true;
   return data as any;
 }
 
-/** `intro` left out: kept as it is */
-export async function saveProfile(id: string, nickname: string, country: string, intro?: string | null): Promise<Profile> {
+/** `intro` or `origin` left out: kept as it is. `country`: where you are; `origin`: where you're from (null: the same) */
+export async function saveProfile(id: string, nickname: string, country: string, intro?: string | null, origin?: string | null): Promise<Profile> {
   const row: Record<string, unknown> = { id, nickname, country };
   if (intro !== undefined && introCol !== false) row.intro = intro || null;
+  if (origin !== undefined && originCol !== false) row.origin_country = origin && origin !== country ? origin : null;
   const { data, error } = await supabase.from('profiles').upsert(row).select(PROFILE_COLS()).single();
-  if (error && introCol !== false && noIntroCol(error)) { introCol = false; return saveProfile(id, nickname, country); }
+  if (error && introCol !== false && noIntroCol(error)) { introCol = false; return saveProfile(id, nickname, country, undefined, origin); }
+  if (error && originCol !== false && noOriginCol(error)) { originCol = false; return saveProfile(id, nickname, country, intro); }
   if (error) throw error;
   return data as any;
 }
@@ -135,10 +226,16 @@ export async function setLike(momentId: string, uid: string, on: boolean) {
 
 // ---------------------------------------------------------------- threads & letters
 
-const THREAD_COLS = 'id, moment_id, starter_id, owner_id, created_at, moment:moments(id, photo_path, caption, cat_name), starter:profiles!threads_starter_id_fkey(id, nickname, country), owner:profiles!threads_owner_id_fkey(id, nickname, country)';
+const THREAD_COLS = (origin: boolean) => {
+  const who = origin ? 'id, nickname, country, origin_country' : 'id, nickname, country';
+  return `id, moment_id, starter_id, owner_id, created_at, moment:moments(id, photo_path, caption, cat_name), starter:profiles!threads_starter_id_fkey(${who}), owner:profiles!threads_owner_id_fkey(${who})`;
+};
 
 export async function listThreads(): Promise<Thread[]> {
-  return must(await supabase.from('threads').select(THREAD_COLS).order('created_at', { ascending: false }).limit(200)) as any || [];
+  const q = () => supabase.from('threads').select(THREAD_COLS(originCol !== false)).order('created_at', { ascending: false }).limit(200);
+  let res = await q();
+  if (res.error && originCol !== false && noOriginCol(res.error)) { originCol = false; res = await q(); }
+  return must(res) as any || [];
 }
 
 export async function listLetters(): Promise<Letter[]> {

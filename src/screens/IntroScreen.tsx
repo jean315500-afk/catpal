@@ -1,3 +1,4 @@
+import { postmarkOf } from '../community/countries';
 // 01 INTRO / 01 INTRO2 — first-time visitors only (no profile yet), design images in assets/onboarding:
 // 1) a letter with today's cat slides into an open envelope and gets the Rome postmark;
 // 2) "Let's Start!" turns the envelope over to its front (from Seoul → to Sydney, stamped);
@@ -17,7 +18,7 @@ function OpenEnvelope() {
       <img src={A + "env-back.webp"} alt="" style={{ position: "absolute", inset: "0", width: "100%", height: "100%" }} />
       <img src={A + "letter.webp"} alt="" style={{ position: "absolute", ...LETTER, animation: "cp-letterin 1.15s cubic-bezier(.3,1.1,.5,1) .25s both" }} />
       <img src={A + "env-front.webp"} alt="" style={{ position: "absolute", inset: "0", width: "100%", height: "100%" }} />
-      <div style={{ position: "absolute", right: "-26px", bottom: "-6px", width: "112px", height: "86px", background: "url(./assets/pm/roma.png) center / contain no-repeat", mixBlendMode: "multiply", animation: "cp-postmark .45s ease 1.45s both" }} />
+      <div style={{ position: "absolute", right: "-26px", bottom: "-6px", width: "112px", height: "86px", background: "url(" + postmarkOf("IT") + ") center / contain no-repeat", mixBlendMode: "multiply", animation: "cp-postmark .45s ease 1.45s both" }} />
     </div>
   );
 }

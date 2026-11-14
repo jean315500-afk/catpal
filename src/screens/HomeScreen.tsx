@@ -1,3 +1,4 @@
+import { postmarkOf } from '../community/countries';
 // HOME — converted from the Claude Design prototype (Cat Pal v6.dc.html).
 import { css, each, I, R } from '../dc/runtime';
 import type { Vals } from '../dc/runtime';
@@ -17,7 +18,7 @@ export default function HomeScreen({ v }: { v: Vals }) {
               {/* envelope flap */}
               <div style={{ position: "absolute", left: "0", right: "0", top: "0", height: "92px", background: "#F3ECDD", clipPath: "polygon(0 0,100% 0,50% 100%)" }} />
               <div style={css(`position:absolute;right:22px;top:20px;width:60px;height:80px;background:url(${R(v.heroStamp)}) center / contain no-repeat;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18))`)} />
-              <div style={{ position: "absolute", right: "62px", top: "18px", width: "108px", height: "80px", background: "url(./assets/pm/seoul.png) center / contain no-repeat", mixBlendMode: "multiply", opacity: ".92", transform: "rotate(-8deg)" }} />
+              <div style={{ position: "absolute", right: "62px", top: "18px", width: "108px", height: "80px", background: "url(" + postmarkOf("KR") + ") center / contain no-repeat", mixBlendMode: "multiply", opacity: ".92", transform: "rotate(-8deg)" }} />
               <div className="dc-hover-1" onClick={v.openMe} style={{ position: "absolute", left: "24px", top: "62px", width: "116px", height: "92px", boxShadow: "0 0 0 4px #FEFEFE,0 2px 4px #cecece", transform: "rotate(-4deg)", overflow: "hidden", cursor: "pointer", transition: "transform .15s ease" }}>
                 {v.hasPhoto ? (
                   <>

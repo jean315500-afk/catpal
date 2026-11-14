@@ -65,7 +65,7 @@ export default function DeliveryMapScreen({ v }: { v: Vals }) {
             </div>
           ) : <LetterFlight key={v.flightKey} from={v.flightFrom} to={v.flightTo || null} fromLabel={v.flightFromLabel} toLabel={v.flightToLabel} />) : null}
           {" "}
-          {!v.dmNoPal && !v.dmHomeAsk ? <span style={{ position: "absolute", left: "20px", right: "20px", top: "52px", textAlign: "center", fontWeight: 700, fontSize: "var(--fs-h2)", color: "#22304A", fontFamily: "var(--font-heading)", letterSpacing: "var(--ls-heading)", lineHeight: "var(--lh-heading)" }}>
+          {!v.dmNoPal && !v.dmHomeAsk && !v.dmWaiting ? <span style={{ position: "absolute", left: "20px", right: "20px", top: "52px", textAlign: "center", fontWeight: 700, fontSize: "var(--fs-h2)", color: "#22304A", fontFamily: "var(--font-heading)", letterSpacing: "var(--ls-heading)", lineHeight: "var(--lh-heading)" }}>
             {I(v.dmTitle)}
           </span> : null}
           {/* no one to send to yet: nothing was sent. The globe stays over your country, the letter waiting on it: look
@@ -83,6 +83,22 @@ export default function DeliveryMapScreen({ v }: { v: Vals }) {
               </div>
             </div>
           ) : null}
+          {/* kept on the server till a CatPal can take it: said so, and how you'll hear (an email) */}
+          {v.dmWaiting ? (
+            <div role="dialog" aria-label={v.dmWaiting.title} style={dlg}>
+              <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "var(--fs-title)", lineHeight: "24px", letterSpacing: "var(--ls-heading)", color: "#22304A", textWrap: "balance" } as any}>{I(v.dmWaiting.title)}</span>
+              <span style={{ marginTop: "6px", fontWeight: 400, fontSize: "var(--fs-caption)", lineHeight: "20px", color: "#4C5562", maxWidth: "290px" }}>{I(v.dmWaiting.desc)}</span>
+              {v.dmWaiting.emailCta ? (
+                <div className="dc-hover-8" onClick={v.dmWaiting.email} role="button" style={dlgBtn}>
+                  <span style={dlgBtnText}>{I(v.dmWaiting.emailCta)}</span>
+                </div>
+              ) : null}
+              <div style={{ marginTop: "6px", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "2px 6px" }}>
+                {v.dmWaiting.sameQ ? <span onClick={v.dmWaiting.same} role="button" style={dlgLink}>{I(v.dmWaiting.sameQ)}</span> : null}
+                <span onClick={v.dmWaiting.toMailbox} role="button" style={dlgLink}>{I(v.dmWaiting.mailbox)}</span>
+              </div>
+            </div>
+          ) : null}
           {/* no one abroad just now, only someone in your own country: asked before anything is sent */}
           {v.dmHomeAsk ? (
             <div role="dialog" aria-label={v.dmHomeAsk.title} style={dlg}>
@@ -95,7 +111,7 @@ export default function DeliveryMapScreen({ v }: { v: Vals }) {
             </div>
           ) : null}
           {/* where it's going: from your country to theirs, how far, and how far along — the running cat (tap to go on once it has landed) */}
-          {!v.dmNoPal && !v.dmHomeAsk ? <div className="dc-hover-6" onClick={v.tapDeliveryCard} role="button" aria-label={v.dRouteFrom + " → " + v.dRouteTo}
+          {!v.dmNoPal && !v.dmHomeAsk && !v.dmWaiting ? <div className="dc-hover-6" onClick={v.tapDeliveryCard} role="button" aria-label={v.dRouteFrom + " → " + v.dRouteTo}
             style={{ position: "absolute", left: "22px", right: "22px", bottom: "34px", maxWidth: "380px", margin: "0 auto", boxSizing: "border-box", padding: "16px 20px 18px", borderRadius: "24px", background: "rgba(255,255,255,.95)", boxShadow: "0 12px 30px rgba(34,48,74,.14)", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px", cursor: "pointer", transition: "transform .2s ease", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) .2s both" }}>
             <div style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "2px" }}>
               <span style={{ fontWeight: 500, fontSize: "12px", color: "#8E8A84" }}>{I(v.dmFrom)}</span>

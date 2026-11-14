@@ -11,7 +11,7 @@
 //   4 sent as a link (from the Map): the sealed envelope, the link to share or copy (not delivered until the friend writes back)
 // Sending goes on to the delivery globe (DeliveryMapScreen). State and steps live in CatPalLogic (openCompose…).
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import TypewriterPaper, { TYPE_FONT } from './Typewriter';
+import TypewriterPaper, { SHEET, sheetWidth, TYPE_FONT } from './Typewriter';
 import { ROOM_BG, SHEET_BG } from '../community/grain';
 import { css, each, I, R } from '../dc/runtime';
 import type { Vals } from '../dc/runtime';
@@ -38,7 +38,7 @@ function Polaroid({ v, w, caption, onPick, compact }: { v: Vals; w: number; capt
   const has = !!v.cmpPhoto;
   return (
     <div onClick={onPick} role={onPick ? "button" : undefined} aria-label={onPick ? (has ? v.cpT?.cpChangePhoto : v.cpT?.cpAddPhoto) : undefined}
-      style={{ position: "relative", width: w + "px", background: "#fff", padding: compact ? "5px 5px 14px" : "7px 7px " + (caption != null ? "8px" : "22px"), boxShadow: "0 3px 10px rgba(40,25,20,.2)", transform: "rotate(2deg)", cursor: onPick ? "pointer" : "default", flex: "none" }}>
+      style={{ position: "relative", width: w + "px", background: "#fff", padding: compact ? "3px 3px 9px" : "7px 7px " + (caption != null ? "8px" : "22px"), boxShadow: "0 3px 10px rgba(40,25,20,.2)", transform: "rotate(2deg)", cursor: onPick ? "pointer" : "default", flex: "none" }}>
       <span aria-hidden="true" style={{ position: "absolute", left: "50%", top: "-9px", width: "54px", height: "18px", transform: "translateX(-50%) rotate(-5deg)", background: "rgba(242,156,122,.55)", zIndex: 1 }} />
       {has ? (
         <img src={v.cmpPhoto} alt="" draggable={false} style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }} />
@@ -178,6 +178,41 @@ export default function ComposeScreen({ v }: { v: Vals }) {
   const [toOpen, setToOpen] = useState(false);
   const [stampOpen, setStampOpen] = useState(false);
   useEffect(() => { if (step !== 3) setStampOpen(false); }, [step]);
+  // the photo first: before there's one, the page is dimmed and the sheet's place for it shows big, in the middle of
+  // the sheet; a photo picked, that place — the photo in it now — shrinks and goes to its spot at the sheet's top, the
+  // dim lifting, and the words are there to write. (Once done it stays done, even if the photo is changed later.)
+  const [gate, setGate] = useState<"on" | "fly" | "off">(() => (v.cmpPhoto ? "off" : "on"));
+  const [gateBox, setGateBox] = useState<{ left: number; top: number; w: number; tilt: number; pad: number } | null>(null);
+  const slotRef = useRef<HTMLSpanElement>(null), fileRef = useRef<HTMLInputElement>(null);
+  const pickFile = () => fileRef.current?.click();
+  // where it shows big: the middle of the sheet (measured from the page)
+  const placeBig = () => {
+    const root = rootEl.current, sheet = document.getElementById("cp-letter-text")?.parentElement; if (!root || !sheet) return;
+    const R0 = root.getBoundingClientRect(), r = sheet.getBoundingClientRect(), wBig = Math.round(Math.min(250, r.width * 0.86));
+    setGateBox({ left: r.left - R0.left + r.width / 2 - wBig / 2, top: r.top - R0.top + r.height * 0.47 - (wBig + 40) / 2, w: wBig, tilt: -2, pad: 10 });
+  };
+  useLayoutEffect(() => {
+    if (!v.sCompose || step !== 1 || gate !== "on") return;
+    placeBig(); const t = setTimeout(placeBig, 950);   // (again once the sheet has come up out of the machine)
+    addEventListener("resize", placeBig); return () => { clearTimeout(t); removeEventListener("resize", placeBig); };
+  }, [v.sCompose, step, gate]);
+  useEffect(() => { if (v.sCompose && step === 1 && !v.cmpPhoto) setGate("on"); }, [v.sCompose]);
+  // a photo in: to its spot on the sheet (~0.42 s), then the words, ready (focused where there's no on-screen keyboard)
+  useEffect(() => {
+    if (!v.cmpPhoto || gate !== "on") return;
+    const root = rootEl.current, slot = slotRef.current?.firstElementChild as HTMLElement | null;
+    if (root && slot) {
+      const R0 = root.getBoundingClientRect(), r = slot.getBoundingClientRect();
+      // (the slot's own polaroid is tilted 2°: its box, untilted, is about the same)
+      setGateBox({ left: r.left - R0.left + (r.width - slot.offsetWidth) / 2, top: r.top - R0.top + (r.height - slot.offsetHeight) / 2, w: slot.offsetWidth, tilt: 2, pad: 3 });
+    }
+    setGate("fly");
+    const t = setTimeout(() => {
+      setGate("off");
+      if (matchMedia("(pointer: fine)").matches) document.getElementById("cp-letter-text")?.focus({ preventScroll: true });
+    }, matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 440);
+    return () => clearTimeout(t);
+  }, [v.cmpPhoto]);
   // the photo, big: to look at, or change
   const [photoBig, setPhotoBig] = useState(false);
   useEffect(() => { if (!v.cmpPhoto || step !== 1) setPhotoBig(false); }, [v.cmpPhoto, step]);
@@ -236,7 +271,11 @@ export default function ComposeScreen({ v }: { v: Vals }) {
   const title = re && step === 1 ? re.title : first ? v.cmpTitle || T.cpFirstTitle : s3 ? s3.title : title0, sub = re && step === 1 ? re.sub : first || step === 3 ? "" : s3 ? s3.sub : sub0;
   const sealed = sealing || step === 4;
   // the typewriter: as big as the screen allows (past the page's side margins — its sheet, and the words on it, larger)
-  const twW = Math.max(300, Math.min(390, (typeof window !== "undefined" ? window.innerWidth : 375) - 6));
+  // (a little smaller than the screen allows — about 13% — so the photo and the words are what's seen first)
+  const twW = Math.round(Math.max(270, Math.min(340, ((typeof window !== "undefined" ? window.innerWidth : 375) - 6) * 0.87)));
+  // the photo: about 38% of the sheet's width (its white frame and tape included); the words: five lines, six on a tall screen
+  const photoW = Math.round(sheetWidth(twW) * SHEET.photo), photoH = photoW + 24;
+  const twLines = typeof window !== "undefined" && window.innerHeight >= 780 ? 6 : 5;
   // writing on a phone, its keyboard up: the sheet and the roller only (the machine's keys slid down), the sheet as tall
   // as what's left over the keyboard allows — under the back button, over the Next button kept above the keyboard
   const kbUp = kbNow;
@@ -246,15 +285,15 @@ export default function ComposeScreen({ v }: { v: Vals }) {
     <div ref={rootEl} data-screen-label="Letter"
       onFocus={(e) => { if ((e.target as HTMLElement).id === "cp-letter-text") setWritingIn(true); }} onBlur={(e) => { if ((e.target as HTMLElement).id === "cp-letter-text") setWritingIn(false); }}
       style={{ position: "absolute", inset: "0", ...ROOM_BG, overflowY: "auto", overflowX: "hidden", scrollbarWidth: "none" }}>
-      <div style={{ minHeight: "100%", boxSizing: "border-box", padding: "14px 22px 34px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <div style={{ minHeight: "100%", boxSizing: "border-box", padding: "14px 24px 34px", display: "flex", flexDirection: "column", alignItems: "center" }}>
         {/* back */}
         <div style={{ alignSelf: "stretch", height: "44px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-          <div className="dc-hover-12" onClick={v.cmpBack} role="button" aria-label={v.cpT?.cpBack} style={{ position: "absolute", left: "-6px", top: "2px", width: "40px", height: "40px", borderRadius: "20px", display: "flex", alignItems: "center", justifyContent: "center", cursor: v.cmpBusy ? "default" : "pointer", opacity: v.cmpBusy ? 0.4 : 1 }}>
+          <div className="dc-hover-12" onClick={v.cmpBack} role="button" aria-label={v.cpT?.cpBack} style={{ position: "absolute", zIndex: 25, left: "-6px", top: "2px", width: "40px", height: "40px", borderRadius: "20px", display: "flex", alignItems: "center", justifyContent: "center", cursor: v.cmpBusy ? "default" : "pointer", opacity: v.cmpBusy ? 0.4 : 1 }}>
             <div style={{ width: "10px", height: "10px", borderLeft: "2px solid " + INK, borderBottom: "2px solid " + INK, transform: "rotate(45deg)", marginLeft: "4px" }} />
           </div>
         </div>
 
-        <div key={step} style={{ flex: "1 0 auto", width: "100%", maxWidth: "380px", display: "flex", flexDirection: "column", alignItems: "center", animation: "cp-rise2 .45s cubic-bezier(.2,.8,.2,1) both" }}>
+        <div key={step} style={{ flex: "1 0 auto", width: "100%", maxWidth: "380px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: step === 1 ? "center" : "flex-start", paddingBottom: step === 1 ? "28px" : "0", boxSizing: "border-box", animation: "cp-rise2 .45s cubic-bezier(.2,.8,.2,1) both" }}>
           {/* (a new letter: no title — the typewriter says it) */}
           {first || step === 1 ? <h1 className="cp-sr">{I(title)}</h1> : <h1 className="cp-h2" style={{ margin: "10px 0 0", color: INK, textAlign: "center", textWrap: "balance" } as any}>{I(title)}</h1>}
           {sub && step !== 1 ? <p style={{ margin: "6px 0 0", fontWeight: 400, fontSize: "var(--fs-body)", lineHeight: "var(--lh-body)", color: MUTED, textAlign: "center", textWrap: "balance" } as any}>{I(sub)}</p> : null}
@@ -265,8 +304,9 @@ export default function ComposeScreen({ v }: { v: Vals }) {
               {/* one sheet, in the typewriter from the start: who it goes to at its top, the photo small in its corner
                   ("＋ Photo"; once in, tapped: big, to look at or change), the words under — in either order */}
               <div style={{ marginTop: v.cmpFirst ? "4px" : "20px", position: "relative", zIndex: 2, width: "100%", display: "flex", justifyContent: "center", animation: "cp-letterup .6s cubic-bezier(.2,.9,.3,1) both" }}>
-                <TypewriterPaper v={v} w={twW} compact={kbUp} fit={sheetFit} to={<ToLine v={v} extra={theirEnv} />}
-                  photo={<span key={v.cmpPhoto ? "in" : "out"} style={{ display: "block", animation: v.cmpPhoto ? "cp-pop .45s cubic-bezier(.34,1.56,.64,1) both" : "none" }}><Polaroid v={v} w={Math.round(twW * 0.25)} compact onPick={v.cmpPhoto ? () => setPhotoBig(true) : v.cmpPickPhoto} /></span>} />
+                <TypewriterPaper v={v} w={twW} compact={kbUp} fit={sheetFit} to={<ToLine v={v} extra={theirEnv} />} lines={twLines} placeholder={T.cpMsgPhShort} photoH={photoH}
+                  locked={gate !== "off" && !v.cmpPhoto}
+                  photo={<span ref={slotRef} style={{ display: "block", visibility: gate === "off" ? "visible" : "hidden" }}><Polaroid v={v} w={photoW - 6} compact onPick={pickFile} /></span>} />
 
               </div>
             </>
@@ -389,9 +429,10 @@ export default function ComposeScreen({ v }: { v: Vals }) {
           ) : null}
           {/* the one thing to do on this step */}
           {step === 1 || step === 2 ? (
-            <div className="dc-hover-8" onClick={v.cmpNext} role="button" aria-disabled={!v.cmpCanNext} style={{ ...cta, marginTop: "22px", width: "100%",
-              ...(step === 1 ? { position: "sticky", bottom: vp.cover + 16 + "px", zIndex: 8 } : {}), background: v.cmpCanNext ? INK : "#B9B2A4", boxShadow: v.cmpCanNext ? cta.boxShadow : "none" }}>
-              <span style={ctaText}>{I(v.cmpNextLabel || v.cpT?.cpContinue)}</span>
+            <div className="dc-hover-8" onClick={v.cmpNext} role="button" aria-disabled={!v.cmpCanNext} style={{ ...cta, marginTop: step === 1 ? "24px" : "22px", width: "100%", flex: "none",
+              ...(step === 1 ? { position: "sticky", bottom: vp.cover + 16 + "px", zIndex: 8 } : {}), background: v.cmpCanNext ? INK : "#DDD5C6", boxShadow: v.cmpCanNext ? cta.boxShadow : "inset 0 0 0 1px rgba(34,48,74,.10)" }}>
+              {/* (not ready yet: the same button, the same place — only its colour, its words still easy to read) */}
+              <span style={{ ...ctaText, color: v.cmpCanNext ? "#fff" : "#5C5547" }}>{I(v.cmpNextLabel || v.cpT?.cpContinue)}</span>
             </div>
           ) : null}
           {step === 3 ? (
@@ -438,6 +479,35 @@ export default function ComposeScreen({ v }: { v: Vals }) {
         </div>
       </div>
     </div>
+    {/* (the letter's photo: straight from the files — cancelled, nothing changes; changed later, the words stay) */}
+    <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; v.cmpPhotoFile?.(f || null); }} />
+    {/* the photo first: the page dimmed (taps go through it — the back button still works; the words and keys wait),
+        the sheet's place for the photo big over it; picked, it goes to its spot as the dim lifts */}
+    {step === 1 && gate !== "off" && !kbUp ? (
+      <>
+        <div aria-hidden="true" style={{ position: "absolute", inset: "0", zIndex: 20, background: "rgba(26,30,42,.48)", pointerEvents: "none", opacity: gate === "fly" ? 0 : 1, transition: "opacity .42s ease", animation: "cp-fade .3s ease" }} />
+        {gateBox ? (
+          <div onClick={gate === "on" ? pickFile : undefined} role="button" tabIndex={0} aria-label={T.cpAddYourPhoto}
+            onKeyDown={(e) => { if (gate === "on" && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); pickFile(); } }}
+            style={{ position: "absolute", zIndex: 21, left: gateBox.left + "px", top: gateBox.top + "px", width: gateBox.w + "px", boxSizing: "border-box", padding: `${gateBox.pad}px ${gateBox.pad}px ${gateBox.pad * 2.8}px`, background: "#fff",
+              boxShadow: gate === "fly" ? "0 3px 10px rgba(40,25,20,.2)" : "0 16px 40px rgba(10,12,20,.35)", transform: `rotate(${gateBox.tilt}deg)`, cursor: gate === "on" ? "pointer" : "default",
+              transition: "left .42s cubic-bezier(.2,.8,.2,1), top .42s cubic-bezier(.2,.8,.2,1), width .42s cubic-bezier(.2,.8,.2,1), padding .42s cubic-bezier(.2,.8,.2,1), transform .42s ease, box-shadow .42s ease", animation: gate === "on" ? "cp-fade .3s ease" : "none" }}>
+            <span aria-hidden="true" style={{ position: "absolute", left: "50%", top: -Math.round(gateBox.w * 0.05) + "px", width: Math.round(gateBox.w * 0.36) + "px", height: Math.round(gateBox.w * 0.1) + "px", transform: "translateX(-50%) rotate(-5deg)", background: "rgba(242,156,122,.6)", transition: "all .42s cubic-bezier(.2,.8,.2,1)" }} />
+            {v.cmpPhoto ? (
+              <img src={v.cmpPhoto} alt="" draggable={false} style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }} />
+            ) : (
+              <div style={{ width: "100%", aspectRatio: "1 / 1", boxSizing: "border-box", border: "2px dashed #C4B7A3", borderRadius: "4px", background: "rgba(255,250,240,.6)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "12px" }}>
+                <span aria-hidden="true" style={{ position: "relative", width: "40px", height: "40px" }}>
+                  <i style={{ position: "absolute", left: "0", right: "0", top: "19px", height: "2.5px", borderRadius: "2px", background: "#9A9384" }} />
+                  <i style={{ position: "absolute", top: "0", bottom: "0", left: "19px", width: "2.5px", borderRadius: "2px", background: "#9A9384" }} />
+                </span>
+                <span style={{ fontWeight: 700, fontSize: "15px", color: "#7A7263", textAlign: "center", padding: "0 10px" }}>{I(T.cpAddYourPhoto)}</span>
+              </div>
+            )}
+          </div>
+        ) : null}
+      </>
+    ) : null}
     {/* the photo, big: to look at, or change */}
     {photoBig && v.cmpPhoto ? (
       <div onClick={() => setPhotoBig(false)} onKeyDown={(e) => { if (e.key === "Escape") setPhotoBig(false); }} style={{ position: "absolute", inset: "0", zIndex: 40, background: "rgba(34,48,74,.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", animation: "cp-fade .2s ease" }}>

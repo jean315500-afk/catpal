@@ -30,6 +30,12 @@ function Folder({ v }: { v: Vals }) {
       </div>
       <div className="cp-mb-panel" style={{ ["--paper" as string]: FOLDER, minHeight: "0", padding: "18px 16px 16px" }}>
         <div style={{ position: "relative", display: "flex", gap: "16px", alignItems: "flex-start" }}>
+          {/* settings: my email, letter emails, matching, where I'm from */}
+          {v.openSettings ? (
+            <span onClick={v.openSettings} role="button" className="dc-hover-2" style={{ position: "absolute", right: "60px", top: "-6px", display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 10px", borderRadius: "999px", background: "rgba(255,255,255,.7)", boxShadow: "inset 0 0 0 1px rgba(34,48,74,.14)", fontWeight: 700, fontSize: "11.5px", lineHeight: "15px", color: INK, cursor: "pointer" }}>
+              ⚙︎ {I(v.settingsLabel)}
+            </span>
+          ) : null}
           {v.ppEditOpen ? (
             <span onClick={v.ppEditOpen} role="button" className="dc-hover-2" style={{ position: "absolute", right: "-4px", top: "-6px", display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 10px", borderRadius: "999px", background: "rgba(255,255,255,.7)", boxShadow: "inset 0 0 0 1px rgba(34,48,74,.14)", fontWeight: 700, fontSize: "11.5px", lineHeight: "15px", color: INK, cursor: "pointer" }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
@@ -230,6 +236,20 @@ function EditSheet({ v }: { v: Vals }) {
           <input value={e.name} onChange={e.setName} maxLength={24} disabled={e.busy}
             style={{ height: "46px", padding: "0 14px", borderRadius: "14px", border: "1px solid #DDD3C2", background: "#fff", fontSize: "16px", fontWeight: 600, color: INK, outline: "none" }} />
         </label>
+        {/* where you're from: the postmark your letters carry (where you are stays as it is) */}
+        {e.originOptions ? (
+          <label style={{ marginTop: "12px", alignSelf: "stretch", display: "flex", flexDirection: "column", gap: "6px" }}>
+            <span className="cp-pp-label">{I(e.originLabel)}</span>
+            <span style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <select value={e.origin || ""} onChange={e.setOrigin} disabled={e.busy} aria-label={e.originLabel}
+                style={{ flex: 1, minWidth: 0, height: "46px", padding: "0 12px", borderRadius: "14px", border: "1px solid #DDD3C2", background: "#fff", fontSize: "16px", fontWeight: 600, color: INK, outline: "none", cursor: "pointer" }}>
+                {e.originOptions.map((o: any) => <option key={o.cc} value={o.cc}>{o.label}</option>)}
+              </select>
+              <img src={e.originPm} alt="" style={{ width: "66px", height: "44px", objectFit: "contain", flex: "none" }} />
+            </span>
+            <span style={{ fontSize: "12px", lineHeight: "17px", color: "#7A7466" }}>{I(e.originHint)}</span>
+          </label>
+        ) : null}
         <label style={{ marginTop: "12px", alignSelf: "stretch", display: "flex", flexDirection: "column", gap: "6px" }}>
           <span className="cp-pp-label">{I(e.introLabel)}</span>
           <textarea value={e.intro || ""} onChange={e.setIntro} placeholder={e.introPh} maxLength={120} rows={2} disabled={e.busy}

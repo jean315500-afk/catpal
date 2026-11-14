@@ -23,6 +23,7 @@ import PlusSheet from './screens/PlusSheet';
 import HomeBoxScreen from './screens/HomeBoxScreen';
 import BottomNav from './screens/BottomNav';
 import PhotoSheet from './screens/PhotoSheet';
+import AccountSheet from './screens/AccountSheet';
 import TopBar from './screens/TopBar';
 
 // Defaults of the prototype's editable props (data-props in Cat Pal v6.dc.html).
@@ -111,6 +112,7 @@ export default function App() {
             <PhotoSheet v={v} />
             <TopBar v={v} />
             <OpenLetter v={v} />
+            <AccountSheet v={v} />
           </PhoneFrame>
         )}
       />

@@ -25,7 +25,7 @@ import { cobeArcPoint, cobeProject } from '@/components/ui/globe';
 import DottedGlobe, { type DottedControl } from './DottedGlobe';
 import { ASSETS, LANDING_LANG, NATURAL, SPOTS, unsplashCrop } from './config';
 import { saveLang } from '../community/lang';
-import { distanceKm } from '../community/countries';
+import { distanceKm, postmarkOf } from '../community/countries';
 
 gsap.registerPlugin(MotionPathPlugin);
 const PastelGlobe = lazy(() => import('./PastelGlobe'));
@@ -58,7 +58,7 @@ const CLIP = '/assets/landing/grooming.mp4', POSTER = '/assets/landing/grooming-
 const CLIP_FROM = 2.1, CLIP_PLAY = 3, HOLD = 1.5;
 /** her profile photo (Tori, the cat in the clip) */
 const MOMO = '/assets/landing/momo.jpg';
-const SEAL = '/assets/mailbox/wax-seal.webp', STAMP = '/assets/stamp-2.png', PM_FROM = '/assets/pm/seoul.png';
+const SEAL = '/assets/mailbox/wax-seal.webp', STAMP = '/assets/stamp-2.png', PM_FROM = postmarkOf('KR');
 
 /** the cats on the globe — examples, at their country's capital (no one's real place); the first is the sender's,
  *  the last the one the letter goes to */

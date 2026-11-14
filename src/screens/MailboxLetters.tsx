@@ -55,7 +55,7 @@ export function EnvelopeCard({ c, w, tap }: { c: MailItem; w: number; tap?: stri
 
 /** a letter, opened: from the envelope to the reading */
 export function OpenLetter({ c, from, onClose, onWriteBack, t, sample, freshSheet = true, mine = false }: {
-  c: MailItem & { firstStamp?: boolean; newStampText?: string; writeBackLabel?: string }; from: DOMRect | null; onClose: () => void; onWriteBack: (() => void) | null; t: Record<string, string>; sample?: boolean;
+  c: MailItem & { firstStamp?: boolean; newStampText?: string; writeBackLabel?: string; welcome?: { note: string; meet: string; go: () => void } | null; block?: { label: string; go: () => void } | null }; from: DOMRect | null; onClose: () => void; onWriteBack: (() => void) | null; t: Record<string, string>; sample?: boolean;
   /** "Write back" goes on to a new sheet of paper (it slides up first); off: straight on (to the letters with them) */
   freshSheet?: boolean;
   /** a letter of mine (Sent): who it went to; no writing back from it */
@@ -158,6 +158,8 @@ export function OpenLetter({ c, from, onClose, onWriteBack, t, sample, freshShee
               {mine ? <span /> : <span className="cp-letter-i" style={{ fontSize: "20px", color: "#7A8299" }}>{"— "}{I(c.name)}</span>}
             </div>
           </div>
+          {/* Sophie & Tori's automatic welcome: said so, small but readable */}
+          {c.welcome ? <span style={{ display: "block", margin: "12px auto 0", maxWidth: "340px", textAlign: "center", fontWeight: 500, fontSize: "12px", lineHeight: "17px", color: "#6B6F7A" }}>{I(c.welcome.note)}</span> : null}
           {/* the first letter from a country: its stamp, now in your passport (said, not shouted) */}
           {c.firstStamp ? (
             <div className="ol-note" style={{ margin: "16px auto 0", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", animation: reading ? "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) .3s both" : "none", opacity: reading ? undefined : 0 }}>
@@ -173,7 +175,15 @@ export function OpenLetter({ c, from, onClose, onWriteBack, t, sample, freshShee
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4.5 18.5c1.2-3.6 4-6.4 9.5-6.6V8.5L20 13l-6 4.6v-3.3c-3.9 0-6.9 1.3-9.5 4.2z" /></svg>
             <span style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "var(--fs-button)", color: "#fff", whiteSpace: "nowrap" }}>{I(c.writeBackLabel)}</span>
           </div>
+          {/* after the welcome: on to a real CatPal (a letter written and sent only by you) */}
+          {c.welcome ? (
+            <div className="dc-hover-8" onClick={c.welcome.go} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); c.welcome!.go(); } }}
+              style={{ width: "100%", maxWidth: "340px", height: "50px", borderRadius: "25px", background: "#fff", boxShadow: "inset 0 0 0 1.5px #22304A", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+              <span style={{ fontWeight: 700, fontSize: "var(--fs-button)", color: "#22304A" }}>🐾 {I(c.welcome.meet)}</span>
+            </div>
+          ) : null}
           {sample ? <span style={{ fontWeight: 500, fontSize: "11.5px", color: "#C9785D" }}>{I(onWriteBack ? t.mbSampleWrite : t.mbSampleReply)}</span> : null}
+          {c.block && !sample ? <span onClick={c.block.go} role="button" style={{ marginTop: "2px", fontWeight: 500, fontSize: "11.5px", color: "#8E8A84", textDecoration: "underline", cursor: "pointer" }}>{I(c.block.label)}</span> : null}
         </div>}
         {/* the fresh sheet for your reply (hidden below until "Write back"): "Dear …," already at its top */}
         <div className="ol-fresh" aria-hidden="true" style={{ position: "absolute", left: "0", right: "0", bottom: "-24px", margin: "0 auto", width: "330px", maxWidth: "calc(100% - 36px)", height: "62%", transform: "translateY(115%)", ...SHEET_BG, borderRadius: "3px",
@@ -235,7 +245,7 @@ function FileCard({ c, w, h, t }: { c: FileItem; w: number; h: number; t: Record
     : c.sent ? { text: c.statusLabel || "", bg: c.status === "read" ? "#E6EFE4" : "#EEF0F4", color: c.status === "read" ? "#3D6B4B" : "#4C5562" }
     : { text: "", bg: "", color: "" };
   const label = (onDark: boolean) => (
-    <span style={{ position: "absolute", left: "10px", top: "8px", right: flying || sealed ? "52px" : "10px", display: "flex", alignItems: "center", gap: "6px", minWidth: "0", height: "20px" }}>
+    <span style={{ position: "absolute", left: "10px", top: "8px", right: c.stamp ? "52px" : "10px", display: "flex", alignItems: "center", gap: "6px", minWidth: "0", height: "20px" }}>
       <span style={{ minWidth: "0", flex: "0 1 auto", padding: onDark ? "1px 7px" : "0", borderRadius: "4px", background: onDark ? "#FFFCF4" : "transparent", boxShadow: onDark ? "0 1px 2px rgba(60,20,20,.2)" : "none",
         fontSize: "11.5px", lineHeight: "18px", color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {I(c.flag)}{" "}<b style={{ fontWeight: 700 }}>{I(line[0] || "")}</b>{line.length > 1 ? <span style={{ color: "#6B7286" }}>{" · "}{I(line.slice(1).join(" · "))}</span> : null}
@@ -286,12 +296,13 @@ function FileCard({ c, w, h, t }: { c: FileItem; w: number; h: number; t: Record
       </div>
     );
   }
-  // read (or mine): a cream sheet, its photo below the line
+  // read (or mine): its red envelope too — as they stand together in the folder — the flap shut, no seal (opened
+  // already), its stamp and postmark; who / where / when (and, mine, how it stands) along its top
   return (
-    <div style={{ position: "relative", width: w + "px", height: h + "px", borderRadius: "5px", overflow: "hidden", boxShadow: edge, ...sheetWith() }}>
-      {label(false)}
-      {c.photo ? <img src={c.photo} alt="" draggable={false} style={{ position: "absolute", left: "10px", right: "10px", top: "34px", width: w - 20 + "px", height: h - 46 + "px", objectFit: "cover", objectPosition: "50% 35%", borderRadius: "3px", boxShadow: "inset 0 0 0 1px rgba(0,0,0,.06)" }} />
-        : <span aria-hidden="true" style={{ position: "absolute", left: "14px", right: "14px", top: "40px", bottom: "14px", backgroundImage: ruled(22) }} />}
+    <div style={{ position: "relative", width: w + "px", height: h + "px", borderRadius: "6px", overflow: "hidden", boxShadow: edge, background: "linear-gradient(180deg, #D4473C, #BF3A30)" }}>
+      <span aria-hidden="true" style={{ position: "absolute", left: "0", right: "0", top: "0", height: "50%", background: "rgba(120,20,15,.18)", clipPath: "polygon(0 0, 100% 0, 50% 100%)" }} />
+      <span aria-hidden="true" style={{ position: "absolute", inset: "0", ...sheetWith(), opacity: 0.16, mixBlendMode: "multiply" }} />
+      {label(true)}{stamp}
     </div>
   );
 }

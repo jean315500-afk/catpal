@@ -9,7 +9,7 @@
 // "?mbSample=1" (or the Map's "?mapSample=1") shows sample letters (labelled as such) to see the design without any real ones.
 import { useEffect, useRef, useState } from 'react';
 import { I } from '../dc/runtime';
-import { stampOf } from '../community/countries';
+import { stampOf, postmarkOf } from '../community/countries';
 import { LetterArchive, InkDefs, OpenLetter, type FileItem, type MailItem } from './MailboxLetters';
 import type { Vals } from '../dc/runtime';
 
@@ -29,23 +29,23 @@ const arriveOn = typeof location !== "undefined" && new URLSearchParams(location
 /** sample letters for ?mbSample=1 / ?mapSample=1 only (illustrative names; the photos are the app's own cat images) */
 const SAMPLE = {
   received: [
-    { key: "s1", at: "2026-11-05T09:00:00Z", name: "Léa", cc: "FR", flag: "🇫🇷", country: "France", date: "Nov 5", photo: "./assets/cats/cat-1.jpg", stamp: stampOf("FR"), pm: "./assets/pm/paris.png", isNew: true, body: "Bonjour from Paris! Mochi found the sunniest spot by the window today and refused to move all afternoon. Does your cat have a favourite spot too?", dateLong: "November 5, 2026" },
-    { key: "s2", at: "2026-11-02T09:00:00Z", name: "Yuki", cc: "JP", flag: "🇯🇵", country: "Japan", date: "Nov 2", photo: "./assets/cats/cat-2.jpg", stamp: stampOf("JP"), pm: "./assets/pm/tokyo.png", isNew: true, body: "Hello! Tora knocked my tea off the table again this morning. She looked so proud of herself. What is your cat like?", dateLong: "November 2, 2026" },
-    { key: "s3", at: "2026-10-24T09:00:00Z", name: "Tom", cc: "US", flag: "🇺🇸", country: "United States", date: "Oct 24", photo: "./assets/cats/cat-3.jpg", stamp: stampOf("US"), pm: "./assets/pm/newyork.png", isNew: true, body: "Hi there! Biscuit learned to open the treat drawer. We had to put a lock on it. Hope your cat is having a cozy day!", dateLong: "October 24, 2026" },
-    { key: "s5", at: "2026-10-12T09:00:00Z", name: "Maple", cc: "CA", flag: "🇨🇦", country: "Canada", date: "Oct 12", photo: "./assets/cats/cat-5.jpg", stamp: stampOf("CA"), pm: "./assets/pm/vancouver.png", isNew: false, body: "Hi from Vancouver! Maple watched the first snow from the window all morning. Has it snowed where you are yet?", dateLong: "October 12, 2026" },
-    { key: "s6", at: "2026-10-03T09:00:00Z", name: "Emma", cc: "GB", flag: "🇬🇧", country: "United Kingdom", date: "Oct 3", photo: "./assets/cats/cat-2.jpg", stamp: stampOf("GB"), pm: "./assets/pm/london.png", isNew: false, body: "Hello from London! It rained all week, so Earl Grey has claimed the radiator as his own. Does your cat have a winter spot?", dateLong: "October 3, 2026" },
-    { key: "s4", at: "2026-09-28T09:00:00Z", name: "Ava", cc: "AU", flag: "🇦🇺", country: "Australia", date: "Sep 28", photo: "./assets/cats/cat-6.jpg", stamp: stampOf("AU"), pm: "./assets/pm/sydney.png", isNew: false, body: "G'day! Pip loves watching the birds from the balcony. She chatters at them every morning.", dateLong: "September 28, 2026" },
-    { key: "s7", at: "2026-09-15T09:00:00Z", name: "Marco", cc: "IT", flag: "🇮🇹", country: "Italy", date: "Sep 15", photo: "./assets/cats/cat-3.jpg", stamp: stampOf("IT"), pm: "./assets/pm/roma.png", isNew: false, body: "Ciao! Pepe sleeps in the fruit bowl every afternoon. We have stopped buying fruit bowls.", dateLong: "September 15, 2026" },
+    { key: "s1", at: "2026-11-05T09:00:00Z", name: "Léa", cc: "FR", flag: "🇫🇷", country: "France", date: "Nov 5", photo: "./assets/cats/cat-1.jpg", stamp: stampOf("FR"), pm: postmarkOf("FR"), isNew: true, body: "Bonjour from Paris! Mochi found the sunniest spot by the window today and refused to move all afternoon. Does your cat have a favourite spot too?", dateLong: "November 5, 2026" },
+    { key: "s2", at: "2026-11-02T09:00:00Z", name: "Yuki", cc: "JP", flag: "🇯🇵", country: "Japan", date: "Nov 2", photo: "./assets/cats/cat-2.jpg", stamp: stampOf("JP"), pm: postmarkOf("JP"), isNew: true, body: "Hello! Tora knocked my tea off the table again this morning. She looked so proud of herself. What is your cat like?", dateLong: "November 2, 2026" },
+    { key: "s3", at: "2026-10-24T09:00:00Z", name: "Tom", cc: "US", flag: "🇺🇸", country: "United States", date: "Oct 24", photo: "./assets/cats/cat-3.jpg", stamp: stampOf("US"), pm: postmarkOf("US"), isNew: true, body: "Hi there! Biscuit learned to open the treat drawer. We had to put a lock on it. Hope your cat is having a cozy day!", dateLong: "October 24, 2026" },
+    { key: "s5", at: "2026-10-12T09:00:00Z", name: "Maple", cc: "CA", flag: "🇨🇦", country: "Canada", date: "Oct 12", photo: "./assets/cats/cat-5.jpg", stamp: stampOf("CA"), pm: postmarkOf("CA"), isNew: false, body: "Hi from Vancouver! Maple watched the first snow from the window all morning. Has it snowed where you are yet?", dateLong: "October 12, 2026" },
+    { key: "s6", at: "2026-10-03T09:00:00Z", name: "Emma", cc: "GB", flag: "🇬🇧", country: "United Kingdom", date: "Oct 3", photo: "./assets/cats/cat-2.jpg", stamp: stampOf("GB"), pm: postmarkOf("GB"), isNew: false, body: "Hello from London! It rained all week, so Earl Grey has claimed the radiator as his own. Does your cat have a winter spot?", dateLong: "October 3, 2026" },
+    { key: "s4", at: "2026-09-28T09:00:00Z", name: "Ava", cc: "AU", flag: "🇦🇺", country: "Australia", date: "Sep 28", photo: "./assets/cats/cat-6.jpg", stamp: stampOf("AU"), pm: postmarkOf("AU"), isNew: false, body: "G'day! Pip loves watching the birds from the balcony. She chatters at them every morning.", dateLong: "September 28, 2026" },
+    { key: "s7", at: "2026-09-15T09:00:00Z", name: "Marco", cc: "IT", flag: "🇮🇹", country: "Italy", date: "Sep 15", photo: "./assets/cats/cat-3.jpg", stamp: stampOf("IT"), pm: postmarkOf("IT"), isNew: false, body: "Ciao! Pepe sleeps in the fruit bowl every afternoon. We have stopped buying fruit bowls.", dateLong: "September 15, 2026" },
   ],
   sent: [
-    { key: "t0", at: "2026-11-07T12:00:00Z", name: "Tom", flag: "🇺🇸", country: "United States", date: "Nov 7", photo: "./assets/cats/cat-1.jpg", stamp: "./assets/stamp-2.png", pm: "./assets/pm/seoul.png", status: "flying", statusLabel: "On its way · 6 h", body: "" },
-    { key: "t1", at: "2026-11-04T10:00:00Z", body: "Hi Léa! Mochi says bonjour back. She has a sunny spot too — right on my desk, on top of whatever I'm working on.", dateLong: "November 4, 2026", name: "Léa", flag: "🇫🇷", country: "France", date: "Nov 4", photo: "./assets/cats/cat-4.jpg", stamp: "./assets/stamp-1.png", pm: "./assets/pm/seoul.png", status: "delivered", statusLabel: "Delivered" },
-    { key: "t2", at: "2026-10-27T10:00:00Z", body: "Hello Mei! It rained all day here, so Mochi and I watched the drops on the window together.", dateLong: "October 27, 2026", name: "Mei", flag: "🇹🇼", country: "Taiwan", date: "Oct 27", photo: "./assets/cats/cat-5.jpg", stamp: "./assets/stamp-3.png", pm: "./assets/pm/seoul.png", status: "read", statusLabel: "Read" },
-    { key: "t3", at: "2026-10-19T10:00:00Z", body: "Hi Yuki! Mochi knocked a pen off my table this morning, so Tora isn't alone. Cats really are the same everywhere.", dateLong: "October 19, 2026", name: "Yuki", flag: "🇯🇵", country: "Japan", date: "Oct 19", photo: "./assets/cats/cat-6.jpg", stamp: "./assets/stamp-6.png", pm: "./assets/pm/seoul.png", status: "read", statusLabel: "Read" },
-    { key: "t4", at: "2026-09-30T10:00:00Z", body: "G'day Ava! Mochi chatters at the birds too. One day she'll catch one — in her dreams.", dateLong: "September 30, 2026", name: "Ava", flag: "🇦🇺", country: "Australia", date: "Sep 30", photo: "./assets/cats/cat-2.jpg", stamp: "./assets/stamp-8.png", pm: "./assets/pm/seoul.png", status: "read", statusLabel: "Read" },
+    { key: "t0", at: "2026-11-07T12:00:00Z", name: "Tom", flag: "🇺🇸", country: "United States", date: "Nov 7", photo: "./assets/cats/cat-1.jpg", stamp: "./assets/stamp-2.png", pm: postmarkOf("KR"), status: "flying", statusLabel: "On its way · 6 h", body: "" },
+    { key: "t1", at: "2026-11-04T10:00:00Z", body: "Hi Léa! Mochi says bonjour back. She has a sunny spot too — right on my desk, on top of whatever I'm working on.", dateLong: "November 4, 2026", name: "Léa", flag: "🇫🇷", country: "France", date: "Nov 4", photo: "./assets/cats/cat-4.jpg", stamp: "./assets/stamp-1.png", pm: postmarkOf("KR"), status: "delivered", statusLabel: "Delivered" },
+    { key: "t2", at: "2026-10-27T10:00:00Z", body: "Hello Mei! It rained all day here, so Mochi and I watched the drops on the window together.", dateLong: "October 27, 2026", name: "Mei", flag: "🇹🇼", country: "Taiwan", date: "Oct 27", photo: "./assets/cats/cat-5.jpg", stamp: "./assets/stamp-3.png", pm: postmarkOf("KR"), status: "read", statusLabel: "Read" },
+    { key: "t3", at: "2026-10-19T10:00:00Z", body: "Hi Yuki! Mochi knocked a pen off my table this morning, so Tora isn't alone. Cats really are the same everywhere.", dateLong: "October 19, 2026", name: "Yuki", flag: "🇯🇵", country: "Japan", date: "Oct 19", photo: "./assets/cats/cat-6.jpg", stamp: "./assets/stamp-6.png", pm: postmarkOf("KR"), status: "read", statusLabel: "Read" },
+    { key: "t4", at: "2026-09-30T10:00:00Z", body: "G'day Ava! Mochi chatters at the birds too. One day she'll catch one — in her dreams.", dateLong: "September 30, 2026", name: "Ava", flag: "🇦🇺", country: "Australia", date: "Sep 30", photo: "./assets/cats/cat-2.jpg", stamp: "./assets/stamp-8.png", pm: postmarkOf("KR"), status: "read", statusLabel: "Read" },
   ],
   /** (?arriveSample=1) the one on its way, till it lands */
-  arriving: { key: "s0", name: "Alex", cc: "CA", flag: "🇨🇦", country: "Canada", date: "Oct 28", photo: "./assets/cats/cat-4.jpg", stamp: stampOf("CA"), pm: "./assets/pm/vancouver.png", isNew: true, body: "Hi from Vancouver! Luna slept on my keyboard all morning while I tried to work. Does your cat steal your chair too?", dateLong: "October 28, 2026" },
+  arriving: { key: "s0", name: "Alex", cc: "CA", flag: "🇨🇦", country: "Canada", date: "Oct 28", photo: "./assets/cats/cat-4.jpg", stamp: stampOf("CA"), pm: postmarkOf("CA"), isNew: true, body: "Hi from Vancouver! Luna slept on my keyboard all morning while I tried to work. Does your cat steal your chair too?", dateLong: "October 28, 2026" },
 };
 
 
@@ -56,6 +56,12 @@ export default function MailboxScreen({ v }: { v: Vals }) {
   // the envelope being opened (it opens, its photo rises, then on to the letter)
   const [opened, setOpened] = useState<{ c: MailItem; rect: DOMRect } | null>(null);
   useEffect(() => { if (!v.sMailbox) setOpened(null); }, [v.sMailbox]);
+  // a letter asked for from outside the box ("Open your letter" in an email): opened as if tapped
+  useEffect(() => {
+    const id = v.mbOpenReq; if (!id || !v.sMailbox) return;
+    const c = (v.mbReceived || []).find((x: any) => x.key === id);
+    if (c) { setOpened({ c, rect: null }); c.open?.(); v.mbOpenReqDone?.(); }
+  }, [v.mbOpenReq, v.sMailbox, v.mbReceived]);
   // (?arriveSample=1) the sample letter landed — "just landed" for a moment
   const now = Date.now(), landed = arriveOn && !!v.arriveAt && now >= v.arriveAt, justLanded = landed && now < v.arriveAt + 4500;
   // put back: it slips into its place again

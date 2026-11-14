@@ -116,6 +116,15 @@ export default function ArrivedScreen({ v }: { v: Vals }) {
     const t = setTimeout(() => setGift("open"), matchMedia("(prefers-reduced-motion: reduce)").matches ? 300 : 1600);
     return () => clearTimeout(t);
   }, [firstMark, gift]);
+  // "keep your letters" (an email, to sign in anywhere and hear of new letters): a moment after the letter has gone
+  const [emailOpen, setEmailOpen] = useState(false);
+  const ask = !!v.arrEmail?.ask;
+  useEffect(() => {
+    if (!v.sArrived || !ask) { setEmailOpen(false); return; }
+    if (firstMark && gift !== "done") return;
+    const t = setTimeout(() => { setEmailOpen(true); v.arrEmail?.open?.(); }, matchMedia("(prefers-reduced-motion: reduce)").matches ? 300 : 1400);
+    return () => clearTimeout(t);
+  }, [v.sArrived, ask, firstMark, gift]);
   if (!v.sArrived) return null;
   const T = v.arrT || {}, l = v.arrLetter;
   return (
@@ -219,6 +228,9 @@ export default function ArrivedScreen({ v }: { v: Vals }) {
             ) : null}
           </>
         )}
+        {/* (testing) the email given for reply alerts */}
+        {v.arrEmail?.savedLine ? <span style={{ marginTop: "12px", display: "inline-flex", alignItems: "center", gap: "6px", fontWeight: 500, fontSize: "12.5px", color: "#2E7458", textAlign: "center" }}><Bell size={13} color="#2E7458" />{I(v.arrEmail.savedLine)}</span> : null}
+        {v.arrDonate ? <a href={v.arrDonate.url} target="_blank" rel="noopener noreferrer" style={{ marginTop: "14px", fontWeight: 600, fontSize: "13px", color: "#8A5A2B" }}>{I(v.arrDonate.label)}</a> : null}
       </div>
     </div>
     {gift === "open" && v.arrReward ? <StampGift r={v.arrReward} pc={v.arrPostcard} ok={v.arrGiftOk} onClose={() => setGift("done")} onShare={() => { setGift("done"); setCard(true); }} /> : null}

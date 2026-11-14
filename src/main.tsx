@@ -14,8 +14,11 @@ const firstVisit = (() => {
     // (testing) "?quick=1" kept for this tab through the story, which leaves this address
     if (q.get('quick') === '1') sessionStorage.setItem('cp-quick', '1');
     if (q.has('intro')) return true;
+    // back from an email's sign-in / confirm link (its session in the address's #…): straight in, so it's signed in here
+    if (/(^|[#&])(access_token|error_description)=/.test(location.hash)) return false;
     if (q.get('start') === 'home' || q.get('start') === 'letter' || q.get('start') === 'app') return false;
     if (q.has('letter')) return false;   // a letter sent by link: straight to it (the story can wait)
+    if (q.has('open')) return false;     // "Open your letter" from an email: straight to it
     // a friend's "be my cat pal" link: kept, so it's waiting once the story (first time here) has brought you in
     // a friend's "be my cat pal" link: straight to who invited you (the story can wait, as for a letter by link)
     const pal = q.get('pal'); if (pal && /^[0-9a-f]{64}$/.test(pal)) { localStorage.setItem('cp-pal-token', pal); return false; }
