@@ -71,7 +71,6 @@ export default function AccountSheet({ v }: { v: Vals }) {
                 {/* consent, asked plainly (nothing is ticked for you) */}
                 <div style={{ marginTop: '6px' }}>
                   <Check on={!!a.notify} label={a.notifyLabel} onToggle={a.toggleNotify} disabled={a.busy} />
-                  <Check on={!!a.match} label={a.matchLabel} sub={a.matchSub} onToggle={a.toggleMatch} disabled={a.busy} />
                 </div>
               </>
             ) : null}

@@ -16,6 +16,7 @@ import { ROOM_BG, SHEET_BG } from '../community/grain';
 import { css, each, I, R } from '../dc/runtime';
 import type { Vals } from '../dc/runtime';
 import { field, label } from './OnboardScreen';
+import CountryPicker from './CountryPicker';
 
 const INK = "#22304A", MUTED = "#5E6A80", LETTER = "#2F3B57", SOFT = "#7A8299";
 const ENV = { open: "./assets/onboarding-preview/envelope-open.png", front: "./assets/onboarding-preview/envelope-front.png", w: 600, h: 671, fold: 512 / 1245, frontTop: 551 / 1245, frontH: 374 / 671 };
@@ -353,13 +354,11 @@ export default function ComposeScreen({ v }: { v: Vals }) {
                   <TraitChips t={v.catTraits} />
                 </div>
               ) : null}
-              <label style={{ marginTop: "14px", width: "100%", display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div style={{ marginTop: "14px", width: "100%", display: "flex", flexDirection: "column", gap: "6px" }}>
                 <span style={label}>{I(v.cpT?.cpFrom)}</span>
-                <select value={v.cmpCountry ?? ""} onChange={v.setCmpCountry} style={{ ...field, background: "rgba(255,255,255,.88)", appearance: "none", WebkitAppearance: "none", cursor: "pointer" }}>
-                  <option value="" disabled>{v.cpT?.cpPickCountry}</option>
-                  {each(v.countryOpts, (o: any) => <option value={o.cc}>{o.label}</option>)}
-                </select>
-              </label>
+                <CountryPicker value={v.cmpCountry ?? ""} options={v.countryOpts || []} onPick={(cc) => v.setCmpCountry({ target: { value: cc } })}
+                  placeholder={v.cpT?.cpPickCountry || ""} searchPh={v.cpT?.cpSearchCountry || ""} style={{ ...field, background: "rgba(255,255,255,.88)" } as any} />
+              </div>
             </>
           ) : null}
 

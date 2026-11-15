@@ -39,7 +39,7 @@ const josa = (w: string, a: string, b: string) => {
 const optCache: Record<string, { cc: string; label: string }[]> = {};
 
 // ---- the letter from Home: its draft (kept across reloads), the cat's name
-const CP_KEYS = ["cpSealing", "cpS1Title", "cpS1Sub", "cpAddPhoto", "cpPhotoSlot", "cpChangePhoto", "cpMsgPh", "cpMsgPhShort", "cpAddYourPhoto", "cpPhotoFirst", "cpPhotoFirstSub", "cpContinue", "cpS2Title", "cpS2Sub", "cpCatName", "cpCatNamePh", "cpFrom", "cpPickCountry",
+const CP_KEYS = ["cpSealing", "cpS1Title", "cpS1Sub", "cpAddPhoto", "cpPhotoSlot", "cpChangePhoto", "cpMsgPh", "cpMsgPhShort", "cpAddYourPhoto", "cpPhotoFirst", "cpPhotoFirstSub", "cpContinue", "cpS2Title", "cpS2Sub", "cpCatName", "cpCatNamePh", "cpFrom", "cpPickCountry", "cpSearchCountry",
   "cpS3Title", "cpS3Sub", "cpSend", "cdEdit", "cpSending", "cpDear", "cpWaitTitle", "cpWaitSub", "cpTryAgain", "cpBackHome", "cpBack",
   "cpFirstTitle", "cpToDone", "cpPhotoShort", "cpCatIntro", "cpCatIntroPh", "cpTypeSoundOn", "cpTypeSoundOff", "cpUnroll", "cpRollUp", "cpCloseTheirs", "cpBackToMine", "cpS2MetTitle", "cpS2MetSub", "cpPenName", "cpPenNamePh", "cpInviting",
   "ivReadyTitle", "ivReadySub", "ivShare", "ivCopy", "ivCopied", "ivDone", "ivCancel", "ivNotYet", "ivOpened", "ivPublicNote"];
