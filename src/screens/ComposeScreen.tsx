@@ -400,6 +400,7 @@ export default function ComposeScreen({ v }: { v: Vals }) {
           ) : null}
 
           {v.cmpErr ? <span role="alert" style={{ marginTop: "14px", fontWeight: 500, fontSize: "var(--fs-caption)", lineHeight: "20px", color: "#D9442F", textAlign: "center" }}>{I(v.cmpErr)}</span> : null}
+          {v.cmpStartOver && !v.cmpBusy ? <span onClick={v.cmpStartOver.go} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); v.cmpStartOver.go(); } }} style={{ marginTop: "10px", fontWeight: 600, fontSize: "13px", color: "#6B7486", textDecoration: "underline", cursor: "pointer", textAlign: "center" }}>{I(v.cmpStartOver.label)}</span> : null}
 
           {/* who it goes to, down by the button (not on the envelope): "To. 🌏 A random CatPal" — Change, beside it */}
           {step === 3 && v.cmpToLine && !sealing ? (

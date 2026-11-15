@@ -942,7 +942,7 @@ export default class CatPalLogic extends DCLogic {
       const res = await api.sendToNewCatpal(clientId, text || null, photoPath, c.stamp || 0, allowSame);
       // only someone from my own country: asked first (nothing is sent until I say so)
       if (res.status === "ask_same_country") { this.setState((p) => ({ homeAsk: { cc: originOf(me) }, cmp: p.cmp && { ...p.cmp, busy: false, step: 3 } })); return; }
-      if (res.status === "already_waiting") { back({ step: 3, err: this.tx("mtAlreadyWaiting") }); return; }
+      if (res.status === "already_waiting") { back({ step: 3, err: this.tx("mtAlreadyWaiting"), startOver: true }); return; }
       if (res.status === "waiting") {
         // kept on the server till someone can take it: said so (and how I'll hear of it)
         clearDraft();
@@ -1229,6 +1229,13 @@ export default class CatPalLogic extends DCLogic {
     if (!me || this.state.acct?.mode !== "settings" || !cc || cc === originOf(me)) return;
     try { const saved = await api.saveProfile(me.id, me.nickname, me.country, undefined, cc); this.setState((p) => ({ me: { ...p.me, ...saved } })); }
     catch (e) { this.setAcct({ err: api.errorText(e) }); }
+  }
+  /** a new visitor on this device (a kiosk, a shared phone): signed out, and everything this device kept is cleared */
+  async startOver() {
+    if (!confirm(this.tx("acStartOverQ"))) return;
+    try { await api.signOut(); } catch (_) { /* cleared below all the same */ }
+    try { localStorage.clear(); sessionStorage.clear(); } catch (_) {}
+    location.href = location.pathname;
   }
   async acctSignOut() {
     if (!confirm(this.tx("acSignOutQ"))) return;
@@ -1822,7 +1829,7 @@ export default class CatPalLogic extends DCLogic {
         // to a cat pal picked by name: to them, not "a new friend"
         ...(!c.reply && c.to && homePals.find((p) => p.id === c.to) ? { cpDear: tx("cpDearName", { name: homePals.find((p) => p.id === c.to)!.name }) } : {}),
         ...(!c.reply && !c.to && firstToOp ? { cpDear: tx("cpDearName", { name: tx("opToName") }) } : {}) },
-      sCompose: cur === "compose", cmpStep: c.step, cmpBusy: !!c.busy, cmpErr: c.err || "", cmpWaiting: !!c.waiting,
+      sCompose: cur === "compose", cmpStep: c.step, cmpBusy: !!c.busy, cmpErr: c.err || "", cmpStartOver: c.err && c.startOver ? { label: tx("acStartOver"), go: () => this.startOver() } : null, cmpWaiting: !!c.waiting,
       cmpText: c.text, cmpPhoto: c.photo, cmpCatName: c.catName, cmpCountry: cCC, cmpTextMax: 500,
       cmpFlag: cCC ? flagOf(cCC) : "🌏", cmpCountryName: cCC ? cName(cCC) : "", cmpPm: (me ? myOrigin : cCC) ? postmarkOf(me ? myOrigin : cCC) : "", cmpStamp: STAMPS[c.stamp || 0],
       cmpCanNext: c.step === 1 ? !!c.photo && !!c.text.trim() : c.step === 2 ? !!this.cmpSignName(c) && !!cCC : true,
@@ -1961,6 +1968,7 @@ export default class CatPalLogic extends DCLogic {
           switchLabel: a.mode === "signin" ? (me ? tx("acToRegister") : "") : a.mode === "register" ? tx("acToSignIn") : "",
           switchTo: () => this.setAcct({ mode: a.mode === "signin" ? "register" : "signin", err: "", sent: "" }),
           signOut: a.mode === "settings" && acc?.confirmed ? tx("acSignOut") : "", doSignOut: () => this.acctSignOut(),
+          startOver: me && !acc?.confirmed && a.mode !== "signin" ? tx("acStartOver") : "", doStartOver: () => this.startOver(),
           privacy: tx("acPrivacy"), close: () => { const after = this.state.acct?.after; this.setState({ acct: null }); if (after === "mailbox" && this.state.waitingPal) this.waitToMailbox(); }, closeLabel: tx("plClose"),
           donate: a.mode === "settings" && st.cfg?.donation_url ? { label: tx("dnLabel"), url: st.cfg.donation_url } : null,
           set: (e: any) => this.setAcct({ email: e.target.value.slice(0, 120), err: "" }), submit: () => this.acctSubmit(),

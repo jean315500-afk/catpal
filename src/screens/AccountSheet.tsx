@@ -84,6 +84,8 @@ export default function AccountSheet({ v }: { v: Vals }) {
           </>
         )}
         <span style={{ display: 'block', marginTop: '14px', fontWeight: 500, fontSize: '11.5px', lineHeight: '16px', color: '#8E8A84', textAlign: 'center' }}>{I(a.privacy)}</span>
+        {/* a shared phone or a kiosk: the next visitor starts fresh */}
+        {a.startOver ? <span onClick={a.doStartOver} role="button" tabIndex={0} onKeyDown={press(a.doStartOver)} style={{ display: 'block', marginTop: '10px', textAlign: 'center', fontWeight: 600, fontSize: '12.5px', color: MUTED, textDecoration: 'underline', cursor: 'pointer' }}>{I(a.startOver)}</span> : null}
       </div>
     </div>
   );
