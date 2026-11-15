@@ -42,7 +42,8 @@ export function letterEmail(d: Due, appUrl: string) {
   const line = d.kind === "matched" ? `Your letter is with ${esc(to)} now. We’ll tell you when they write back.` : `${esc(from)} sent you a letter on CatPal.`;
   const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#F5EFE4;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#22304A">
   <div style="max-width:440px;margin:0 auto;background:#FBF7EE;border-radius:20px;padding:28px 24px;text-align:center">
-    <div style="font-size:40px;line-height:1">✉️</div>
+    <img src="${esc(new URL("/assets/email/catpal-logo.png", appUrl).toString())}" width="180" height="116" alt="CatPal" style="display:block;margin:0 auto;width:180px;height:auto;border:0">
+
     <h1 style="margin:14px 0 6px;font-size:21px;line-height:28px">${d.kind === "matched" ? "Your letter found a CatPal" : "You’ve got a new cat letter"}</h1>
     <p style="margin:0 0 22px;font-size:15px;line-height:22px;color:#5E6A80">${line}</p>
     <a href="${esc(link.toString())}" style="display:inline-block;padding:14px 28px;border-radius:26px;background:#22304A;color:#fff;font-weight:700;font-size:15px;text-decoration:none">Open your letter</a>
