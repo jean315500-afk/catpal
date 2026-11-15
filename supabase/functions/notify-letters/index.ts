@@ -13,7 +13,7 @@
 //   RESEND_API_KEY      the mail service's key (resend.com)
 //   MAIL_FROM_ADDRESS   the address it's sent from, e.g. letters@your-domain (a domain verified with Resend); it shows
 //                       as "CatPal <letters@your-domain>"
-//   APP_URL             the app, e.g. https://catpal.vercel.app — "Open your letter" goes to APP_URL/?open=<letter id>
+//   APP_URL             the app, e.g. https://catpal.app — "Open your letter" goes to APP_URL/?open=<letter id>
 //   CRON_SECRET         any long random text; the schedule sends it as the "x-cron-secret" header
 //   RESEND_API_URL      (optional, for local tests) where to send instead of Resend
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are there already. Missing a setting: nothing is claimed or marked sent,
@@ -42,7 +42,7 @@ export function letterEmail(d: Due, appUrl: string) {
   const line = d.kind === "matched" ? `Your letter is with ${esc(to)} now. We’ll tell you when they write back.` : `${esc(from)} sent you a letter on CatPal.`;
   const html = `<!doctype html><html><body style="margin:0;padding:24px;background:#F5EFE4;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#22304A">
   <div style="max-width:440px;margin:0 auto;background:#FBF7EE;border-radius:20px;padding:28px 24px;text-align:center">
-    <img src="${esc(new URL("/assets/email/catpal-logo.png", appUrl).toString())}" width="180" height="116" alt="CatPal" style="display:block;margin:0 auto;width:180px;height:auto;border:0">
+    <img src="${esc(new URL("/assets/email/catpal-logo.png", appUrl).toString())}" width="240" height="54" alt="CatPal" style="display:block;margin:0 auto 4px;width:240px;height:auto;border:0">
 
     <h1 style="margin:14px 0 6px;font-size:21px;line-height:28px">${d.kind === "matched" ? "Your letter found a CatPal" : "You’ve got a new cat letter"}</h1>
     <p style="margin:0 0 22px;font-size:15px;line-height:22px;color:#5E6A80">${line}</p>

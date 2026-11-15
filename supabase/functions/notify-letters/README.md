@@ -22,8 +22,8 @@ Supabase → SQL Editor에서 아래 순서로 한 번씩 실행해요. 다시 �
 |---|---|
 | Sign In / Providers → Anonymous | **켜기**. 지금처럼 가입 양식 없이 시작해요. |
 | Sign In / Providers → Email | **켜기**, **Confirm email 켜기** |
-| URL Configuration → Site URL | `https://catpal.vercel.app` |
-| URL Configuration → Redirect URLs | `https://catpal.vercel.app/**` (테스트 사이트를 쓰면 그 주소도 추가) |
+| URL Configuration → Site URL | `https://catpal.app` |
+| URL Configuration → Redirect URLs | `https://catpal.app/**` (테스트 사이트를 쓰면 그 주소도 추가) |
 | Emails → SMTP Settings | **Custom SMTP 필수**. 기본 메일 서버는 한 시간에 몇 통만 보내서 현장에서 바로 막혀요. Resend를 쓰면 Resend의 SMTP 정보를 넣으면 돼요. |
 
 - 익명 사용자가 이메일을 등록하면 확인 메일이 가요(템플릿: "Change Email Address").
@@ -65,7 +65,7 @@ supabase functions deploy notify-letters --no-verify-jwt
 ```
 
 ```bash
-supabase secrets set RESEND_API_KEY=re_xxx MAIL_FROM_ADDRESS="letters@인증한도메인" APP_URL="https://catpal.vercel.app" CRON_SECRET="길고-무작위한-문자열"
+supabase secrets set RESEND_API_KEY=re_xxx MAIL_FROM_ADDRESS="letters@인증한도메인" APP_URL="https://catpal.app" CRON_SECRET="길고-무작위한-문자열"
 ```
 
 - `MAIL_FROM_ADDRESS`는 Resend에서 인증한 도메인의 주소여야 해요. 보내는 사람은 `CatPal <그 주소>`로 표시돼요.
