@@ -72,6 +72,8 @@ export default function AccountSheet({ v }: { v: Vals }) {
                 <div style={{ marginTop: '6px' }}>
                   <Check on={!!a.notify} label={a.notifyLabel} onToggle={a.toggleNotify} disabled={a.busy} />
                 </div>
+                {/* saving my letters also lets other CatPals be matched to me: said plainly, before the link is sent */}
+                {a.matchNote ? <span style={{ display: 'block', marginTop: '8px', fontWeight: 500, fontSize: '13px', lineHeight: '19px', color: MUTED }}>{I(a.matchNote)}</span> : null}
               </>
             ) : null}
             {a.err ? <span role="alert" style={{ display: 'block', marginTop: '8px', fontWeight: 500, fontSize: '13px', color: '#D9442F' }}>{I(a.err)}</span> : null}

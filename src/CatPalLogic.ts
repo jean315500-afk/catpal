@@ -1201,7 +1201,8 @@ export default class CatPalLogic extends DCLogic {
       if (!(await api.currentUserId())) await api.signInAnonymously();
       const me = this.state.me;
       if (me && a.origin && a.origin !== originOf(me)) { const saved = await api.saveProfile(me.id, me.nickname, me.country, undefined, a.origin); this.setState((p) => ({ me: { ...p.me, ...saved } })); }
-      const settings = await api.saveMySettings({ notify: !!a.notify, match: !!a.match }).catch(() => null);
+      // (saving my letters = other CatPals can be matched to write to me; the sheet says so, and Settings turns it off)
+      const settings = await api.saveMySettings({ notify: !!a.notify, match: true }).catch(() => null);
       if (settings) this.setState({ settings });
       await api.linkEmail(email, this.authRedirect());
       await this.loadAccount();
@@ -1962,7 +1963,7 @@ export default class CatPalLogic extends DCLogic {
         return { ...a, title: tx(a.mode === "signin" ? "acSignInTitle" : a.mode === "settings" ? "acSettingsTitle" : "acTitle"),
           sub: a.note || tx(a.mode === "signin" ? "acSignInSub" : a.mode === "settings" ? "" : "acSub"),
           emailPh: tx("emPh"), go: tx(a.mode === "signin" ? "acSignInGo" : "acGo"), busyLabel: tx("acSending"),
-          notifyLabel: tx("acNotify"), matchLabel: tx("acMatch"), matchSub: tx("acMatchSub"), originLabel: tx("ppOrigin"), originOptions: countryOptions(LOC),
+          notifyLabel: tx("acNotify"), matchLabel: tx("acMatch"), matchSub: tx("acMatchSub"), matchNote: tx("acMatchNote"), originLabel: tx("ppOrigin"), originOptions: countryOptions(LOC),
           emailLine: acc?.confirmed ? tx("acSignedInAs", { email: acc.email }) : acc?.pendingEmail ? tx("acPending", { email: acc.pendingEmail }) : "",
           resend: a.mode === "settings" && !acc?.confirmed ? tx("acAddEmail") : "", toRegister: () => this.openAccount("register"),
           switchLabel: a.mode === "signin" ? (me ? tx("acToRegister") : "") : a.mode === "register" ? tx("acToSignIn") : "",
