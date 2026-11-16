@@ -1,6 +1,7 @@
 // NAV — floating pill with three tabs: Mail (an envelope: your first letter, then your letters — unread ones counted on it), Map (the globe, countries, the feed), Passport.
 // The icons are drawn by hand, as with a black pen: a few loose strokes each, a little uneven (lines bow, ends overrun
 // or stop just short), the same weight throughout so they read as one set; the active tab becomes a dark pill with its label.
+import { useRef } from 'react';
 import { each, I } from '../dc/runtime';
 import type { Vals } from '../dc/runtime';
 
@@ -29,13 +30,26 @@ const ICONS: Record<string, JSX.Element> = {
 /** each drawn a touch askew, as by hand */
 const TILT: Record<string, number> = { home: -2, world: 1.5, mycat: 2 };
 
+/** held (about two thirds of a second) instead of tapped: `hold` instead of the tap (the master controls on Passport) */
+function useHold() {
+  const t = useRef<any>(null), held = useRef(false);
+  const stop = () => { clearTimeout(t.current); t.current = null; };
+  return (n: any) => n.hold ? {
+    onPointerDown: () => { held.current = false; stop(); t.current = setTimeout(() => { held.current = true; n.hold(); }, 650); },
+    onPointerUp: stop, onPointerLeave: stop, onPointerCancel: stop,
+    onContextMenu: (e: any) => e.preventDefault(),
+    onClick: () => { if (held.current) { held.current = false; return; } n.tap(); },
+  } : { onClick: n.tap };
+}
+
 export default function BottomNav({ v }: { v: Vals }) {
+  const hold = useHold();
   if (!v.showNav) return null;
   return (
     <nav aria-label="CatPal" className="cp-arr-nav" style={{ position: "absolute", left: "50%", bottom: "18px", transform: "translateX(-50%)", zIndex: 40, display: "flex", alignItems: "center", gap: "4px", padding: "6px", borderRadius: "32px", background: "rgba(255,255,255,.97)", boxShadow: "0 10px 30px rgba(30,25,20,.14), 0 1px 3px rgba(30,25,20,.08)" }}>
       {each(v.tabs, (n: any) => (
-        <div className="dc-hover-4" onClick={n.tap} role="button" aria-label={n.label} aria-current={n.on ? "page" : undefined}
-          style={{ position: "relative", height: "52px", minWidth: "54px", padding: n.on ? "0 18px 0 14px" : "0 12px", borderRadius: "26px", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", cursor: "pointer", background: n.on ? "#22304A" : "transparent", transition: "background .2s ease, padding .2s ease, transform .15s ease" }}>
+        <div className="dc-hover-4" {...hold(n)} role="button" aria-label={n.label} aria-current={n.on ? "page" : undefined}
+          style={{ position: "relative", height: "52px", minWidth: "54px", padding: n.on ? "0 18px 0 14px" : "0 12px", borderRadius: "26px", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", cursor: "pointer", WebkitTouchCallout: "none", userSelect: "none", WebkitUserSelect: "none", background: n.on ? "#22304A" : "transparent", transition: "background .2s ease, padding .2s ease, transform .15s ease" }}>
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
             style={{ color: n.on ? "#fff" : "#2E2B28", transform: `rotate(${TILT[n.id] || 0}deg)`, flex: "none" }}>{ICONS[n.id]}</svg>
           {n.on ? <span style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "var(--fs-caption)", color: "#fff", whiteSpace: "nowrap" }}>{I(n.label)}</span> : null}

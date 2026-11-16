@@ -196,6 +196,8 @@ export default class CatPalLogic extends DCLogic {
     dest: null, mapDone: false, sendCount: 0, isNewPal: false, firstTrip: false, homeAsk: null, reading: null, replyReward: null, ppCountry: null,
     // passport
     ppTab: "stamps", mine: [],
+    // master controls (testing): the panel (held Passport), whether this account is a tester, my test stamps
+    master: null, tester: false, testStamps: [],
     // the letter being written from Home (photo + hello → your cat → preview → off it goes); see openCompose
     cmp: null,
     // no one to send to yet (the Map's globe waits with "Invite a friend" / "Save for later")
@@ -242,7 +244,7 @@ export default class CatPalLogic extends DCLogic {
     // Mail refresh: every 5 s while a thread is open, otherwise every 20 s (only when the tab is visible).
     this.poll = setInterval(() => {
       if (!this.state.me || document.visibilityState !== "visible") return;
-      const every = QUICK ? 4000 : this.cur === "letters" ? 5000 : 20000;   // (letters landing at once: looked for every few seconds)
+      const every = QUICK || this.state.tester ? 4000 : this.cur === "letters" ? 5000 : 20000;   // (letters landing at once: looked for every few seconds)
       if (Date.now() - (this.lastMail || 0) >= every) this.refreshMail();
     }, 2500);
     this.syncCam();
@@ -462,6 +464,7 @@ export default class CatPalLogic extends DCLogic {
     this.mailBusy = true; this.lastMail = Date.now();
     this.loadInvites();
     api.myPalThreads().then((palThreads) => this.setState({ palThreads })).catch(() => { /* not set up yet */ });
+    api.myTestStamps().then((testStamps) => this.setState({ testStamps })).catch(() => {});
     try {
       const [allThreads, allLetters] = await Promise.all([api.listThreads(), api.listLetters()]);
       const blocked = new Set<string>(this.state.blocks || []);
@@ -525,12 +528,18 @@ export default class CatPalLogic extends DCLogic {
     const now = new Date().toISOString(), flying = (this.state.inbound || []).some((x) => x.l.thread_id === threadId);
     const shown = new Set<string>();
     this.setState((p) => ({ letters: p.letters.map((l) => (l.thread_id === threadId && l.sender_id !== me.id && !l.read_at ? (shown.add(l.id), flying && this.readHere.add(l.id), { ...l, read_at: now }) : l)) }));
-    if (flying) return;
-    // what's here may be a few seconds old: one sent just now could be on its way already — asked again before the
-    // thread is marked (if one is, only the ones shown count as read, here)
-    api.unreadInThread(threadId, me.id).then((ls) => {
-      if (ls.some((l) => this.arriveAt(l) > Date.now())) { shown.forEach((id) => this.readHere.add(id)); return; }
-      return api.markThreadRead(threadId);
+    // the server marks only the letters that have landed (one still on its way stays new) — so a letter read is saved,
+    // and its stamp kept, even while another one in the thread is in the air
+    api.markReadLanded(threadId).then((done) => {
+      if (done) return;
+      // (the older database: the whole thread is marked, so not while one is on its way)
+      if (flying) return;
+      // what's here may be a few seconds old: one sent just now could be on its way already — asked again before the
+      // thread is marked (if one is, only the ones shown count as read, here)
+      return api.unreadInThread(threadId, me.id).then((ls) => {
+        if (ls.some((l) => this.arriveAt(l) > Date.now())) { shown.forEach((id) => this.readHere.add(id)); return; }
+        return api.markThreadRead(threadId);
+      });
     }).catch(() => {});
   }
   /** my letters sent as links (Sent) — quietly nothing before the invites update is in the database */
@@ -1231,6 +1240,43 @@ export default class CatPalLogic extends DCLogic {
     try { const saved = await api.saveProfile(me.id, me.nickname, me.country, undefined, cc); this.setState((p) => ({ me: { ...p.me, ...saved } })); }
     catch (e) { this.setAcct({ err: api.errorText(e) }); }
   }
+  // ---- master controls (for testing): held Passport in the dock opens them. Every action is checked by the server
+  // (supabase/fix-2026-11-16-master-controls.sql): only an account unlocked with the master code can use them.
+  openMaster() {
+    try { (navigator as any).vibrate?.(25); } catch (_) {}
+    this.setState({ master: { loading: true, state: null, missing: false, code: "", busy: "", msg: "", err: "", to: this.state.me?.id || "", cc: "" } });
+    this.masterLoad();
+  }
+  setMaster(patch: any) { this.setState((p) => ({ master: p.master && { ...p.master, ...patch } })); }
+  async masterLoad() {
+    if (!this.state.me || !(await api.currentUserId())) { this.setMaster({ loading: false, state: null, err: "Open CatPal on this device first (write a first letter), then unlock." }); return; }
+    try {
+      const state = await api.masterState();
+      this.setState({ tester: !!state });
+      this.setMaster({ loading: false, state, missing: false, to: this.state.master?.to || state?.me || "" });
+    } catch (e: any) {
+      const missing = /master_state|could not find the function|does not exist/i.test(e?.message || "");
+      this.setMaster({ loading: false, state: null, missing, err: missing ? "" : api.errorText(e) });
+    }
+  }
+  /** one master action: busy on its button, what came of it said, everything looked at again */
+  async masterDo(key: string, fn: () => Promise<any>, said: (r: any) => string) {
+    if (this.state.master?.busy) return;
+    this.setMaster({ busy: key, msg: "", err: "" });
+    try {
+      const r = await fn();
+      this.setMaster({ busy: "", msg: said(r) });
+      await this.masterLoad(); this.refreshMail();
+    } catch (e) { this.setMaster({ busy: "", err: api.errorText(e) }); }
+  }
+  async masterUnlock() {
+    const code = (this.state.master?.code || "").trim(); if (!code) return;
+    if (!this.state.me) { this.setMaster({ err: "Open CatPal on this device first (write a first letter), then unlock." }); return; }
+    this.masterDo("unlock", () => api.masterUnlock(code), (ok) => (ok ? "Unlocked on this account." : "That isn't the code."));
+    this.setMaster({ code: "" });
+  }
+  /** a sample screen, or the story again: the app opened again with that in its address */
+  masterGo(q: string) { location.href = location.pathname + q; }
   /** a new visitor on this device (a kiosk, a shared phone): signed out, and everything this device kept is cleared */
   async startOver() {
     if (!confirm(this.tx("acStartOverQ"))) return;
@@ -1430,7 +1476,8 @@ export default class CatPalLogic extends DCLogic {
     const tabs = [
       { id: "home", label: tx("navMail"), count: unreadN, tap: () => { this.go("home", { sheet: null, mbTab: "received" }); this.refreshMail(); if (cur === "home") { this.loadFeed(); this.loadMap(); } } },
       { id: "world", label: tx("navWorld"), tap: () => { this.go("catmap", { sheet: null, cmSel: null, cmRoute: null, cmList: null, cmJourney: null, cmMineSel: null, cmTrip: null }); this.loadMap(); this.loadExplore(); } },
-      { id: "mycat", label: tx("navMyCat"), tap: () => { this.go("passport", { sheet: null }); this.loadMine(); this.refreshMail(); this.loadMyPosts(); } },
+      { id: "mycat", label: tx("navMyCat"), tap: () => { this.go("passport", { sheet: null }); this.loadMine(); this.refreshMail(); this.loadMyPosts(); },
+        hold: () => this.openMaster() },   // (held: the master controls, for testing)
     ].map((n) => ({ ...n, on: navActive === n.id, badge: !!n.count }));
     const navItems = [
       { id: "home", label: tx("navHome"), icon: st.hmAnim ? (st.hmAnim % 2 ? "./assets/home.gif" : "./assets/home-b.gif") : "./assets/icon-home.png", iconH: st.hmAnim ? 62 : 44, iconMt: st.hmAnim ? -18 : 0 },
@@ -1547,7 +1594,7 @@ export default class CatPalLogic extends DCLogic {
       // opened; its POSTMARK with your first letter back to it (a letter of yours after one of theirs, in a thread).
       // One of each per country, however many letters; the letters shared with it are counted.
       const sample = PP_SAMPLE && !received.some((l) => l.read_at);
-      type C = { stampIso: string; markIso: string; n: number; pals: Map<string, { name: string; photo: string; n: number; open: (() => void) | null }> };
+      type C = { stampIso: string; markIso: string; n: number; test?: boolean; pals: Map<string, { name: string; photo: string; n: number; open: (() => void) | null }> };
       const by = new Map<string, C>();
       const cOf = (cc: string) => by.get(cc) || (by.set(cc, { stampIso: "", markIso: "", n: 0, pals: new Map() }), by.get(cc)!);
       if (sample) SAMPLE_PALS.forEach(([cc, who, , k, s2, r2], i) => {
@@ -1569,6 +1616,8 @@ export default class CatPalLogic extends DCLogic {
           if (l.sender_id === me.id && ls.some((x) => x.sender_id !== me.id && x.created_at < l.created_at) && (!c.markIso || l.created_at < c.markIso)) c.markIso = l.created_at;
         }
       }
+      // (test stamps, given from the master controls: a stamp like any other, from "Test")
+      if (!sample && me) for (const t of (st.testStamps || []) as { cc: string; created_at: string }[]) { const c = cOf(t.cc); if (!c.stampIso) { c.stampIso = t.created_at; c.test = true; } }
       for (const [, c] of by) for (const [uid, p] of c.pals) if (!p.photo) p.photo = latestMomentOf(uid) || "";
       const short = (iso: string) => (iso ? day(iso) : "");
       // the pages: the countries with a postmark of their own (the app's own postmark art); your own country is in the folder
@@ -1578,7 +1627,7 @@ export default class CatPalLogic extends DCLogic {
       const stamps = all.map((cc, i) => {
         const c = by.get(cc), got = !!c?.stampIso, mark = !!c?.markIso, pl = c ? [...c.pals.values()] : [];
         return { cc, name: cName(cc), en: countryName(cc).toUpperCase(), img: postmarkOf(cc), stampImg: stampOf(cc), got, mark,
-          iso: c?.stampIso || "", from: pl[0]?.name || "", n: c?.n || 0, stampDate: short(c?.stampIso || ""), markDate: short(c?.markIso || ""),
+          iso: c?.stampIso || "", from: pl[0]?.name || (c?.test ? "Test" : ""), n: c?.n || 0, stampDate: short(c?.stampIso || ""), markDate: short(c?.markIso || ""),
           open: got ? () => this.setState({ ppCountry: cc }) : null, rot: [-8, 6, -3, 10, -6, 4, -11, 7, -4, 9, -2, 5][i % 12] };
       }).sort((a, b) => Number(b.got) - Number(a.got) || Number(b.mark) - Number(a.mark));
       const n = stamps.filter((x) => x.got).length, marks = stamps.filter((x) => x.mark).length;
@@ -1958,6 +2007,45 @@ export default class CatPalLogic extends DCLogic {
           leaveIt: () => this.setPlan({ plus: false }), buyPack: () => this.setPlan({ birds: planNow.birds + PLAN.birdsInPack }) };
       })(),
       // the account sheet: keep my letters with an email (sign up), sign back in on another device, or my settings
+      // master controls (testing): held Passport in the dock. Locked: the code. Unlocked: what this account can do
+      master: st.master ? (() => {
+        const m = st.master, ms = m.state as api.MasterState | null, meId = me?.id || "", acc = st.account as api.Account | null;
+        const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
+        const testers = (ms?.testers || []).map((t) => ({ id: t.id, on: m.to === t.id, me: t.id === meId,
+          label: `${flagOf(t.origin || t.country)} ${t.name}${t.id === meId ? " (me)" : ""}`,
+          online: !!t.active && Date.now() - new Date(t.active).getTime() < 5 * 60e3,
+          stamps: (t.stamps || []).map((cc) => flagOf(cc)).join(" "), pick: () => this.setMaster({ to: t.id }) }));
+        return {
+          close: () => this.setState({ master: null }), loading: !!m.loading, missing: !!m.missing, locked: !m.loading && !ms && !m.missing,
+          code: m.code, setCode: (e: any) => this.setMaster({ code: e.target.value.slice(0, 80), err: "" }), unlock: () => this.masterUnlock(),
+          busy: m.busy, msg: m.msg, err: m.err,
+          info: ms && me ? [
+            ["Me", `${me.nickname} · ${meId.slice(0, 8)}`],
+            ["From / in", `${flagOf(originOf(me))} ${cName(originOf(me))} / ${flagOf(me.country)} ${cName(me.country)}`],
+            ["Account", acc?.confirmed ? `confirmed (${st.settings?.notify_letters ? "letter emails on" : "letter emails off"}, ${st.settings?.match_opt_in ? "matching on" : "matching off"})` : acc?.pendingEmail ? "email not confirmed yet" : "no email (visitor)"],
+            ["Travel scale", ms.travel_scale == null ? "?" : String(ms.travel_scale)],
+            ["No CatPal → Sophie", ms.fallback == null ? "?" : ms.fallback ? "on" : "off"],
+            ["Mail", `${plural(ms.threads, "conversation")} · ${plural(ms.letters, "letter")}`],
+            ["On their way", `${ms.flying_to_me} to me · ${ms.flying_from_me} from me`],
+            ["Waiting for a CatPal", String(ms.waiting)],
+          ].map(([k, val]) => ({ k, v: val })) : [],
+          instant: !!ms?.instant,
+          toggleInstant: () => ms && this.masterDo("instant", () => api.masterSetInstant(!ms.instant), () => (!ms.instant ? "Your letters now land at once, anywhere." : "Your letters fly at the usual speed again.")),
+          flying: ms ? ms.flying_to_me + ms.flying_from_me : 0,
+          landNow: () => this.masterDo("land", api.masterLandNow, (n) => `${plural(n || 0, "letter")} landed now.`),
+          testers, ccOpts: countryOptions(LOC), cc: m.cc || "", setCc: (cc: string) => this.setMaster({ cc }),
+          give: () => m.cc && m.to && this.masterDo("give", () => api.masterGiveStamp(m.to, m.cc), () => `${flagOf(m.cc)} ${cName(m.cc)} stamp given.`),
+          giveAll: () => m.to && this.masterDo("giveAll", async () => { for (const cc of POSTMARK_COUNTRIES) await api.masterGiveStamp(m.to, cc); }, () => "Every designed stamp given."),
+          clear: () => m.to && this.masterDo("clear", () => api.masterClearStamps(m.to), (n) => `${plural(n || 0, "test stamp")} taken away.`),
+          unread: () => confirm("Mark every letter to you as new again? (No email goes again.)") && this.masterDo("unread", api.masterMarkUnread, (n) => `${plural(n || 0, "letter")} new again.`),
+          runMatch: () => this.masterDo("match", api.masterRunMatch, (n) => `${plural(n || 0, "waiting letter")} sent on.`),
+          refresh: () => this.masterDo("refresh", () => this.refreshMail(), () => "Mail looked at again."),
+          copyId: () => { try { navigator.clipboard.writeText(meId).then(() => this.setMaster({ msg: "Your id is copied." })); } catch (_) {} },
+          screens: [["Onboarding story", "?intro"], ["Sample passport", "?ppSample=1"], ["Sample arrival", "?arrSample=1"]].map(([label, q]) => ({ label, go: () => this.masterGo(q) })),
+          startOver: () => this.startOver(),
+          lock: () => this.masterDo("lock", api.masterLock, () => "Locked on this account."),
+        };
+      })() : null,
       acct: st.acct ? (() => {
         const a = st.acct, acc = st.account as api.Account | null;
         return { ...a, title: tx(a.mode === "signin" ? "acSignInTitle" : a.mode === "settings" ? "acSettingsTitle" : "acTitle"),

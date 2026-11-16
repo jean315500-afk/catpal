@@ -24,6 +24,7 @@ import HomeBoxScreen from './screens/HomeBoxScreen';
 import BottomNav from './screens/BottomNav';
 import PhotoSheet from './screens/PhotoSheet';
 import AccountSheet from './screens/AccountSheet';
+import MasterPanel from './screens/MasterPanel';
 import TopBar from './screens/TopBar';
 
 // Defaults of the prototype's editable props (data-props in Cat Pal v6.dc.html).
@@ -113,6 +114,7 @@ export default function App() {
             <TopBar v={v} />
             <OpenLetter v={v} />
             <AccountSheet v={v} />
+            <MasterPanel v={v} />
           </PhoneFrame>
         )}
       />

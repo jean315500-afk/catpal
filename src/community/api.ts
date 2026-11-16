@@ -299,7 +299,39 @@ export async function sendLetter(uid: string, threadId: string, body: string | n
 
 /** a thread's letters to me not read yet (to see whether any is still on its way before marking the thread read) */
 export async function unreadInThread(threadId: string, uid: string): Promise<Letter[]> {
-  return must(await supabase.from('letters').select('id, thread_id, sender_id, created_at, read_at').eq('thread_id', threadId).neq('sender_id', uid).is('read_at', null)) as any || [];
+  // (deliver_at: when the server says it lands — without it the app could only guess, and a guess too late kept a
+  // letter read here from being saved)
+  return must(await supabase.from('letters').select('id, thread_id, sender_id, created_at, read_at, deliver_at').eq('thread_id', threadId).neq('sender_id', uid).is('read_at', null)) as any || [];
+}
+
+/** a thread's landed letters to me, marked read (the ones still on their way stay new). false: not in the database
+ *  yet (supabase/fix-2026-11-16-master-controls.sql hasn't run) — then the older way */
+const noFn = (e: any) => e && (e.code === 'PGRST202' || e.code === '42883' || /could not find the function|does not exist/i.test(e.message || ''));
+export async function markReadLanded(threadId: string): Promise<boolean> {
+  const { error } = await supabase.rpc('mark_read_landed', { t: threadId });
+  if (error) { if (noFn(error)) return false; throw error; }
+  return true;
+}
+
+// ---- master controls (for testing; supabase/fix-2026-11-16-master-controls.sql). Only an account unlocked with the
+// master code can use them — the server checks every call.
+export type MasterTester = { id: string; name: string; country: string; origin: string; active: string | null; stamps: string[] };
+export type MasterState = { me: string; instant: boolean; travel_scale: number | null; fallback: boolean | null; operator: string | null; testers: MasterTester[];
+  flying_to_me: number; flying_from_me: number; waiting: number; threads: number; letters: number };
+const rpcOf = async <T,>(fn: string, args: Record<string, unknown> = {}): Promise<T> => must(await supabase.rpc(fn, args)) as T;
+export const masterState = () => rpcOf<MasterState | null>('master_state');
+export const masterUnlock = (code: string) => rpcOf<boolean>('master_unlock', { p_code: code });
+export const masterLock = () => rpcOf<void>('master_lock');
+export const masterSetInstant = (on: boolean) => rpcOf<void>('master_set_instant', { p_on: on });
+export const masterLandNow = () => rpcOf<number>('master_land_now');
+export const masterGiveStamp = (uid: string, cc: string) => rpcOf<void>('master_give_stamp', { p_user: uid, p_cc: cc });
+export const masterClearStamps = (uid: string) => rpcOf<number>('master_clear_stamps', { p_user: uid });
+export const masterMarkUnread = () => rpcOf<number>('master_mark_unread');
+export const masterRunMatch = () => rpcOf<number>('master_run_match');
+/** my test stamps (given from the master controls): none before the update is in the database */
+export async function myTestStamps(): Promise<{ cc: string; created_at: string }[]> {
+  const { data, error } = await supabase.from('test_stamps').select('cc, created_at');
+  return error ? [] : ((data as any) || []);
 }
 
 export async function markThreadRead(threadId: string) {
