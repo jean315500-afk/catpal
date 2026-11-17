@@ -1,6 +1,5 @@
 // The account sheet: keep these letters with an email (sign up — the same account, its letters and photos kept), sign
-// back in from another device (a link by email, no password), or settings (letter emails, matching, where I'm from,
-// sign out, and — if there's one — a small donation link). Nothing here is ever shown to anyone else.
+// back in from another device (a link by email, no password), or settings (letter emails, sign out, and — if there's one — a small donation link). Nothing here is ever shown to anyone else.
 import { I } from '../dc/runtime';
 import type { Vals } from '../dc/runtime';
 
@@ -44,14 +43,8 @@ export default function AccountSheet({ v }: { v: Vals }) {
             {a.resend ? <span onClick={a.toRegister} role="button" tabIndex={0} onKeyDown={press(a.toRegister)} style={{ display: 'inline-block', marginTop: '8px', fontWeight: 700, fontSize: '14px', color: INK, textDecoration: 'underline', cursor: 'pointer' }}>{I(a.resend)}</span> : null}
             <div style={{ marginTop: '10px', borderTop: '1px solid #EAE2D3' }}>
               <Check on={!!a.notify} label={a.notifyLabel} onToggle={a.toggleNotify} />
-              <Check on={!!a.match} label={a.matchLabel} sub={a.matchSub} onToggle={a.toggleMatch} />
             </div>
-            <label style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span className="cp-pp-label">{I(a.originLabel)}</span>
-              <select value={a.origin || ''} onChange={a.setOrigin} aria-label={a.originLabel} style={{ height: '46px', padding: '0 12px', borderRadius: '14px', border: '1px solid #DDD3C2', background: '#fff', fontSize: '16px', fontWeight: 600, color: INK }}>
-                {a.originOptions.map((o: any) => <option key={o.cc} value={o.cc}>{o.label}</option>)}
-              </select>
-            </label>
+            {/* (matching is what CatPal is for: always on, nothing to turn off. Where you're from: found by itself, not picked) */}
             {a.donate ? <a href={a.donate.url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: '18px', textAlign: 'center', fontWeight: 600, fontSize: '13.5px', color: '#8A5A2B' }}>{I(a.donate.label)}</a> : null}
             {a.signOut ? <span onClick={a.doSignOut} role="button" tabIndex={0} onKeyDown={press(a.doSignOut)} style={{ display: 'block', marginTop: '14px', textAlign: 'center', fontWeight: 600, fontSize: '13px', color: MUTED, textDecoration: 'underline', cursor: 'pointer' }}>{I(a.signOut)}</span> : null}
           </>
@@ -62,12 +55,6 @@ export default function AccountSheet({ v }: { v: Vals }) {
               style={{ marginTop: '16px', width: '100%', boxSizing: 'border-box', height: '52px', padding: '0 16px', borderRadius: '16px', border: '1.5px solid ' + (a.err ? '#E5483D' : '#E2DACB'), background: '#fff', fontFamily: 'inherit', fontWeight: 600, fontSize: '16px', color: INK, outline: 'none' }} />
             {!signin ? (
               <>
-                <label style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <span className="cp-pp-label">{I(a.originLabel)}</span>
-                  <select value={a.origin || ''} onChange={a.setOrigin} aria-label={a.originLabel} style={{ height: '46px', padding: '0 12px', borderRadius: '14px', border: '1px solid #DDD3C2', background: '#fff', fontSize: '16px', fontWeight: 600, color: INK }}>
-                    {a.originOptions.map((o: any) => <option key={o.cc} value={o.cc}>{o.label}</option>)}
-                  </select>
-                </label>
                 {/* consent, asked plainly (nothing is ticked for you) */}
                 <div style={{ marginTop: '6px' }}>
                   <Check on={!!a.notify} label={a.notifyLabel} onToggle={a.toggleNotify} disabled={a.busy} />

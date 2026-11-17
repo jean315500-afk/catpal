@@ -3,6 +3,7 @@ import App from './App';
 import './typography.css';
 import './styles.css';
 import './hover.css';
+import { watchForUpdates } from './updateCheck';
 
 /** Someone's first time here: the landing story first (once), which ends by coming back here, to Home ("Send your
  *  first letter"). Anyone who has been before — the story seen, signed in, or a letter begun — comes straight in.
@@ -29,4 +30,4 @@ const firstVisit = (() => {
 // No <StrictMode>: its double mount would register the logic's listeners and
 // timers twice, which the prototype never did.
 if (firstVisit) location.replace('/landing-preview/');
-else createRoot(document.getElementById('root')!).render(<App />);
+else { createRoot(document.getElementById('root')!).render(<App />); watchForUpdates(); }

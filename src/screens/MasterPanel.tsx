@@ -1,5 +1,6 @@
 // MASTER CONTROLS — for testing (held Passport in the dock). Locked: the master code. Unlocked: instant letters, letters
-// on their way landed now, test stamps for me or another tester, letters new again, matching run now, sample screens.
+// on their way landed now, test stamps for me or another tester, Plus's features, the letter emails to me and how they
+// went, letters new again, matching run now, sample screens.
 // Every action is checked by the server (supabase/fix-2026-11-16-master-controls.sql); this is only its panel.
 import type { CSSProperties, ReactNode } from 'react';
 import type { Vals } from '../dc/runtime';
@@ -69,8 +70,8 @@ export default function MasterPanel({ v }: { v: Vals }) {
                 {(m.testers || []).map((t: any) => (
                   <div key={t.id} onClick={t.pick} role="button" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', borderRadius: '12px', cursor: 'pointer', background: t.on ? '#2A3550' : CARD, border: '1px solid ' + (t.on ? ACC : LINE) }}>
                     <span aria-hidden style={{ width: '8px', height: '8px', borderRadius: '4px', background: t.online ? '#4ADE80' : '#4B5566', flex: 'none' }} />
-                    <span style={{ flex: 1, minWidth: 0, fontWeight: 700, fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
-                    <span style={{ fontSize: '13px' }}>{t.stamps}</span>
+                    <span style={{ flex: 'none', maxWidth: '55%', fontWeight: 700, fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.label}</span>
+                    <span style={{ flex: 1, minWidth: 0, textAlign: 'right', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.stamps}</span>
                   </div>
                 ))}
                 <span style={{ fontSize: '12px', color: DIM }}>Green: active in the last 5 minutes. Test stamps go only to testers (accounts unlocked here), so real CatPals never get one.</span>
@@ -81,8 +82,33 @@ export default function MasterPanel({ v }: { v: Vals }) {
                 {(m.ccOpts || []).map((o: any) => <option key={o.cc} value={o.cc}>{o.label}</option>)}
               </select>
               <B k="give" label={`🎟 Give${who ? ' to ' + (who.me ? 'me' : who.label.replace(/^\S+\s/, '')) : ''}`} go={m.give} />
-              <B k="giveAll" label="Give every designed stamp" go={m.giveAll} />
+              <B k="giveSome" label="🎲 Give 8 random stamps" go={m.giveSome} />
               <B k="clear" label="Take test stamps away" go={m.clear} />
+            </Section>
+
+            <Section title="CatPal Plus">
+              <B k="plus" on={m.plus} label={m.plus ? '✦ Plus features: ON' : '✦ Plus features: OFF'} go={m.togglePlus} />
+              <span style={{ width: '100%', fontSize: '12px', lineHeight: '17px', color: DIM }}>Choose who a letter goes to, pick its stamp, the Fast Bird — on this device, for testing. Nothing is paid or charged; others still see “Coming soon”.</span>
+            </Section>
+
+            <Section title="Letter emails to me">
+              {m.emails === null ? (
+                <span style={{ width: '100%', fontSize: '12px', lineHeight: '17px', color: DIM }}>Run <code style={{ fontFamily: mono, color: ACC }}>supabase/fix-2026-11-17-stamps-match-origin.sql</code> to see them here.</span>
+              ) : !m.emails.length ? (
+                <span style={{ width: '100%', fontSize: '12px', lineHeight: '17px', color: DIM }}>None yet. An email goes about a minute after a letter lands — only if it's still unread then, letter emails are on, and the email is confirmed.</span>
+              ) : (
+                <div style={{ width: '100%', borderRadius: '14px', background: CARD, padding: '4px 12px' }}>
+                  {m.emails.map((e: any) => (
+                    <div key={e.key} style={{ padding: '6px 0', borderBottom: '1px solid ' + LINE, fontSize: '12.5px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                        <span style={{ fontWeight: 600 }}>{e.what}</span>
+                        <span style={{ fontWeight: 700, color: e.status === 'sent' ? '#9BE3B5' : e.status === 'failed' ? '#FFB3B3' : ACC }}>{e.status}</span>
+                      </div>
+                      <span style={{ display: 'block', color: DIM }}>{e.when}{e.why ? ' · ' + e.why : ''}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Section>
 
             <Section title="Letters">

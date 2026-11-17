@@ -11,7 +11,7 @@ import { supabaseConfigured, AUTH_LINK_TYPE } from './community/supabase';
 import * as api from './community/api';
 import type { FeedItem, Letter, MomentCard, Profile, Thread } from './community/api';
 import { nextRenewal, PLAN, PLUS_SAMPLE, readPlan, TRAITS, writePlan, type Plan } from "./community/plan";
-import { COUNTRY_COORDS, countryName, countryOptions, distanceKm, travelMs, flagOf, globePoint, guessCountry, POSTMARK_COUNTRIES, postmarkFiles, postmarkOf, stampOf } from './community/countries';
+import { COUNTRY_COORDS, countryName, countryOptions, detectCountry, distanceKm, travelMs, flagOf, globePoint, guessCountry, POSTMARK_COUNTRIES, ALL_POSTMARKS, postmarkFiles, postmarkOf, stampOf } from './community/countries';
 import { dataUrlToBlob, toUploadJpeg } from './community/image';
 import { enableReplyNotifications, REPLY_NOTIFY_OFFERED, replyNotifyState } from './community/notify';
 import { fmtDate, fmtListTime } from './community/dates';
@@ -62,6 +62,10 @@ const PAL_PENDING = "cp-pal-pending";
 const NOTIFY_EMAIL = "cp-notify-email";
 /** (CatPal Plus is "coming soon": no one is on it, whatever a device kept from the test-only prototype) */
 const FREE_PLAN: Plan = { plus: false, kind: "annual", since: new Date().toISOString(), renews: false, birds: 0 };
+/** (master controls, testing) Plus's features turned on on this device — only ever for an account the server says is a tester */
+const MASTER_PLUS = "cp-master-plus";
+const readMasterPlus = () => { try { return localStorage.getItem(MASTER_PLUS) === "1"; } catch (_) { return false; } };
+const writeMasterPlus = (on: boolean) => { try { if (on) localStorage.setItem(MASTER_PLUS, "1"); else localStorage.removeItem(MASTER_PLUS); } catch (_) { /* this visit only */ } };
 // Test letters sent by mistake to strangers on the live site (to tunalover, Xinyan and hahaa), kept out of view here
 // till they're deleted from the database (see the SQL given for it). Only hides them in this app; the rows are still there.
 const HIDDEN_THREADS = new Set(["56166ea3-82d4-47b6-97d6-751c4b161621", "fcdc0553-9785-42d0-b2de-7bd7c0c7d47c", "2d512092-3b1e-4c8d-88f3-6288576ebf4e"]);
@@ -349,7 +353,7 @@ export default class CatPalLogic extends DCLogic {
     this.setState({ onbBusy: true, onbErr: "" });
     try {
       const uid = (await api.currentUserId()) || (await api.signInAnonymously());
-      const me = await api.saveProfile(uid, nick.slice(0, 24), cc);
+      const me = await api.saveProfile(uid, nick.slice(0, 24), cc, undefined, (await detectCountry().catch(() => "")) || null);
       this.shareBlob = null;
       this.setState({ me, onbBusy: false, screen: "share", prev: "onboard", todayMode: true, photoFor: "moment", shareCat: "my_cat", shareCaption: "", shareCatName: "", shareCountry: me.country, sharePhoto: null, shareErr: "", sharedFx: false });
       this.loadAll();
@@ -389,9 +393,8 @@ export default class CatPalLogic extends DCLogic {
       if (url) this.setState((p) => ({ ppPhoto: url, ppEdit: p.ppEdit && { ...p.ppEdit, blob: null } }));   // (in, whatever happens to the name)
       const intro = (e.intro || "").trim().slice(0, 120), was = myIntro(me);
       try { localStorage.setItem(CAT_INTRO, intro); } catch (_) {}
-      // where you're from (your letters' postmark): kept apart from where you are (me.country, the map's)
-      const origin = e.origin || me.country, originChanged = origin !== originOf(me);
-      const saved = name !== me.nickname || intro !== was || originChanged ? await api.saveProfile(me.id, name, me.country, intro, originChanged ? origin : undefined) : null;
+      // (where you're from isn't changed here: it's found by itself, once — see ensureMe)
+      const saved = name !== me.nickname || intro !== was ? await api.saveProfile(me.id, name, me.country, intro) : null;
       this.setState((p) => ({ ppEdit: null, ...(url ? { ppPhoto: url } : {}), ...(saved ? { me: { ...p.me, ...saved } } : {}) }));
     } catch (err) {
       this.setState((p) => ({ ppEdit: p.ppEdit && { ...p.ppEdit, busy: false, err: api.errorText(err) } }));
@@ -465,6 +468,11 @@ export default class CatPalLogic extends DCLogic {
     this.loadInvites();
     api.myPalThreads().then((palThreads) => this.setState({ palThreads })).catch(() => { /* not set up yet */ });
     api.myTestStamps().then((testStamps) => this.setState({ testStamps })).catch(() => {});
+    // (master controls) Plus turned on there, on this device: back on once the server says this account is a tester
+    if (!this.masterPlusChecked && this.state.me && readMasterPlus()) {
+      this.masterPlusChecked = true;
+      api.masterState().then((ms) => { if (ms) this.setState({ tester: true, plan: { ...(this.state.plan as Plan), plus: true, kind: "lifetime", renews: false } }); }).catch(() => {});
+    }
     try {
       const [allThreads, allLetters] = await Promise.all([api.listThreads(), api.listLetters()]);
       const blocked = new Set<string>(this.state.blocks || []);
@@ -832,7 +840,10 @@ export default class CatPalLogic extends DCLogic {
     const introChanged = intro !== undefined && intro !== myIntro(me);
     if (intro !== undefined) try { localStorage.setItem(CAT_INTRO, intro); } catch (_) {}
     if (!me || me.country !== cc || me.nickname !== nick || introChanged) {
-      const saved = await api.saveProfile(uid, nick, cc, intro);
+      // where you're from (your letters' postmark, the stamp your CatPals collect): found by itself once, as the profile is
+      // made — by where you're on the internet from — and never picked or changed after (the server keeps it)
+      const origin = !me ? await detectCountry().catch(() => "") : undefined;
+      const saved = await api.saveProfile(uid, nick, cc, intro, origin === undefined ? undefined : origin || null);
       try { if (!this.state.me || (!met && nameIsCat)) localStorage.setItem(NICK_IS_CAT, uid); } catch (_) {}
       const first = !this.state.me;
       // (returned as it is now: this.state.me is set only once React gets to it, which on a slow phone can be after)
@@ -853,7 +864,7 @@ export default class CatPalLogic extends DCLogic {
     // what the plan adds to this letter (if it's still yours when it goes)
     const plan = this.state.plan as Plan;
     // (Plus) a few new letters a day — replies are always open
-    if (plan.plus && !c.reply && this.newLettersToday() >= PLAN.newPerDay) { this.cmpSending = false; this.setCmp({ err: this.tx("plLeftNone", { of: PLAN.newPerDay }) }); return; }
+    if (plan.plus && !this.state.tester && !c.reply && this.newLettersToday() >= PLAN.newPerDay) { this.cmpSending = false; this.setCmp({ err: this.tx("plLeftNone", { of: PLAN.newPerDay }) }); return; }
     // (Plus) every letter goes by Fast Bird; otherwise, a fast bird if one's picked
     this.sendExtras = { fast: plan.plus || (!!c.fast && plan.birds > 0), chosen_stamp: plan.plus && c.stampChosen ? c.stamp || 0 : null };
     // the letter is already sealed in its envelope: off to the map at once, which waits over your country (the cat
@@ -998,9 +1009,9 @@ export default class CatPalLogic extends DCLogic {
   /** the link, to a friend: the device's share sheet where there is one (WhatsApp, Instagram DM, KakaoTalk…), else copied */
   async shareInvite() {
     const inv = this.state.cmp?.invite; if (!inv) return;
-    const text = this.tx("ivShareText");
+    // (the link alone: nothing else goes with it)
     if (typeof navigator !== "undefined" && (navigator as any).share) {
-      try { await (navigator as any).share({ title: "Cat Pal", text, url: inv.url }); return; } catch (e: any) { if (e && e.name === "AbortError") return; }
+      try { await (navigator as any).share({ url: inv.url }); return; } catch (e: any) { if (e && e.name === "AbortError") return; }
     }
     this.copyInvite();
   }
@@ -1095,14 +1106,13 @@ export default class CatPalLogic extends DCLogic {
         return;
       }
     }
-    // the message, in the app's language: its title, its line and the link, as one text — given the link apart, chat
-    // apps (KakaoTalk, WhatsApp…) often keep only the link and drop the words
-    const title = this.tx("palShareTitle"), text = title + "\n" + this.tx("palShareText");
+    // (KakaoTalk's card has a title and a line; everywhere else, the link alone — copied or shared, nothing else with it)
+    const title = this.tx("palShareTitle");
     this.setState({ palShare: { ...this.state.palShare, phase: "ready", url } });
     // KakaoTalk, as a card with a button to the link (when the app has a Kakao key); the link stays here to copy too
     if (kakaoConfigured && await shareKakao({ title, description: this.tx("palShareText"), button: this.tx("palShareButton"), url, imageUrl: location.origin + "/og-image.jpg" })) return;
     if (typeof navigator !== "undefined" && (navigator as any).share) {
-      try { await (navigator as any).share({ text: text + "\n" + url }); this.setState({ palShare: { ...this.state.palShare, sent: true } }); return; }
+      try { await (navigator as any).share({ url }); this.setState({ palShare: { ...this.state.palShare, sent: true } }); return; }
       catch (e: any) { if (e && e.name === "AbortError") return; /* couldn't open now (no gesture left): the link shows, with its buttons */ }
     }
     this.setState({ palShare: { ...this.state.palShare, noSheet: !(navigator as any).share } });
@@ -1110,7 +1120,7 @@ export default class CatPalLogic extends DCLogic {
   async palCopy() {
     const p = this.state.palShare; if (!p?.url) return;
     let ok = false;
-    try { await navigator.clipboard.writeText(this.tx("palShareTitle") + "\n" + this.tx("palShareText") + "\n" + p.url); ok = true; } catch (_) {
+    try { await navigator.clipboard.writeText(p.url); ok = true; } catch (_) {
       try { const t = document.createElement("textarea"); t.value = p.url; t.style.position = "fixed"; t.style.opacity = "0"; document.body.appendChild(t); t.select(); ok = document.execCommand("copy"); t.remove(); } catch (__) { ok = false; }
     }
     this.setState({ palShare: { ...p, copied: ok, sent: p.sent || ok, err: ok ? "" : this.tx("ivCopyFail") } });
@@ -1157,7 +1167,13 @@ export default class CatPalLogic extends DCLogic {
     this.openAccount("settings", this.tx(this.state.settings?.notify_letters ? "acConfirmedNotify" : "acConfirmed"));
   }
   async loadAccount() { try { this.setState({ account: await api.myAccount() }); } catch (_) { /* as it was */ } }
-  async loadSettings() { const me = this.state.me; if (!me) return; const settings = await api.mySettings(me.id); this.setState({ settings }); }
+  async loadSettings() {
+    const me = this.state.me; if (!me) return;
+    let settings = await api.mySettings(me.id);
+    // (matching is what CatPal is for: a saved account that had turned it off, back on — there's no "off" any more)
+    if (settings && !settings.match_opt_in && this.state.account?.confirmed) settings = await api.saveMySettings({ match: true }).catch(() => settings);
+    this.setState({ settings });
+  }
   async loadWaiting() { if (!this.state.me) return; this.setState({ waiting: await api.myWaitingLetter() }); }
   /** where a sign-in / confirm link brings you back: here, with the letter you came for (no token in it, ever) */
   authRedirect() { return location.origin + location.pathname + (OPEN_LETTER ? "?open=" + OPEN_LETTER : ""); }
@@ -1181,7 +1197,7 @@ export default class CatPalLogic extends DCLogic {
     const a = this.state.account, st = this.state.settings, me = this.state.me;
     const m = mode || (a?.confirmed ? "settings" : "register");
     this.setState({ acct: { mode: m, note, email: a?.pendingEmail || "", notify: st ? st.notify_letters : false, match: st ? st.match_opt_in : false,
-      origin: me ? originOf(me) : guessCountry() || "", busy: false, err: "", sent: "", after } });
+      busy: false, err: "", sent: "", after } });
   }
   /** the letter I sent last (in the last few minutes): its flight as the server set it (deliver_at), or null */
   lastTripMs(): number | null {
@@ -1209,8 +1225,7 @@ export default class CatPalLogic extends DCLogic {
       // address counts only once its link is opened (no email goes to an address nobody confirmed)
       if (!(await api.currentUserId())) await api.signInAnonymously();
       const me = this.state.me;
-      if (me && a.origin && a.origin !== originOf(me)) { const saved = await api.saveProfile(me.id, me.nickname, me.country, undefined, a.origin); this.setState((p) => ({ me: { ...p.me, ...saved } })); }
-      // (saving my letters = other CatPals can be matched to write to me; the sheet says so, and Settings turns it off)
+      // (saving my letters = other CatPals can be matched to write to me — what CatPal is for; the sheet says so)
       const settings = await api.saveMySettings({ notify: !!a.notify, match: true }).catch(() => null);
       if (settings) this.setState({ settings });
       await api.linkEmail(email, this.authRedirect());
@@ -1227,18 +1242,12 @@ export default class CatPalLogic extends DCLogic {
     }
   }
   /** a setting, changed (settings: kept at once) */
-  async acctToggle(key: "notify" | "match") {
+  async acctToggle(key: "notify") {
     const a = this.state.acct; if (!a) return;
     const on = !a[key]; this.setAcct({ [key]: on, err: "" });
     if (a.mode !== "settings") return;
-    try { const settings = await api.saveMySettings(key === "notify" ? { notify: on } : { match: on }); this.setState({ settings }); }
+    try { const settings = await api.saveMySettings({ notify: on }); this.setState({ settings }); }
     catch (e) { this.setAcct({ [key]: !on, err: api.errorText(e) }); }
-  }
-  async acctOrigin(cc: string) {
-    const me = this.state.me; this.setAcct({ origin: cc });
-    if (!me || this.state.acct?.mode !== "settings" || !cc || cc === originOf(me)) return;
-    try { const saved = await api.saveProfile(me.id, me.nickname, me.country, undefined, cc); this.setState((p) => ({ me: { ...p.me, ...saved } })); }
-    catch (e) { this.setAcct({ err: api.errorText(e) }); }
   }
   // ---- master controls (for testing): held Passport in the dock opens them. Every action is checked by the server
   // (supabase/fix-2026-11-16-master-controls.sql): only an account unlocked with the master code can use them.
@@ -1620,22 +1629,25 @@ export default class CatPalLogic extends DCLogic {
       if (!sample && me) for (const t of (st.testStamps || []) as { cc: string; created_at: string }[]) { const c = cOf(t.cc); if (!c.stampIso) { c.stampIso = t.created_at; c.test = true; } }
       for (const [, c] of by) for (const [uid, p] of c.pals) if (!p.photo) p.photo = latestMomentOf(uid) || "";
       const short = (iso: string) => (iso ? day(iso) : "");
-      // the pages: the countries with a postmark of their own (the app's own postmark art); your own country is in the folder
-      // (and every other country you've a stamp from: the shared postmark, with its name)
-      const all = [...POSTMARK_COUNTRIES, ...[...by.keys()].filter((cc) => !POSTMARK_COUNTRIES.includes(cc) && by.get(cc)?.stampIso)]
-        .filter((cc) => cc && (cc !== (myOrigin || (sample ? "KR" : "")) || by.get(cc)?.stampIso));
+      // the pages: every country you've a stamp from (each has a postmark of its own), then — faint, "still to come" — a
+      // few well-known ones you haven't yet. Your own country is in the folder, not here (unless a CatPal from it wrote)
+      const home = myOrigin || (sample ? "KR" : "");
+      const gotCC = [...by.keys()].filter((cc) => cc && by.get(cc)?.stampIso);
+      const all = [...gotCC, ...POSTMARK_COUNTRIES.filter((cc) => cc !== home && !gotCC.includes(cc)).slice(0, 4)];
+      // (out of: every country there is, but your own)
+      const outOf = ALL_POSTMARKS.filter((cc) => cc !== home).length;
       const stamps = all.map((cc, i) => {
         const c = by.get(cc), got = !!c?.stampIso, mark = !!c?.markIso, pl = c ? [...c.pals.values()] : [];
         return { cc, name: cName(cc), en: countryName(cc).toUpperCase(), img: postmarkOf(cc), stampImg: stampOf(cc), got, mark,
           iso: c?.stampIso || "", from: pl[0]?.name || (c?.test ? "Test" : ""), n: c?.n || 0, stampDate: short(c?.stampIso || ""), markDate: short(c?.markIso || ""),
           open: got ? () => this.setState({ ppCountry: cc }) : null, rot: [-8, 6, -3, 10, -6, 4, -11, 7, -4, 9, -2, 5][i % 12] };
-      }).sort((a, b) => Number(b.got) - Number(a.got) || Number(b.mark) - Number(a.mark));
+      }).sort((a, b) => Number(b.got) - Number(a.got) || (a.got ? (a.iso < b.iso ? -1 : a.iso > b.iso ? 1 : 0) : 0));   // (collected: in the order they came)
       const n = stamps.filter((x) => x.got).length, marks = stamps.filter((x) => x.mark).length;
       const countries = sample ? SAMPLE_PALS.length : palCountries, palsN = sample ? SAMPLE_PALS.length : pals.length;
       // a country opened from the page: its stamp and postmark, the letters shared, its cat pals
       const open = st.ppCountry ? stamps.find((x) => x.cc === st.ppCountry) : null, oc = open ? by.get(open.cc) : null;
       return {
-        ppSample: sample, ppStamps: stamps, ppGot: n, ppMarks: marks, ppTotal: stamps.length,
+        ppSample: sample, ppStamps: stamps, ppGot: n, ppMarks: marks, ppTotal: outOf,
         // CatPals in the folder opens them: each cat pal, and a letter to them right there
         ppCounts: [{ n: countries, l: tx("ppCountries"), toPage: true }, { n: palsN, l: tx("ppPals"), open: palsN ? () => this.setState({ ppPals: true }) : null }, { n, l: tx("ppStamps") }],
         ppPalList: !st.ppPals ? null : {
@@ -1650,7 +1662,7 @@ export default class CatPalLogic extends DCLogic {
                   write: () => { if (!t) return; this.setState({ ppPals: false, threadId: t.id, pendingMoment: null }); this.writeIn(); } };
               }),
         },
-        ppProgress: tx("ppProgress", { n, total: stamps.length }), ppCollected: tx("ppCollected", { n: String(n).padStart(2, "0"), total: String(stamps.length).padStart(2, "0") }),
+        ppProgress: tx("ppProgress", { n, total: outOf }), ppCollected: tx("ppCollected", { n: String(n).padStart(2, "0"), total: String(outOf).padStart(2, "0") }),
         ppMarksText: tx("ppMarksText", { n: String(marks).padStart(2, "0") }),
         ppSheet: open ? {
           ...open, flag: flagOf(open.cc), lettersText: tx((open.n) === 1 ? "ppLetter1" : "ppLetters", { n: open.n }),
@@ -2022,7 +2034,7 @@ export default class CatPalLogic extends DCLogic {
           info: ms && me ? [
             ["Me", `${me.nickname} · ${meId.slice(0, 8)}`],
             ["From / in", `${flagOf(originOf(me))} ${cName(originOf(me))} / ${flagOf(me.country)} ${cName(me.country)}`],
-            ["Account", acc?.confirmed ? `confirmed (${st.settings?.notify_letters ? "letter emails on" : "letter emails off"}, ${st.settings?.match_opt_in ? "matching on" : "matching off"})` : acc?.pendingEmail ? "email not confirmed yet" : "no email (visitor)"],
+            ["Account", acc?.confirmed ? `confirmed (${st.settings?.notify_letters ? "letter emails on" : "letter emails off"})` : acc?.pendingEmail ? "email not confirmed yet" : "no email (visitor) — no letter emails"],
             ["Travel scale", ms.travel_scale == null ? "?" : String(ms.travel_scale)],
             ["No CatPal → Sophie", ms.fallback == null ? "?" : ms.fallback ? "on" : "off"],
             ["Mail", `${plural(ms.threads, "conversation")} · ${plural(ms.letters, "letter")}`],
@@ -2035,12 +2047,24 @@ export default class CatPalLogic extends DCLogic {
           landNow: () => this.masterDo("land", api.masterLandNow, (n) => `${plural(n || 0, "letter")} landed now.`),
           testers, ccOpts: countryOptions(LOC), cc: m.cc || "", setCc: (cc: string) => this.setMaster({ cc }),
           give: () => m.cc && m.to && this.masterDo("give", () => api.masterGiveStamp(m.to, m.cc), () => `${flagOf(m.cc)} ${cName(m.cc)} stamp given.`),
-          giveAll: () => m.to && this.masterDo("giveAll", async () => { for (const cc of POSTMARK_COUNTRIES) await api.masterGiveStamp(m.to, cc); }, () => "Every designed stamp given."),
+          // a handful at once (to fill a few passport pages): countries they haven't a test stamp from, picked at random
+          giveSome: () => m.to && this.masterDo("giveSome", async () => {
+            const had = new Set((ms?.testers || []).find((t) => t.id === m.to)?.stamps || []);
+            const pick = ALL_POSTMARKS.filter((cc) => !had.has(cc)).sort(() => Math.random() - 0.5).slice(0, 8);
+            await Promise.all(pick.map((cc) => api.masterGiveStamp(m.to, cc)));
+            return pick;
+          }, (pick) => `${(pick || []).length} stamps given: ${(pick || []).map((cc: string) => flagOf(cc)).join(" ")}`),
           clear: () => m.to && this.masterDo("clear", () => api.masterClearStamps(m.to), (n) => `${plural(n || 0, "test stamp")} taken away.`),
           unread: () => confirm("Mark every letter to you as new again? (No email goes again.)") && this.masterDo("unread", api.masterMarkUnread, (n) => `${plural(n || 0, "letter")} new again.`),
           runMatch: () => this.masterDo("match", api.masterRunMatch, (n) => `${plural(n || 0, "waiting letter")} sent on.`),
           refresh: () => this.masterDo("refresh", () => this.refreshMail(), () => "Mail looked at again."),
           copyId: () => { try { navigator.clipboard.writeText(meId).then(() => this.setMaster({ msg: "Your id is copied." })); } catch (_) {} },
+          // CatPal Plus (not on sale): its features on, on this device, for testing — nothing is paid or charged
+          plus: !!(st.plan as Plan).plus,
+          togglePlus: () => { const on = !(st.plan as Plan).plus; writeMasterPlus(on); this.setState({ plan: { ...(st.plan as Plan), plus: on, kind: "lifetime", renews: false } }); this.setMaster({ msg: on ? "Plus features on, on this device (nothing is paid)." : "Plus features off." }); },
+          // the latest letter emails to me: sent, or why not (read already, emails off, no confirmed address…)
+          emails: ms?.emails === undefined ? null : (ms.emails || []).map((e) => ({ key: e.created_at + e.kind, when: day(e.created_at) + " " + new Date(e.created_at).toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" }),
+            what: (e.kind === "matched" ? "Matched" : "Letter") + (e.from_name ? " from " + e.from_name : ""), status: e.status, why: e.status === "sent" ? "" : e.last_error || (e.status === "pending" ? "waiting for the next run (every minute)" : "") })),
           screens: [["Onboarding story", "?intro"], ["Sample passport", "?ppSample=1"], ["Sample arrival", "?arrSample=1"]].map(([label, q]) => ({ label, go: () => this.masterGo(q) })),
           startOver: () => this.startOver(),
           lock: () => this.masterDo("lock", api.masterLock, () => "Locked on this account."),
@@ -2051,7 +2075,7 @@ export default class CatPalLogic extends DCLogic {
         return { ...a, title: tx(a.mode === "signin" ? "acSignInTitle" : a.mode === "settings" ? "acSettingsTitle" : "acTitle"),
           sub: a.note || tx(a.mode === "signin" ? "acSignInSub" : a.mode === "settings" ? "" : "acSub"),
           emailPh: tx("emPh"), go: tx(a.mode === "signin" ? "acSignInGo" : "acGo"), busyLabel: tx("acSending"),
-          notifyLabel: tx("acNotify"), matchLabel: tx("acMatch"), matchSub: tx("acMatchSub"), matchNote: tx("acMatchNote"), originLabel: tx("ppOrigin"), originOptions: countryOptions(LOC),
+          notifyLabel: tx("acNotify"), matchNote: tx("acMatchNote"),
           emailLine: acc?.confirmed ? tx("acSignedInAs", { email: acc.email }) : acc?.pendingEmail ? tx("acPending", { email: acc.pendingEmail }) : "",
           resend: a.mode === "settings" && !acc?.confirmed ? tx("acAddEmail") : "", toRegister: () => this.openAccount("register"),
           switchLabel: a.mode === "signin" ? (me ? tx("acToRegister") : "") : a.mode === "register" ? tx("acToSignIn") : "",
@@ -2061,7 +2085,7 @@ export default class CatPalLogic extends DCLogic {
           privacy: tx("acPrivacy"), close: () => { const after = this.state.acct?.after; this.setState({ acct: null }); if (after === "mailbox" && this.state.waitingPal) this.waitToMailbox(); }, closeLabel: tx("plClose"),
           donate: a.mode === "settings" && st.cfg?.donation_url ? { label: tx("dnLabel"), url: st.cfg.donation_url } : null,
           set: (e: any) => this.setAcct({ email: e.target.value.slice(0, 120), err: "" }), submit: () => this.acctSubmit(),
-          toggleNotify: () => this.acctToggle("notify"), toggleMatch: () => this.acctToggle("match"), setOrigin: (e: any) => this.acctOrigin(e.target.value) };
+          toggleNotify: () => this.acctToggle("notify") };
       })() : null,
       openSettings: me ? () => this.openAccount() : null, settingsLabel: tx(st.account?.confirmed ? "acSettingsTitle" : "acKeepLetters"),
       // Home, once letters have gone or come: the red mailbox — the letters kept in it (0 / 1 / more poking out), the
@@ -2707,13 +2731,10 @@ export default class CatPalLogic extends DCLogic {
       // the passport number: only a real one (the profile's, once issued); none is made up here. The sample shows one, marked as such.
       ppNo: ppBook.ppSample ? "CP—0001" : me && me.passport_no ? String(me.passport_no) : "",
       // the passport, edited (signed in): a new photo, the name on it
-      ppEditOpen: me ? () => this.setState({ ppEdit: { name: myName, intro: myIntro(me), origin: originOf(me), photo: st.ppPhoto || myFirstPhoto || photoOf(myLatest) || "", blob: null, busy: false, err: "" } }) : null,
+      ppEditOpen: me ? () => this.setState({ ppEdit: { name: myName, intro: myIntro(me), photo: st.ppPhoto || myFirstPhoto || photoOf(myLatest) || "", blob: null, busy: false, err: "" } }) : null,
       ppEdit: me && st.ppEdit ? { ...st.ppEdit, title: tx("ppEditTitle"), nameLabel: tx("ppName"), introLabel: tx("cpCatIntro"), introPh: tx("cpCatIntroPh"),
         setIntro: (ev) => this.setState((p) => ({ ppEdit: p.ppEdit && { ...p.ppEdit, intro: ev.target.value.slice(0, 120), err: "" } })), change: tx("ppPhotoChange"), save: tx(st.ppEdit.busy ? "ppSaving" : "ppSave"), cancelLabel: tx("ppCancel"),
         setName: (ev) => this.setState((p) => ({ ppEdit: p.ppEdit && { ...p.ppEdit, name: ev.target.value.slice(0, 24), err: "" } })),
-        // where you're from: the postmark on your letters, the stamp your CatPals collect (where you are stays as it is)
-        originLabel: tx("ppOrigin"), originHint: tx("ppOriginHint", { place: cName(me.country) }), originOptions: countryOptions(LOC), originPm: postmarkOf(st.ppEdit.origin || me.country),
-        setOrigin: (ev) => this.setState((p) => ({ ppEdit: p.ppEdit && { ...p.ppEdit, origin: ev.target.value || me.country, err: "" } })),
         pick: (f: File | null) => { if (!f) return; const r = new FileReader(); r.onload = () => this.setState((p) => ({ ppEdit: p.ppEdit && { ...p.ppEdit, photo: String(r.result), blob: f, err: "" } })); r.readAsDataURL(f); },
         go: () => this.savePassport(), cancel: () => this.setState({ ppEdit: null }) } : null,
       ppCat: (() => {

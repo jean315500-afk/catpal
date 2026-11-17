@@ -1,10 +1,11 @@
-// HOME, once a first letter has gone — the red mailbox, big, in the sky: the letters kept in it poking
+// HOME, once a first letter has gone — the red mailbox, big, in the sky: the letters not read yet poking
 // out of its open door (none: shut; one; more), a red badge for the ones not read yet (they give a little hop now and
 // then), standing on the globe at the page's foot (turning slowly; tapped, on to the Map) — the mailbox itself opens
 // the Mailbox. At the bottom right, a round button to write one. Reduced motion: all of it still; the words say how things stand.
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { I } from '../dc/runtime';
 import type { Vals } from '../dc/runtime';
+import { hasWebGL } from '../community/webgl';
 
 const INK = "#22304A", MUTED = "#5E6A80";
 /** the mailbox's three pictures, side by side (184 × 220 each): shut · a letter or two · a pile */
@@ -12,8 +13,6 @@ const FRAMES = "./assets/home/mailbox-frames.webp", MB_W = 196, MB_H = Math.roun
 const reduce = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 /** the Map's own globe, turning slowly under it all (WebGL only: without it, no globe here) */
 const GlobeMap3D = lazy(() => import('../community/GlobeMap3D'));
-let webgl: boolean | null = null;
-const hasWebGL = () => { if (webgl === null) { try { const c = document.createElement("canvas"); webgl = !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { webgl = false; } } return webgl; };
 /** the globe at the page's foot: its middle on the page's bottom edge, its radius 0.58 of the page's width (at most
  *  520 px of it) — the mailbox stands on its top. Its box: taller than wide (so the globe keeps that size) */
 const globeOf = (w: number) => { const h = Math.max(500, Math.round(w * 1.3)), fit = 0.58 * Math.min(1, 520 / Math.max(1, w)); return { h, fit, r: Math.round(w * fit) }; };
@@ -48,8 +47,9 @@ export default function HomeBoxScreen({ v }: { v: Vals }) {
   }, [b?.unread]);
   if (!b) return null;
   const T = b.T || {};
-  const stored = swoop ? swoop.stored : b.stored, unread = swoop ? swoop.unread : b.unread;
-  const frame = stored <= 0 ? 0 : stored === 1 ? 1 : 2;
+  const unread = swoop ? swoop.unread : b.unread;
+  // the picture goes by the letters not read yet: none — shut; one — a letter in its open door; more — a pile
+  const frame = unread <= 0 ? 0 : unread === 1 ? 1 : 2;
   const globe = globeOf(pageW || 375), onGlobe = hasWebGL();
   // "you've got letters" and the mailbox, as one, a little over the page's middle; the world, the page's foot behind
   // them, rising (or sinking) to meet the mailbox's post — it never moves the mailbox. A short page: the mailbox

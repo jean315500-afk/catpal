@@ -1,11 +1,13 @@
+import { PM_SHAPE } from './pmShapes';
 // CatPal's country postmarks: one SVG template, after the New York postmark — a round ink stamp with wavy cancel
 // lines on its left, the country's name curved along the top, one small national symbol in the middle, two little
 // stars, and "CATPAL" along the bottom. The cat is the stamp itself: two ears on its ring. Only the name and the
 // symbol change from country to country; the ring, line weight, ink texture, type and proportions never do. Each
 // country is stamped in its own symbolic colour (PM_INK).
 //
-// Countries with a symbol of their own: PM_DESIGNED. Every other country gets the shared version (a globe), with its
-// own name — so any country has a postmark. Names are kept short (USA, UK…) so they can be read small.
+// Countries with a landmark drawn by hand: PM_DESIGNED. Every other country: its own outline (./pmShapes.ts), with a
+// mark where its capital is, in its flag's colour (INK_BY_FLAG) — so every country has a postmark of its own.
+// Names are kept short (USA, UK…) so they can be read small.
 
 /** each country's ink: its own symbolic colour — dark enough to read its name small. Everyone else: postmark ink. */
 export const PM_INK: Record<string, string> = {
@@ -14,8 +16,22 @@ export const PM_INK: Record<string, string> = {
   TH: '#A87A06',   // 왕실 노랑 (the royal yellow), deepened to read
   US: '#2E7F6F',   // 자유의 여신상 청록 (Liberty's verdigris)
   FR: '#2F7FD0',   // 블뢰 드 프랑스 (bleu de France), deepened to read
+  MV: '#1E7A46',   // the Maldives' green
+  VA: '#A87A06',   // the Holy See's gold
 };
 const INK_OTHER = '#4A4440';
+/** every other country: its flag's main colour, as ink (deepened so its name reads small) */
+const INK_BY_FLAG: Record<string, string> = {
+  '#B3262E': 'AL AT BH CA CH CN DK GE GU HK JO KG KH LV MA ME MO MV MY NP OM PE PL QA SG TN TO TR TW VN YE BY CY GB LB MT MC ID PS PY',
+  '#1F4E9C': 'BA BS CV CU DO EE FJ FM GR HN IL KI LR MH NI NR PH PW SB SO TV UY BB SV GT GY BZ AU NZ IS FI SE NO HT SM KP CL CR PA VE PR AR',
+  '#1E7A46': 'BD BR DZ IR LY MR NG PK SA SD TM IE LS ZM CI ML NE SN GN GW BF TJ DM JM ZW TT KM LK UZ AF',
+  '#A87A06': 'AD BN BT RO UA VA BO EC CO SR GH CM ET MD ER',
+  '#2E2A28': 'BE DE EG IQ KE MW PG SY SS TL TZ UG ZA AO BW CF NA LT KZ',
+  '#7A1F2B': 'BG HR HU IT LU NL PT RS RU SI SK CZ AE ES KW LA MK MN MU MZ GQ GA GD KN LC AG VC LI ST CG CD BJ BI RW SC SL SZ TD TG GM MG ER EH XK AM AZ DJ MM TH IN',
+};
+const FLAG_INK: Record<string, string> = Object.fromEntries(Object.entries(INK_BY_FLAG).flatMap(([ink, ccs]) => ccs.split(' ').map((cc) => [cc, ink])));
+/** a country's ink: its own (the five drawn ones), its flag's, or postmark ink */
+export const inkOf = (cc: string) => PM_INK[cc] || FLAG_INK[cc] || INK_OTHER;
 
 const W = 240, H = 160, CX = 150, CY = 84, R = 62, RING = 4.6;
 
@@ -62,6 +78,26 @@ const SYMBOL: Record<string, string> = {
     <path d="M-3.5 0 L-2 16 M3.4 -1 L4.6 16" stroke="${PAPER}" stroke-width="1.3" stroke-linecap="round"/>
     <rect x="-13" y="19" width="26" height="5.5" rx="1"/>
     <rect x="-17" y="24.5" width="34" height="6" rx="1"/>`,
+  // a palm on a little island (the Maldives: atolls too small to draw as a country)
+  MV: `<path d="M-1 28 C0 14 3 0 9 -14" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+    <path d="M9 -14 C0 -24 -14 -22 -22 -12 C-12 -16 -3 -15 9 -14 Z"/>
+    <path d="M9 -14 C14 -27 26 -30 33 -24 C24 -22 16 -20 9 -14 Z"/>
+    <path d="M9 -14 C18 -14 28 -8 31 2 C23 -5 16 -9 9 -14 Z"/>
+    <path d="M9 -14 C4 -6 -4 -2 -13 1 C-6 -8 1 -12 9 -14 Z"/>
+    <circle cx="6" cy="-10" r="2.6"/><circle cx="11.5" cy="-9.4" r="2.4"/>
+    <path d="M-30 30 Q-14 20 0 22 Q16 20 30 30 Z"/>`,
+  // St Peter's dome (Vatican City)
+  VA: `<path d="M0 -42 V-34" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M-3 -34 H3 V-28 H-3 Z"/>
+    <path d="M-17 -6 C-17 -22 -9 -29 0 -29 C9 -29 17 -22 17 -6 Z"/>
+    <rect x="-20" y="-7" width="40" height="5" rx="1"/>
+    <rect x="-17" y="-2" width="34" height="8" rx="1"/>
+    <path d="M-12 0 V5 M-6 0 V5 M0 0 V5 M6 0 V5 M12 0 V5" stroke="${PAPER}" stroke-width="1.6" stroke-linecap="round"/>
+    <rect x="-30" y="6" width="60" height="6" rx="1"/>
+    <rect x="-30" y="12" width="60" height="12" rx="1"/>
+    <path d="M-24 15 V21 M-16 15 V21 M-8 15 V21 M8 15 V21 M16 15 V21 M24 15 V21" stroke="${PAPER}" stroke-width="2" stroke-linecap="round"/>
+    <path d="M-4 24 V17 Q0 13 4 17 V24 Z" fill="${PAPER}"/>
+    <rect x="-34" y="24" width="68" height="5" rx="1"/>`,
   // the Eiffel Tower
   FR: `<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
       <path d="M0 -42 V-34" stroke-width="2.2"/>
@@ -80,8 +116,17 @@ const GLOBE = `<g fill="none" stroke="currentColor" stroke-width="3.2">
   </g>
   <path d="M-16 28 H16" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>`;
 
-/** the countries with a symbol of their own */
+/** the countries drawn by hand (a landmark of their own) */
 export const PM_DESIGNED = Object.keys(SYMBOL);
+/** every country has a postmark of its own: drawn by hand (a landmark), or its own outline with a little mark where
+ *  its capital is (made from the world map: ./pmShapes.ts) — the globe only for a code that isn't a country */
+export const PM_COUNTRIES = [...PM_DESIGNED, ...Object.keys(PM_SHAPE).filter((cc) => !SYMBOL[cc])];
+function symbolOf(cc: string) {
+  if (SYMBOL[cc]) return SYMBOL[cc];
+  const s = PM_SHAPE[cc]; if (!s) return GLOBE;
+  const [d, x, y] = s;
+  return `<path d="${d}" fill-rule="evenodd"/><circle cx="${x}" cy="${y}" r="3.6" fill="${PAPER}"/><circle cx="${x}" cy="${y}" r="1.7"/>`;
+}
 
 const star = (x: number, y: number, r: number) => {
   const p = [...Array(10)].map((_, i) => { const a = -Math.PI / 2 + (i * Math.PI) / 5, k = i % 2 ? r * 0.45 : r; return (x + k * Math.cos(a)).toFixed(2) + ' ' + (y + k * Math.sin(a)).toFixed(2); });
@@ -110,7 +155,7 @@ export function postmarkSvg(cc: string, name: string): string {
     return `<path d="${d} L${end.toFixed(1)} ${y}"/>`;
   }).join('');
   const font = `font-family="'Arial Rounded MT Bold','Avenir Next','Helvetica Neue',Arial,sans-serif" font-weight="800"`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" color="${PM_INK[cc] || INK_OTHER}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" color="${inkOf(cc)}">
 <defs>
   <filter id="ink" x="-4%" y="-4%" width="108%" height="108%" color-interpolation-filters="sRGB">
     <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="2" seed="4" result="grain"/>
@@ -131,7 +176,7 @@ export function postmarkSvg(cc: string, name: string): string {
   <text ${font} font-size="${fs.toFixed(1)}" letter-spacing="${(fs * 0.06).toFixed(2)}" fill="currentColor" text-anchor="middle"><textPath href="#top" startOffset="50%">${label}</textPath></text>
   <text ${font} font-size="8.6" letter-spacing="2.4" fill="currentColor" text-anchor="middle"><textPath href="#bottom" startOffset="50%">CATPAL</textPath></text>
   <g fill="currentColor">${star(CX - 43, CY + 12, 5.2)}${star(CX + 42, CY - 2, 5.2)}${star(CX + 44, CY + 18, 4.2)}</g>
-  <g transform="translate(${CX} ${CY + 5}) scale(0.94)" fill="currentColor">${SYMBOL[cc] || GLOBE}</g>
+  <g transform="translate(${CX} ${CY + 5}) scale(0.94)" fill="currentColor">${symbolOf(cc)}</g>
 </g>
 </svg>`;
 }

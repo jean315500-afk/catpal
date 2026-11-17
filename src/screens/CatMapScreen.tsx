@@ -15,14 +15,10 @@ import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 're
 import GlobeMap from '../community/GlobeMap';
 const DetailMap = lazy(() => import('../community/DetailMap'));
 import { FLIGHT_S } from '../community/CatMap';
+import { hasWebGL } from '../community/webgl';
 
 /** the 3D globe (Three.js), loaded when the Map is first opened; without WebGL, the 2D globe instead */
 const GlobeMap3D = lazy(() => import('../community/GlobeMap3D'));
-let webgl: boolean | null = null;
-const hasWebGL = () => {
-  if (webgl === null) { try { const c = document.createElement('canvas'); webgl = !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { webgl = false; } }
-  return webgl;
-};
 
 export default function CatMapScreen({ v }: { v: Vals }) {
   return v.sCatMap ? <CatMap v={v} /> : null;

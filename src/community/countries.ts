@@ -1,4 +1,4 @@
-import { PM_DESIGNED, postmarkName, postmarkSvg } from './postmarks';
+import { PM_COUNTRIES, postmarkName, postmarkSvg } from './postmarks';
 // Countries: ISO 3166-1 alpha-2 code -> approximate capital [lon, lat] (for the
 // globe and distances), localized names, flags and postmarks.
 
@@ -81,6 +81,23 @@ export function guessCountry() {
   return '';
 }
 
+let detected: Promise<string> | null = null;
+/** where this visit comes from, by its internet address (the app's server: /api/country); not known — or the server
+ *  isn't there (a local run) — the guess above (the device's time zone, its language). Asked once per visit. */
+export function detectCountry(): Promise<string> {
+  if (detected) return detected;
+  detected = (async () => {
+    try {
+      const ac = new AbortController(), t = setTimeout(() => ac.abort(), 2500);
+      const r = await fetch('/api/country', { signal: ac.signal, cache: 'no-store' }); clearTimeout(t);
+      const cc = r.ok && /json/.test(r.headers.get('content-type') || '') ? String((await r.json())?.country || '') : '';
+      if (COUNTRY_COORDS[cc]) return cc;
+    } catch { /* the guess, below */ }
+    return guessCountry();
+  })();
+  return detected;
+}
+
 /** Great-circle distance between two countries' capitals, km (null if unknown). */
 export function distanceKm(a: string, b: string): number | null {
   const p = COUNTRY_COORDS[a], q = COUNTRY_COORDS[b];
@@ -106,10 +123,11 @@ export const fastMs = (ms: number) => Math.max(15 * 60e3, Math.round(ms / 4));
 /** "lon:lat" token understood by public/globe.html. */
 export const globePoint = (cc: string) => (COUNTRY_COORDS[cc] ? COUNTRY_COORDS[cc].join(':') : '');
 
-// The country postmarks: one template (./postmarks.ts) — five with a symbol of their own (PM_DESIGNED), every other
-// country the shared one with its name.
-/** the countries with a postmark of their own (the stamp book's pages, as it starts) */
-export const POSTMARK_COUNTRIES = PM_DESIGNED;
+// The country postmarks: one template (./postmarks.ts) — every country its own (a landmark drawn by hand, or its outline).
+/** every country with a postmark (all of them): what a passport can collect */
+export const ALL_POSTMARKS = PM_COUNTRIES;
+/** a few well-known countries, shown faint in the passport as the stamps still to come (and the samples' pages) */
+export const POSTMARK_COUNTRIES = ['KR', 'JP', 'FR', 'US', 'TH', 'GB', 'IT', 'TW', 'AU', 'CA', 'SG', 'DE'];
 /** each country's own stamp (one of the app's stamp designs): the same country, the same stamp, every time */
 const STAMP_OF: Record<string, number> = { KR: 1, JP: 2, FR: 3, US: 4, GB: 5, IT: 6, TW: 7, TH: 8, ID: 2, AU: 5, CA: 6, SG: 3 };
 export const stampOf = (cc: string) => './assets/stamp-' + (STAMP_OF[cc] ?? ((((cc || 'XX').charCodeAt(0) * 31 + (cc || 'XX').charCodeAt(1)) % 8) + 1)) + '.png';

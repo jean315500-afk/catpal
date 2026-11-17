@@ -26,14 +26,10 @@ import DottedGlobe, { type DottedControl } from './DottedGlobe';
 import { ASSETS, LANDING_LANG, NATURAL, SPOTS, unsplashCrop } from './config';
 import { saveLang } from '../community/lang';
 import { distanceKm, postmarkOf } from '../community/countries';
+import { hasWebGL } from '../community/webgl';
 
 gsap.registerPlugin(MotionPathPlugin);
 const PastelGlobe = lazy(() => import('./PastelGlobe'));
-let webgl: boolean | null = null;
-const hasWebGL = () => {
-  if (webgl === null) { try { const c = document.createElement('canvas'); webgl = !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { webgl = false; } }
-  return webgl;
-};
 
 const KO = LANDING_LANG === 'ko';
 const WORDS = KO ? {

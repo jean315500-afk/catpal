@@ -3,14 +3,10 @@ import { I } from '../dc/runtime';
 import type { Vals } from '../dc/runtime';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import LetterFlight from './LetterFlight';
+import { hasWebGL } from '../community/webgl';
 
 /** the Map's 3D globe (the same earth, the letter on its dotted curve); without WebGL, the dotted globe (LetterFlight) */
 const GlobeMap3D = lazy(() => import('../community/GlobeMap3D'));
-let webgl: boolean | null = null;
-const hasWebGL = () => {
-  if (webgl === null) { try { const c = document.createElement('canvas'); webgl = !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { webgl = false; } }
-  return webgl;
-};
 const ll = (p: [number, number]) => ({ lon: p[0], lat: p[1] });
 /** the card over the globe that asks something (no one free; only someone at home): one button, small links under it */
 const dlg = { position: "absolute", left: "22px", right: "22px", bottom: "34px", maxWidth: "380px", margin: "0 auto", boxSizing: "border-box", padding: "20px 20px 14px", borderRadius: "24px", background: "rgba(255,255,255,.95)", boxShadow: "0 12px 30px rgba(34,48,74,.14)", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", animation: "cp-rise2 .5s cubic-bezier(.2,.8,.2,1) both" } as const;

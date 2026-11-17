@@ -15,14 +15,10 @@ import { ASSETS, COPY, DESTINATION, GLOBE_VIEW as V, NATURAL, ORIGIN, PLACES, SP
 import { cobeProject, type GlobeControl } from '@/components/ui/globe';
 import DottedGlobe, { type GlobeView } from './DottedGlobe';
 import { lazy, Suspense } from 'react';
+import { hasWebGL } from '../community/webgl';
 
 /** the app's pastel earth (the Map's), loaded with three.js as the story starts; without WebGL, the dotted globe */
 const PastelGlobe = lazy(() => import('./PastelGlobe'));
-let webgl: boolean | null = null;
-const hasWebGL = () => {
-  if (webgl === null) { try { const c = document.createElement('canvas'); webgl = !!(c.getContext('webgl2') || c.getContext('webgl')); } catch { webgl = false; } }
-  return webgl;
-};
 
 gsap.registerPlugin(MotionPathPlugin);
 gsap.config({ nullTargetWarn: false });

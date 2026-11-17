@@ -317,7 +317,9 @@ export async function markReadLanded(threadId: string): Promise<boolean> {
 // master code can use them — the server checks every call.
 export type MasterTester = { id: string; name: string; country: string; origin: string; active: string | null; stamps: string[] };
 export type MasterState = { me: string; instant: boolean; travel_scale: number | null; fallback: boolean | null; operator: string | null; testers: MasterTester[];
-  flying_to_me: number; flying_from_me: number; waiting: number; threads: number; letters: number };
+  flying_to_me: number; flying_from_me: number; waiting: number; threads: number; letters: number;
+  /** (once supabase/fix-2026-11-17-…sql has run) the latest letter emails to me: how each went, and why not */
+  emails?: { kind: string; status: string; last_error: string | null; created_at: string; sent_at: string | null; from_name: string | null }[] | null };
 const rpcOf = async <T,>(fn: string, args: Record<string, unknown> = {}): Promise<T> => must(await supabase.rpc(fn, args)) as T;
 export const masterState = () => rpcOf<MasterState | null>('master_state');
 export const masterUnlock = (code: string) => rpcOf<boolean>('master_unlock', { p_code: code });

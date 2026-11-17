@@ -6,6 +6,7 @@
 //                 stamp images) stamped on for each country a CatPal has written to you from, with the date and their
 //                 name; under OFFICIAL VISAS, the countries still to come, faint in dashed rings
 // "?ppSample=1" (or the Map's / Mailbox's sample) shows sample stamps, labelled as such.
+import { useEffect, useRef, useState } from 'react';
 import { each, I } from '../dc/runtime';
 import type { Vals } from '../dc/runtime';
 import { TraitChips } from './ComposeScreen';
@@ -16,8 +17,6 @@ const FOLDER = "#E4D8BF", BACK = "#B9C5CB";
 
 /** a little scatter, the same every time: [dx, dy] */
 const jitter = (cc: string, i: number) => [((cc.charCodeAt(0) * 13 + i * 7) % 15) - 7, ((cc.charCodeAt(1) * 11 + i * 5) % 13) - 6];
-/** "2026. 10. 25. · LÉA": under a stamp, when (the app's one date form) and from whom */
-const note = (s: any) => (s.stampDate || "") + (s.from ? " · " + s.from.toUpperCase() : "");
 
 function Folder({ v }: { v: Vals }) {
   const c = v.ppCat || {}, T = v.ppT || {};
@@ -30,7 +29,7 @@ function Folder({ v }: { v: Vals }) {
       </div>
       <div className="cp-mb-panel" style={{ ["--paper" as string]: FOLDER, minHeight: "0", padding: "18px 16px 16px" }}>
         <div style={{ position: "relative", display: "flex", gap: "16px", alignItems: "flex-start" }}>
-          {/* settings: my email, letter emails, matching, where I'm from */}
+          {/* settings: my email, letter emails */}
           {v.openSettings ? (
             <span onClick={v.openSettings} role="button" className="dc-hover-2" style={{ position: "absolute", right: "60px", top: "-6px", display: "inline-flex", alignItems: "center", gap: "4px", padding: "4px 10px", borderRadius: "999px", background: "rgba(255,255,255,.7)", boxShadow: "inset 0 0 0 1px rgba(34,48,74,.14)", fontWeight: 700, fontSize: "11.5px", lineHeight: "15px", color: INK, cursor: "pointer" }}>
               ⚙︎ {I(v.settingsLabel)}
@@ -95,43 +94,109 @@ const EMBLEM = (
  *  "ENTRIES / DEPARTURES" and "OFFICIAL VISAS" up the side); where things go on it, as fractions of it */
 const VISA = { src: "./assets/passport-visa.webp", ratio: "900 / 1060", x0: 0.2, x1: 0.93, entries: [0.13, 0.5], visas: [0.555, 0.8] };
 
-function PassportPage({ v }: { v: Vals }) {
-  const T = v.ppT || {}, stamps: any[] = v.ppStamps || [];
-  const got = stamps.filter((s) => s.got), rest = stamps.filter((s) => !s.got);
-  // the more there are, the smaller each goes, so they all fit their section
-  const sw = got.length <= 2 ? 38 : got.length <= 4 ? 31 : got.length <= 6 ? 27 : got.length <= 9 ? 23 : 20;
-  const cols = rest.length <= 4 ? rest.length : rest.length <= 8 ? Math.ceil(rest.length / 2) : Math.ceil(rest.length / 3);
-  const gw = Math.min(19, 86 / Math.max(1, cols));
+/** stamps on a page of the passport: four (two by two), then the next page */
+const PER_PAGE = 4;
+const reduceMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** one visa page: its stamps under ENTRIES / DEPARTURES; on the last page, under OFFICIAL VISAS, a few still to come */
+function VisaSheet({ v, got, ghosts, first, id }: { v: Vals; got: any[]; ghosts: any[] | null; first: number; id?: string }) {
+  const T = v.ppT || {};
   const area = (y: number[]) => ({ position: "absolute", left: VISA.x0 * 100 + "%", right: (1 - VISA.x1) * 100 + "%", top: y[0] * 100 + "%", bottom: (1 - y[1]) * 100 + "%",
     display: "flex", flexWrap: "wrap", alignItems: "center", alignContent: "center", justifyContent: "center" } as const);
+  const gw = ghosts && ghosts.length ? Math.min(19, 86 / ghosts.length) : 19;
   return (
-    <div id="cp-pp-visa" className="cp-visa" style={{ aspectRatio: VISA.ratio, backgroundImage: `url(${VISA.src})`, scrollMarginTop: "24px" }}>
+    <div id={id} className="cp-visa" style={{ aspectRatio: VISA.ratio, backgroundImage: `url(${VISA.src})`, scrollMarginTop: "24px" }}>
       <span className="cp-visa-count" style={{ left: VISA.x0 * 100 + "%", right: (1 - VISA.x1) * 100 + "%" }}>{I(v.ppCollected)}{" · "}{I(v.ppMarksText)}</span>
-      {/* entries: the stamps collected, stamped on a little askew */}
-      <div style={{ ...area(VISA.entries), gap: "4px 12px" }}>
+      {/* entries: the stamps collected, stamped on a little askew — four to a page, two by two */}
+      <div style={{ ...area(VISA.entries), gap: "2px 16px" }}>
         {got.length ? got.map((s, i) => {
-          const [dx, dy] = jitter(s.cc, i);
+          const [dx, dy] = jitter(s.cc, first + i);
           return (
             <div key={s.cc} className={"cp-ppb-stamp" + (s.open ? " dc-hover-2" : "")} onClick={s.open || undefined} role={s.open ? "button" : undefined}
-              aria-label={s.name + " · " + s.from} style={{ width: sw + "%", ["--r" as string]: s.rot + "deg", ["--d" as string]: i * 90 + "ms", margin: `${dy / 2}px ${dx / 2}px` }}>
+              aria-label={s.name + " · " + s.from} style={{ width: "33%", ["--r" as string]: s.rot + "deg", ["--d" as string]: i * 90 + "ms", margin: `${dy / 2}px ${dx / 2}px` }}>
               {/* only its postmark, inked onto the page (no postage stamp) */}
               <span style={{ position: "relative", display: "block", width: "100%", aspectRatio: "1.3" }}>
                 <img src={s.img} alt="" draggable={false} className="cp-ppb-ink" style={{ position: "absolute", left: "8%", top: "4%", width: "84%" }} />
               </span>
-              <span className="cp-ppb-note">{note(s)}</span>
+              {/* when, and from whom — two short lines, so side by side they never run together */}
+              <span className="cp-ppb-note">{s.stampDate || ""}{s.from ? <><br />{s.from.toUpperCase()}</> : null}</span>
             </div>
           );
         }) : <span className="cp-visa-empty">{I(T.ppEmptyPage)}</span>}
       </div>
-      {/* official visas: the countries still to come, faint */}
-      <div style={{ ...area(VISA.visas), gap: "6px" }}>
-        {rest.map((s) => (
-          <div key={s.cc} className="cp-ppb-ghost" aria-label={s.name + ", " + T.ppNotYet} style={{ width: gw + "%" }}>
-            <img src={s.img} alt="" draggable={false} />
-            <span>{s.en}</span>
+      {/* official visas (the last page): a few countries still to come, faint */}
+      {ghosts ? (
+        <div style={{ ...area(VISA.visas), gap: "6px" }}>
+          {ghosts.map((s) => (
+            <div key={s.cc} className="cp-ppb-ghost" aria-label={s.name + ", " + T.ppNotYet} style={{ width: gw + "%" }}>
+              <img src={s.img} alt="" draggable={false} />
+              <span>{s.en}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** the passport's visa pages: as many as the stamps need (never an empty one to turn to), turned like a book's — a
+ *  swipe, or the arrows under it; the page turns over from its binding */
+function PassportPage({ v }: { v: Vals }) {
+  const stamps: any[] = v.ppStamps || [];
+  const got = stamps.filter((s) => s.got), rest = stamps.filter((s) => !s.got);
+  const pages = Math.max(1, Math.ceil(got.length / PER_PAGE));
+  const [pg, setPg] = useState(0);
+  const [turn, setTurn] = useState<{ from: number; to: number } | null>(null);
+  const at = Math.min(pg, pages - 1);
+  useEffect(() => { if (pg > pages - 1) setPg(pages - 1); }, [pages]);
+  useEffect(() => { if (!turn) return; const t = setTimeout(() => setTurn(null), 620); return () => clearTimeout(t); }, [turn]);
+  const go = (to: number) => {
+    if (to < 0 || to > pages - 1 || to === at || turn) return;
+    if (!reduceMotion()) setTurn({ from: at, to });
+    setPg(to);
+  };
+  const sheet = (p: number, id?: string) => <VisaSheet v={v} id={id} first={p * PER_PAGE} got={got.slice(p * PER_PAGE, p * PER_PAGE + PER_PAGE)} ghosts={p === pages - 1 ? rest : null} />;
+  // a swipe across the page turns it
+  const start = useRef<{ x: number; y: number } | null>(null);
+  const onDown = (e: React.PointerEvent) => { start.current = { x: e.clientX, y: e.clientY }; };
+  const onUp = (e: React.PointerEvent) => {
+    const s0 = start.current; start.current = null; if (!s0) return;
+    const dx = e.clientX - s0.x, dy = e.clientY - s0.y;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.4) go(at + (dx < 0 ? 1 : -1));
+  };
+  // turning forward: the page you were on lifts off its binding and over; back: the earlier one comes back over it
+  const fwd = turn ? turn.to > turn.from : true;
+  const under = turn ? (fwd ? turn.to : turn.from) : at, over = turn ? (fwd ? turn.from : turn.to) : -1;
+  const arrow = (dir: -1 | 1) => {
+    const off = dir < 0 ? at <= 0 : at >= pages - 1;
+    return (
+      <span onClick={off ? undefined : () => go(at + dir)} role="button" aria-label={dir < 0 ? "Previous page" : "Next page"} aria-disabled={off}
+        className={off ? undefined : "dc-hover-2"} style={{ width: "38px", height: "38px", borderRadius: "19px", background: "rgba(255,255,255,.85)", boxShadow: "0 2px 6px rgba(40,30,20,.1)", display: "flex", alignItems: "center", justifyContent: "center", color: INK, fontSize: "20px", lineHeight: "1", cursor: off ? "default" : "pointer", opacity: off ? 0.3 : 1, userSelect: "none" }}>{dir < 0 ? "‹" : "›"}</span>
+    );
+  };
+  return (
+    <div>
+      <div onPointerDown={onDown} onPointerUp={onUp} onPointerCancel={() => { start.current = null; }} style={{ position: "relative", touchAction: "pan-y", perspective: "1600px" }}>
+        {sheet(under, "cp-pp-visa")}
+        {over >= 0 ? (
+          <div aria-hidden="true" className={fwd ? "cp-pp-turn-out" : "cp-pp-turn-in"} style={{ position: "absolute", inset: "0", transformOrigin: VISA.x0 * 100 * 0.62 + "% 50%", backfaceVisibility: "hidden", pointerEvents: "none" }}>
+            {sheet(over)}
+            <i className="cp-pp-turn-shade" />
           </div>
-        ))}
+        ) : null}
       </div>
+      {/* more than one page: the arrows, and which page of how many */}
+      {pages > 1 ? (
+        <div style={{ marginTop: "12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "14px" }}>
+          {arrow(-1)}
+          <span style={{ display: "flex", gap: "6px" }}>
+            {Array.from({ length: pages }, (_, i) => (
+              <span key={i} onClick={() => go(i)} role="button" aria-label={"Page " + (i + 1)} style={{ width: i === at ? "18px" : "7px", height: "7px", borderRadius: "4px", background: i === at ? INK : "rgba(34,48,74,.25)", transition: "width .2s ease", cursor: "pointer" }} />
+            ))}
+          </span>
+          {arrow(1)}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -236,20 +301,6 @@ function EditSheet({ v }: { v: Vals }) {
           <input value={e.name} onChange={e.setName} maxLength={24} disabled={e.busy}
             style={{ height: "46px", padding: "0 14px", borderRadius: "14px", border: "1px solid #DDD3C2", background: "#fff", fontSize: "16px", fontWeight: 600, color: INK, outline: "none" }} />
         </label>
-        {/* where you're from: the postmark your letters carry (where you are stays as it is) */}
-        {e.originOptions ? (
-          <label style={{ marginTop: "12px", alignSelf: "stretch", display: "flex", flexDirection: "column", gap: "6px" }}>
-            <span className="cp-pp-label">{I(e.originLabel)}</span>
-            <span style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <select value={e.origin || ""} onChange={e.setOrigin} disabled={e.busy} aria-label={e.originLabel}
-                style={{ flex: 1, minWidth: 0, height: "46px", padding: "0 12px", borderRadius: "14px", border: "1px solid #DDD3C2", background: "#fff", fontSize: "16px", fontWeight: 600, color: INK, outline: "none", cursor: "pointer" }}>
-                {e.originOptions.map((o: any) => <option key={o.cc} value={o.cc}>{o.label}</option>)}
-              </select>
-              <img src={e.originPm} alt="" style={{ width: "66px", height: "44px", objectFit: "contain", flex: "none" }} />
-            </span>
-            <span style={{ fontSize: "12px", lineHeight: "17px", color: "#7A7466" }}>{I(e.originHint)}</span>
-          </label>
-        ) : null}
         <label style={{ marginTop: "12px", alignSelf: "stretch", display: "flex", flexDirection: "column", gap: "6px" }}>
           <span className="cp-pp-label">{I(e.introLabel)}</span>
           <textarea value={e.intro || ""} onChange={e.setIntro} placeholder={e.introPh} maxLength={120} rows={2} disabled={e.busy}

@@ -405,7 +405,8 @@ export default function GlobeMap3D({ groups, home, routes = [], height, bubble =
       if (routeDots) routeDots.dispose();
       dropWays();
       for (const x of trash) x.dispose();
-      renderer.dispose();
+      // (the context let go too, not left for the browser to drop later: a phone allows only a few at a time)
+      renderer.dispose(); renderer.forceContextLoss();
     };
   }, [world]);
 

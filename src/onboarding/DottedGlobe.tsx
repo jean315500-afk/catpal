@@ -1,5 +1,6 @@
-// The onboarding's globe, in the look of @/components/ui/wireframe-dotted-globe: a black ocean with a white
-// rim, a faint graticule, white land outlines and grey halftone dots on the land. Unlike that component it
+// The flat globe (where the 3D one can't be drawn: no WebGL), after @/components/ui/wireframe-dotted-globe but in the
+// app's own colours (not its black): a powder-blue sea with a white rim, a faint graticule, soft green land with white
+// outlines and halftone dots on it. Unlike that component it
 // doesn't spin or drag on its own — `control` holds the turn (cobe's phi / theta, read every frame) and the
 // markers — and its land comes from world-atlas in the bundle (no fetch). The d3 orthographic projection is
 // set to match cobe's (cobeProjectXYZ) exactly, so the page's labels, pulses, friends and trail sit on it.
@@ -18,7 +19,7 @@ export type DottedControl = { phi: number; theta: number; markers?: Marker[]; vi
 
 /** the sphere's radius in the canvas box (cobe's), and the look (wireframe-dotted-globe's colours) */
 const R = 0.8;
-const OCEAN = '#000000', LINE = '#ffffff', DOT = '#999999', PEACH = '#F2906C';
+const OCEAN = '#A7D0F0', LAND_FILL = '#D5E8C4', LINE = '#ffffff', DOT = '#93BE8E', PEACH = '#F2906C';
 /** the halftone grid on the land: the same spacing as the component (16 × 0.08°) */
 const STEP = 16 * 0.08;
 
@@ -76,8 +77,8 @@ export default function DottedGlobe({ control, onFrame }: { control: MutableRefO
         ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = OCEAN; ctx.fill();
         // the graticule, faint
         ctx.beginPath(); path(GRATICULE); ctx.strokeStyle = LINE; ctx.lineWidth = 1 * k; ctx.globalAlpha = 0.25; ctx.stroke(); ctx.globalAlpha = 1;
-        // the land's outline
-        ctx.beginPath(); path(LAND); ctx.strokeStyle = LINE; ctx.lineWidth = 1 * k; ctx.stroke();
+        // the land, and its outline
+        ctx.beginPath(); path(LAND); ctx.fillStyle = LAND_FILL; ctx.fill(); ctx.strokeStyle = LINE; ctx.lineWidth = 1 * k; ctx.stroke();
         // halftone dots on the land (near side only)
         ctx.beginPath();
         const dr = 1.2 * k;

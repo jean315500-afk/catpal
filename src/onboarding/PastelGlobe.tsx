@@ -71,7 +71,7 @@ export default function PastelGlobe({ control, onFrame }: { control: MutableRefO
     };
     resize(); addEventListener('resize', resize);
     raf = requestAnimationFrame(draw);
-    return () => { dead = true; cancelAnimationFrame(raf); removeEventListener('resize', resize); for (const x of trash) x.dispose(); renderer.dispose(); };
+    return () => { dead = true; cancelAnimationFrame(raf); removeEventListener('resize', resize); for (const x of trash) x.dispose(); renderer.dispose(); renderer.forceContextLoss(); };
   }, [control]);
   return (
     <>
