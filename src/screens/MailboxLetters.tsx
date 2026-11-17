@@ -384,7 +384,9 @@ function Bundle({ g, active, stage, geo, t, onOpen, onWay, lifted, back }: {
     const onDown = (e: PointerEvent) => { if (e.button !== 0 || (e.target as HTMLElement).closest?.("[role=tab]")) return; drag = { id: e.pointerId, y: e.clientY, travel: 0, lean: 0 }; dragged.current = false; clearTimeout(idle); };
     const onMove = (e: PointerEvent) => {
       if (!drag || e.pointerId !== drag.id) return;
-      const dy = drag.y - e.clientY; drag.y = e.clientY; drag.travel += Math.abs(dy); if (dy) drag.lean = Math.sign(dy);
+      // (the letters follow the finger, on a phone too: down pushes the front one down into the folder and the next comes
+      // forward; up brings it back up. Before, they went the other way — up pushed them down)
+      const dy = e.clientY - drag.y; drag.y = e.clientY; drag.travel += Math.abs(dy); if (dy) drag.lean = Math.sign(dy);
       if (drag.travel > 8 && !dragged.current) { dragged.current = true; try { el.setPointerCapture(e.pointerId); } catch { /* gone */ } }
       if (dragged.current && !still) push(s.target + dy / (BX.gap * 1.4));
     };

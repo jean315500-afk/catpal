@@ -959,7 +959,14 @@ export default class CatPalLogic extends DCLogic {
       if (!c.clientId) this.setCmp({ clientId });
       const photoPath = c.photo ? await api.uploadOutboxPhoto(me.id, clientId, await toUploadJpeg(dataUrlToBlob(c.photo))) : null;
       const allowSame = !!this.homeOk; this.homeOk = false;
-      const res = await api.sendToNewCatpal(clientId, text || null, photoPath, c.stamp || 0, allowSame);
+      // (Plus) a country picked, or "a cat like mine": the server finds one there (only there — no one: nothing sent)
+      const want: { country?: string | null; similar?: boolean } = (plan.plus && c.match) || {};
+      let res: api.MatchResult;
+      if (want.country || want.similar) {
+        try { res = await api.sendToChosenCatpal(clientId, text || null, photoPath, c.stamp || 0, want.country || null, want.similar ? (this.state.myTraits as string[]) : null); }
+        catch (e) { if (api.isMissingFeature(e)) { back({ step: 3, err: this.tx("cpToNotReady") }); return; } throw e; }
+        if (res.status === "none_in_country") { back({ step: 3, err: this.tx("cpToNoneIn", { place: countryName(want.country || "", (LANG_LIST.find((x) => x[0] === this.L) || LANG_LIST[0])[2]) }) }); return; }
+      } else res = await api.sendToNewCatpal(clientId, text || null, photoPath, c.stamp || 0, allowSame);
       // only someone from my own country: asked first (nothing is sent until I say so)
       if (res.status === "ask_same_country") { this.setState((p) => ({ homeAsk: { cc: originOf(me) }, cmp: p.cmp && { ...p.cmp, busy: false, step: 3 } })); return; }
       if (res.status === "already_waiting") { back({ step: 3, err: this.tx("mtAlreadyWaiting"), startOver: true }); return; }

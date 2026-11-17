@@ -107,12 +107,17 @@ export async function uploadOutboxPhoto(uid: string, clientId: string, photo: Bl
   if (error && !/exists|duplicate|409/i.test(`${(error as any).statusCode || ''} ${error.message || ''}`)) throw error;
   return path;
 }
-export type MatchResult = { status: 'matched' | 'waiting' | 'already_waiting' | 'ask_same_country' | 'cancelled'; request_id?: string; thread_id?: string | null;
+export type MatchResult = { status: 'matched' | 'waiting' | 'already_waiting' | 'ask_same_country' | 'cancelled' | 'none_in_country'; request_id?: string; thread_id?: string | null;
   letter_id?: string | null; matched_with?: string | null; nickname?: string | null; country?: string | null; origin_country?: string | null };
 /** "Meet a new CatPal": this letter to a real member who said yes to matching — or kept till there is one. The same
  *  `clientId` again (a retry) gets back what happened the first time. */
 export async function sendToNewCatpal(clientId: string, body: string | null, photoPath: string | null, stamp: number, allowSameCountry: boolean): Promise<MatchResult> {
   return must(await supabase.rpc('send_to_new_catpal', { p_client_id: clientId, p_body: body, p_photo_path: photoPath, p_stamp: stamp, p_allow_same: allowSameCountry })) as any;
+}
+/** (CatPal Plus) a letter to a new CatPal from the country picked (only there — none there now: "none_in_country", nothing
+ *  sent) and/or whose cat is like mine (`traits`: the most in common first). supabase/fix-2026-11-17-plus-pick-country.sql */
+export async function sendToChosenCatpal(clientId: string, body: string | null, photoPath: string | null, stamp: number, country: string | null, traits: string[] | null): Promise<MatchResult> {
+  return must(await supabase.rpc('send_to_chosen_catpal', { p_client_id: clientId, p_body: body, p_photo_path: photoPath, p_stamp: stamp, p_country: country, p_traits: traits && traits.length ? traits : null })) as any;
 }
 export type WaitingLetter = { id: string; body: string | null; photo_path: string | null; stamp: number; allow_same_country: boolean; created_at: string };
 export async function myWaitingLetter(): Promise<WaitingLetter | null> {
