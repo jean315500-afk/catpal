@@ -124,7 +124,7 @@ export function OpenLetter({ c, from, onClose, onWriteBack, t, sample, freshShee
       <div className="ol-rig" aria-hidden="true" style={{ position: "absolute", left: "50%", top: "52%", width: W + "px", height: W * ENV.ratio + "px", marginLeft: -W / 2 + "px", marginTop: -(W * ENV.ratio) / 2 + "px", pointerEvents: "none" }}>
         <img className="ol-back" src={ENV.open} alt="" style={{ position: "absolute", inset: "0", width: "100%", height: "100%", clipPath: `inset(${ENV.fold * 100}% 0 0 0)` }} />
         <div className="ol-photo" style={{ position: "absolute", left: "50%", top: W * ENV.ratio * 0.36 + "px", width: W * 0.52 + "px", marginLeft: -W * 0.26 + "px", padding: "5px 5px 14px", background: "#fff", boxShadow: "0 3px 10px rgba(40,25,20,.22)", zIndex: 2 }}>
-          {c.photo ? <img src={c.photo} alt="" style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }} /> : <div style={{ width: "100%", aspectRatio: "1 / 1", background: "#F2EEE7" }} />}
+          {c.photo ? <img src={c.photo} alt="" style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }} /> : <div aria-hidden="true" style={{ width: "100%", aspectRatio: "1 / 1", background: "#F2EEE7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "34px", opacity: 0.55 }}>🐾</div>}
         </div>
         <div className="ol-paper" style={{ position: "absolute", left: "50%", top: W * ENV.ratio * 0.4 + "px", width: W * 0.86 + "px", height: W * 0.54 + "px", marginLeft: -W * 0.43 + "px", ...sheetWith(ruled(16)), backgroundPosition: "0 30px, 0 0, 0 0", borderRadius: "3px", boxShadow: "0 3px 10px rgba(60,40,20,.16)", zIndex: 1 }} />
         <img className="ol-front" src={ENV.front} alt="" style={{ position: "absolute", left: "0", top: ENV.frontTop * 100 + "%", width: "100%", height: ENV.frontH * 100 + "%", zIndex: 3 }} />
@@ -146,7 +146,7 @@ export function OpenLetter({ c, from, onClose, onWriteBack, t, sample, freshShee
           </div>
           {/* the cat */}
           <div className="ol-their-cat" style={{ margin: "16px auto 0", width: "220px", padding: "8px 8px 22px", background: "#fff", boxShadow: "0 4px 14px rgba(40,25,20,.18)", transform: "rotate(-2deg)" }}>
-            {c.photo ? <img src={c.photo} alt="" style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }} /> : <div style={{ width: "100%", aspectRatio: "1 / 1", background: "#F2EEE7" }} />}
+            {c.photo ? <img src={c.photo} alt="" style={{ width: "100%", aspectRatio: "1 / 1", objectFit: "cover", display: "block" }} /> : <div aria-hidden="true" style={{ width: "100%", aspectRatio: "1 / 1", background: "#F2EEE7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "34px", opacity: 0.55 }}>🐾</div>}
           </div>
           {/* their words, on the letter: stamped and postmarked, dated */}
           <div className="ol-their" style={{ position: "relative", margin: "18px auto 0", maxWidth: "340px", padding: "18px 18px 14px", ...SHEET_BG, borderRadius: "3px", boxShadow: "0 1px 2px rgba(60,40,20,.1), 0 14px 30px rgba(60,40,20,.12)", transform: "rotate(.6deg)" }}>

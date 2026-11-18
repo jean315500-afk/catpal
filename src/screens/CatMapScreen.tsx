@@ -304,7 +304,7 @@ function CatMap({ v }: { v: Vals }) {
   useEffect(() => { if (route) setExplore(null); }, [route?.key]);
   // a place tapped (one marker, or several close together): who's there, in a sheet — cat pals to pick, and the other
   // cat lovers' moments from there. Only moments there (no cat pal): straight to them, as before.
-  const [place, setPlace] = useState<{ title: string; n: number; pals: any[]; others: any[]; ccs: string[]; mine?: boolean } | null>(null);
+  const [place, setPlace] = useState<{ title: string; n: number; pals: any[]; others: any[]; ccs: string[]; mine?: boolean; catpals?: any[] } | null>(null);
   // example profiles tapped (not real people): who they are, said so — nothing to write to
   const [exList, setExList] = useState<any[] | null>(null);
   /** My CatPals: a cat pal tapped (or, several close together, the list of them to pick from); you alone: nothing */
@@ -314,7 +314,15 @@ function CatMap({ v }: { v: Vals }) {
     if (pals.length) setPlace({ title: [...new Set(pals.map((p: any) => p.country))].join(" · "), n: pals.length, pals, others: [], ccs, mine: true });
   };
   const openPlaces = (ccs: string[]) => {
-    const all = (v.cmPlaces || []).filter((p: any) => ccs.includes(p.cc)), ps = all.filter((p: any) => !p.example);
+    const all = (v.cmPlaces || []).filter((p: any) => ccs.includes(p.cc)), real = all.filter((p: any) => !p.example);
+    // (the real CatPals there — how many, not who: their own rows, a letter to "a CatPal here")
+    const catpals = real.filter((p: any) => p.catpals), ps = real.filter((p: any) => !p.catpals);
+    if (catpals.length) {
+      const pals = (v.cmPals || []).filter((p: any) => ccs.includes(p.cc));
+      setPlace({ title: [...new Set([...pals, ...real].map((p: any) => p.country))].join(" · "), n: pals.length + real.reduce((a: number, p: any) => a + p.count, 0),
+        pals: [...pals, ...ps.flatMap((p: any) => p.pals)], others: ps.filter((p: any) => p.others), ccs, catpals });
+      return;
+    }
     // your cat pals there (picked out on the World): one alone, straight to your way with them; with others, listed first
     const pals = (v.cmPals || []).filter((p: any) => ccs.includes(p.cc));
     if (pals.length === 1 && !ps.length && !all.length) { v.cmPick(pals[0].id, "pals"); return; }
@@ -585,6 +593,21 @@ function CatMap({ v }: { v: Vals }) {
                   <span style={{ fontWeight: 500, fontSize: "12px", color: "#7A8091", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{I(p.country)}{" · "}{I(p.nText)}</span>
                 </span>
                 <span style={{ flex: "none", fontWeight: 500, fontSize: "11px", color: "#9AA1B0", whiteSpace: "nowrap" }}>{I(p.when)}</span>
+              </div>
+            ))}
+            {each(place.catpals || [], (g: any) => (
+              <div key={"c-" + g.cc} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "10px 12px 10px 8px", borderRadius: "16px", background: "#fff", boxShadow: "0 1px 2px rgba(60,40,20,.08)" }}>
+                <span style={{ position: "relative", flex: "none", display: "flex" }}>
+                  <Face src={g.photo} flag={g.flag} size={42} />
+                  {g.active ? <span aria-label="active" className="cp-active-dot" style={{ position: "absolute", right: "0", top: "0", width: "11px", height: "11px", borderRadius: "6px", background: "#2FD36B", border: "2px solid #fff", boxSizing: "border-box" }} /> : null}
+                </span>
+                <span style={{ flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <b style={{ fontSize: "14px", color: "#22304A" }}>{I(g.othersText)}</b>
+                  <span style={{ fontWeight: 500, fontSize: "12px", lineHeight: "16px", color: "#7A8091" }}>{I(T.cmCatpalsNote)}</span>
+                </span>
+                <span onClick={() => { setPlace(null); v.cmWriteCountry?.(g.cc); }} role="button" tabIndex={0} className="dc-hover-2"
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setPlace(null); v.cmWriteCountry?.(g.cc); } }}
+                  style={{ flex: "none", height: "34px", padding: "0 14px", borderRadius: "17px", background: "#22304A", color: "#fff", fontWeight: 700, fontSize: "12.5px", display: "flex", alignItems: "center", cursor: "pointer", whiteSpace: "nowrap" }}>{I(T.cmSendLetter)}</span>
               </div>
             ))}
             {each(place.others, (g: any) => (

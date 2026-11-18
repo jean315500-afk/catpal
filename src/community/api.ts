@@ -197,6 +197,14 @@ export async function mapMoments(limit = 300): Promise<MomentCard[]> {
   return must(await supabase.from('moment_cards').select('*').order('created_at', { ascending: false }).limit(limit)) || [];
 }
 
+/** where the real CatPals are, for the World globe: how many in each country (and one here lately) — no names or photos.
+ *  supabase/fix-2026-11-19-world-catpals.sql; not set up yet: none. */
+export type WorldCatpals = { cc: string; n: number; active: boolean }[];
+export async function worldCatpals(): Promise<WorldCatpals> {
+  const { data, error } = await supabase.rpc('world_catpals');
+  return error ? [] : ((data as any[]) || []).filter((r) => /^[A-Z]{2}$/.test(r?.cc || '') && r.n > 0);
+}
+
 export async function myMoments(uid: string): Promise<MomentCard[]> {
   return must(await supabase.from('moment_cards').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(60)) || [];
 }

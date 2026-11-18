@@ -11,6 +11,7 @@
 //   4 sent as a link (from the Map): the sealed envelope, the link to share or copy (not delivered until the friend writes back)
 // Sending goes on to the delivery globe (DeliveryMapScreen). State and steps live in CatPalLogic (openCompose…).
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import TypewriterPaper, { SHEET, sheetWidth, TYPE_FONT } from './Typewriter';
 import { ROOM_BG, SHEET_BG } from '../community/grain';
 import { css, each, I, R } from '../dc/runtime';
@@ -186,12 +187,14 @@ export default function ComposeScreen({ v }: { v: Vals }) {
   const [gateBox, setGateBox] = useState<{ left: number; top: number; w: number; tilt: number; pad: number } | null>(null);
   const slotRef = useRef<HTMLSpanElement>(null), fileRef = useRef<HTMLInputElement>(null);
   const pickFile = () => fileRef.current?.click();
-  // where it shows big: the middle of the sheet (measured from the page)
+  // where it shows big: as high as the middle of the sheet (as it was), and across, the middle of the screen (its size
+  // from the sheet's; picked, it flies from here to its spot on the sheet)
   const placeBig = () => {
     const root = rootEl.current, sheet = document.getElementById("cp-letter-text")?.parentElement; if (!root || !sheet) return;
     const R0 = root.getBoundingClientRect(), r = sheet.getBoundingClientRect(), wBig = Math.round(Math.min(250, r.width * 0.86));
-    setGateBox({ left: r.left - R0.left + r.width / 2 - wBig / 2, top: r.top - R0.top + r.height * 0.47 - (wBig + 40) / 2, w: wBig, tilt: -2, pad: 10 });
+    setGateBox({ left: Math.round(root.clientWidth / 2 - wBig / 2), top: r.top - R0.top + r.height * 0.47 - (wBig + 40) / 2, w: wBig, tilt: -2, pad: 10 });
   };
+
   useLayoutEffect(() => {
     if (!v.sCompose || step !== 1 || gate !== "on") return;
     placeBig(); const t = setTimeout(placeBig, 950);   // (again once the sheet has come up out of the machine)
@@ -281,8 +284,17 @@ export default function ComposeScreen({ v }: { v: Vals }) {
   // as what's left over the keyboard allows — under the back button, over the Next button kept above the keyboard
   const kbUp = kbNow;
   const twH = (twW * 693) / 900, sheetFit = kbUp ? vp.vis - 62 - Math.round(twH * 0.125) - 104 : 0;
+  // (a wide screen) the app is a column in the middle: the letter's paper, and the dim before a photo, go on past its
+  // sides to the window's edges — drawn behind the column, on the page's own backdrop (on a phone: under it, unseen)
+  const bleedTo = typeof document !== "undefined" ? document.querySelector(".sc-host .cp-sky") : null;
+  const dimOn = step === 1 && gate !== "off" && !kbUp;
+  const bleed = bleedTo ? createPortal(
+    <div aria-hidden="true" style={{ position: "absolute", inset: "0", zIndex: -1, pointerEvents: "none", ...ROOM_BG, backgroundPosition: "calc((100vw - 680px) / 2) 0" }}>
+      {dimOn ? <div style={{ position: "absolute", inset: "0", background: "rgba(26,30,42,.48)", opacity: gate === "fly" ? 0 : 1, transition: "opacity .42s ease", animation: "cp-fade .3s ease" }} /> : null}
+    </div>, bleedTo) : null;
   return (
     <>
+    {bleed}
     <div ref={rootEl} data-screen-label="Letter"
       onFocus={(e) => { if ((e.target as HTMLElement).id === "cp-letter-text") setWritingIn(true); }} onBlur={(e) => { if ((e.target as HTMLElement).id === "cp-letter-text") setWritingIn(false); }}
       style={{ position: "absolute", inset: "0", ...ROOM_BG, overflowY: "auto", overflowX: "hidden", scrollbarWidth: "none" }}>
@@ -485,7 +497,9 @@ export default function ComposeScreen({ v }: { v: Vals }) {
         the sheet's place for the photo big over it; picked, it goes to its spot as the dim lifts */}
     {step === 1 && gate !== "off" && !kbUp ? (
       <>
-        <div aria-hidden="true" style={{ position: "absolute", inset: "0", zIndex: 20, background: "rgba(26,30,42,.48)", pointerEvents: "none", opacity: gate === "fly" ? 0 : 1, transition: "opacity .42s ease", animation: "cp-fade .3s ease" }} />
+        {/* (a little past the page's sides, cut off by them: its own edge there showed as a thin light line beside the
+            dim drawn past the page on a wide screen) */}
+        <div aria-hidden="true" style={{ position: "absolute", inset: "0 -40px", zIndex: 20, background: "rgba(26,30,42,.48)", pointerEvents: "none", opacity: gate === "fly" ? 0 : 1, transition: "opacity .42s ease", animation: "cp-fade .3s ease" }} />
         {gateBox ? (
           <div onClick={gate === "on" ? pickFile : undefined} role="button" tabIndex={0} aria-label={T.cpAddYourPhoto}
             onKeyDown={(e) => { if (gate === "on" && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); pickFile(); } }}
